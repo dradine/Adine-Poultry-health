@@ -4,6 +4,7 @@ import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
 import { ASSAY_CATALOG } from './core/assayRegistry'
+import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 
 type SavedProfile = {
@@ -130,6 +131,29 @@ export default function App() {
       })
     } catch { return [] }
   }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, titers, susceptiblePercent])
+
+  function exportBackup() {
+    try {
+      const blob = new Blob([JSON.stringify(createLocalBackup(), null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `adine-vaccine-backup-${new Date().toISOString().slice(0,10)}.json`
+      anchor.click()
+      URL.revokeObjectURL(url)
+      setError('')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تهیه پشتیبان انجام نشد.') }
+  }
+
+  async function importBackup(file?: File) {
+    if (!file) return
+    try {
+      restoreLocalBackup(JSON.parse(await file.text()))
+      setProfiles(readProfiles())
+      setAnalyses(readAnalyses())
+      setError('پشتیبان با موفقیت ادغام شد؛ داده‌های موجود حذف نشدند.')
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'بازیابی پشتیبان انجام نشد.') }
+  }
 
   function saveProfile() {
     setError('')
