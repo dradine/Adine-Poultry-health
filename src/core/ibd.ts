@@ -38,7 +38,7 @@ export function validateIbdRunGate(input: IbdRunGateInput): string[] {
 }
 function nearestRank(sorted: number[], percentile: number): { value: number; rank: number } {
   if (!sorted.length) throw new Error('برای محاسبه، تیتر معتبر لازم است.')
-  const rank = Math.ceil((percentile / 100) * sorted.length)
+  const rank = Math.max(1, Math.ceil((percentile / 100) * sorted.length))
   return { value: sorted[Math.max(0, Math.min(sorted.length - 1, rank - 1))], rank }
 }
 /** Mathematical Deventer-style estimator for conventional live IBD vaccines only.
@@ -46,7 +46,7 @@ function nearestRank(sorted: number[], percentile: number): { value: number; ran
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
     correctionDays = 0, minimumSampleCount = 23 } = input
-  if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0) throw new Error('سن نمونه‌گیری معتبر نیست.')
+  if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری معتبر نیست.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
@@ -54,7 +54,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
   if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
   if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
-  if (titers.some(v => !Number.isFinite(v) || v <= 0)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
+  if (titers.some(v => !Number.isFinite(v) || v <= 0 || v > 1e9)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
   const sorted = [...titers].sort((a,b) => a-b)
   const selected = nearestRank(sorted, susceptiblePercent)
   const percentileTiter = selected.value
