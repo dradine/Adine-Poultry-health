@@ -37,18 +37,20 @@ describe('offline backup',()=>{
 describe('offline backup failure safety', () => {
   it('rolls back the first write if the second write fails', () => {
     class FailingStorage extends MemoryStorage {
+      failOnSecondWrite = false
       private calls = 0
       override setItem(k: string, v: string) {
-        this.calls += 1
-        if (this.calls === 2) throw new Error('quota')
+        if (this.failOnSecondWrite) {
+          this.calls += 1
+          if (this.calls === 2) throw new Error('quota')
+        }
         super.setItem(k, v)
       }
     }
     const s = new FailingStorage()
     s.setItem('adine-vaccine-timing-profiles-v1', JSON.stringify([{ id: 'existing-p' }]))
     s.setItem('adine-vaccine-timing-analyses-v1', JSON.stringify([{ id: 'existing-a' }]))
-    // Reset failure counter after seeding.
-    s['calls'] = 0
+    s.failOnSecondWrite = true
     expect(() => restoreLocalBackup({ schema: 'adine-vaccine-timing-backup', version: 1, profiles: [{ id: 'new-p' }], analyses: [{ id: 'new-a' }] }, s)).toThrow('quota')
     expect(JSON.parse(s.getItem('adine-vaccine-timing-profiles-v1')!)).toEqual([{ id: 'existing-p' }])
     expect(JSON.parse(s.getItem('adine-vaccine-timing-analyses-v1')!)).toEqual([{ id: 'existing-a' }])
