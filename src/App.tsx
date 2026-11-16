@@ -471,26 +471,47 @@ export default function App() {
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
           </label>
-          <label>انتخاب کیت سرولوژی (بانک علمی)
-            <select value={kitName} onChange={(e) => setKitName(e.target.value)}>
+          {catalogNotice && <p className="muted">{catalogNotice}</p>}
+          <label>انتخاب محصول واکسن از بانک مرجع
+            <select value={selectedVaccineProductId} onChange={(e) => applyVaccineProduct(e.target.value)}>
+              <option value="">ورود دستی / محصول دیگر…</option>
+              {vaccineCatalog.filter(product => product.disease_code === 'IBD').map(product => (
+                <option key={product.id} value={product.id}>
+                  {product.product_name} · {product.market_code || 'بازار نامشخص'} · {product.label_version || 'نسخه نامشخص'}
+                </option>
+              ))}
+            </select>
+            {selectedVaccineProduct && <small>
+              برچسب بازار {selectedVaccineProduct.market_code || 'نامشخص'}؛ ثبت {selectedVaccineProduct.registration_number || 'بدون شماره ثبت'}؛
+              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز.
+              این برچسب فقط مربوط به بازار ثبت‌شده است و به معنی مجوز عرضه در ایران نیست.
+            </small>}
+          </label>
+          <label>انتخاب کیت سرولوژی (بانک مرجع)
+            <select value={selectedAssayId} disabled={Boolean(selectedVaccineProductId)} onChange={(e) => {
+              const selected = assayCatalog.find(kit => kit.id === e.target.value)
+              setSelectedAssayId(e.target.value)
+              setKitName(selected ? selected.manufacturer + ' — ' + selected.name + (selected.catalog ? ' (' + selected.catalog + ')' : '') : '')
+            }}>
               <option value="">انتخاب کیت…</option>
-              {ASSAY_CATALOG.filter((kit) => kit.disease === 'IBD').map((kit) => (
-                <option key={kit.id} value={kit.manufacturer + ' — ' + kit.name + (kit.catalog ? ' (' + kit.catalog + ')' : '')}>
+              {assayCatalog.filter((kit) => kit.disease === 'IBD').map((kit) => (
+                <option key={kit.id} value={kit.id}>
                   {kit.manufacturer} — {kit.name}{kit.catalog ? ' (' + kit.catalog + ')' : ''}{kit.status !== 'documented' ? ' · مستندات ناکامل' : ''}
                 </option>
               ))}
             </select>
-            <input value={kitName} onChange={(e) => setKitName(e.target.value)} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
-            <small>فهرست فعلی فقط کیت‌های IBD را نشان می‌دهد؛ کیت‌های غیرمستند نیازمند بررسی IFU هستند.</small>
+            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
-            <input value={vaccineName} onChange={(e) => setVaccineName(e.target.value)} placeholder="نام تجاری، سویه و نوع واکسن" />
+            <input value={vaccineName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setVaccineName(e.target.value); setSelectedVaccineProductId('') }} placeholder="نام تجاری، سویه و نوع واکسن" />
           </label>
           <label>BTT محصول (تیتر)
-            <input inputMode="decimal" value={btt} onChange={(e) => setBtt(e.target.value)} placeholder="فقط از بروشور همان محصول" />
+            <input inputMode="decimal" value={btt} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setBtt(e.target.value)} placeholder="فقط از بروشور همان محصول" />
+            {selectedVaccineProduct && <small>{selectedVaccineProduct.btt_definition} · واحد: {selectedVaccineProduct.breakthrough_unit}</small>}
           </label>
           <label>منبع دقیق BTT (بروشور/نسخه/صفحه/واحد)
-            <input value={bttSource} onChange={(e) => setBttSource(e.target.value)} placeholder="نام محصول، نسخه برچسب، صفحه و مقیاس ELISA" />
+            <input value={bttSource} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setBttSource(e.target.value)} placeholder="نام محصول، نسخه برچسب، صفحه و مقیاس ELISA" />
           </label>
           <label>نیمه‌عمر آنتی‌بادی (روز)
             <input inputMode="decimal" value={halfLife} onChange={(e) => setHalfLife(e.target.value)} placeholder="بر اساس داده معتبر همین گله/جمعیت" />
