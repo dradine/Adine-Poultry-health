@@ -148,6 +148,23 @@ export default function App() {
   const selectedVaccineProduct = vaccineCatalog.find(product => product.id === selectedVaccineProductId)
   const selectedAssay = assayCatalog.find(kit => kit.id === selectedAssayId)
 
+  useEffect(() => {
+    if (!selectedAssayId || selectedAssay) return
+    const previous = ASSAY_CATALOG.find(kit => kit.id === selectedAssayId)
+    if (!previous?.catalog) return
+    const normalizeCatalog = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const previousCode = normalizeCatalog(previous.catalog)
+    const match = assayCatalog.find(kit => {
+      if (!kit.catalog) return false
+      const currentCode = normalizeCatalog(kit.catalog)
+      return currentCode === previousCode || currentCode.startsWith(previousCode) || previousCode.startsWith(currentCode)
+    })
+    if (match) {
+      setSelectedAssayId(match.id)
+      setKitName(match.manufacturer + ' — ' + match.name + (match.catalog ? ' (' + match.catalog + ')' : ''))
+    }
+  }, [selectedAssayId, selectedAssay, assayCatalog])
+
   function applyVaccineProduct(id: string) {
     setSelectedVaccineProductId(id)
     if (!id) {
@@ -504,7 +521,7 @@ export default function App() {
             <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
-            <input value={vaccineName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setVaccineName(e.target.value); setSelectedVaccineProductId('') }} placeholder="نام تجاری، سویه و نوع واکسن" />
+            <input value={vaccineName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setVaccineName(e.target.value); setSelectedVaccineProductId(''); setBtt(''); setBttSource('') }} placeholder="نام تجاری، سویه و نوع واکسن" />
           </label>
           <label>BTT محصول (تیتر)
             <input inputMode="decimal" value={btt} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setBtt(e.target.value)} placeholder="فقط از بروشور همان محصول" />
