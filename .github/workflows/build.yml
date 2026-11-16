@@ -14,9 +14,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Refresh lockfile from declared dependencies
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - run: npm ci --no-audit --no-fund
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit all dependencies
+        run: npm audit --audit-level=high
       - run: npm run test
       - run: npm run build
       - name: Verify GitHub Pages base-path build
