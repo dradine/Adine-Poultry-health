@@ -6,7 +6,7 @@ import DateObject from 'react-date-object'
 import { ASSAY_CATALOG } from './core/assayRegistry'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
-import { interpretIbdResult } from './core/ibdInterpretation'
+import { interpretIbdResult } from './core/ibdInterpretation'\nimport DiseaseMonitoring from './DiseaseMonitoring'
 
 type SavedProfile = {
   id: string
@@ -456,13 +456,13 @@ export default function App() {
         )}
       </section>
 
-      <section className="panel roadmap">
+      <DiseaseMonitoring />\n\n      <section className="panel roadmap">
         <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
         <div className="disease-grid">
           <div className="disease active"><b>گامبورو (IBD)</b><small>نسخه اولیه در حال اعتبارسنجی</small></div>
-          <div className="disease"><b>نیوکاسل (ND)</b><small>مدل اختصاصی بر اساس آزمون و پلتفرم</small></div>
-          <div className="disease"><b>برونشیت (IBV)</b><small>مدل مستقل؛ بدون تعمیم Deventer</small></div>
-          <div className="disease"><b>آنفلوانزا (AIV)</b><small>تفکیک آنتی‌ژن هدف و وکتور</small></div>
+          <div className="disease"><b>نیوکاسل (ND)</b><small>HI monitor آزمایشی فعال · بدون ادعای حفاظت</small></div>
+          <div className="disease"><b>برونشیت (IBV)</b><small>روند سرولوژی آزمایشی فعال · assay-specific</small></div>
+          <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
         </div>
       </section>
 
