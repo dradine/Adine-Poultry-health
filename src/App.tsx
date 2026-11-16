@@ -118,6 +118,15 @@ export default function App() {
   }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
   const result = calculation.result
   const calculationError = calculation.error
+  const interpretation = useMemo(() => result ? interpretIbdResult({
+    samplingAgeDays: Number(normalizeDigits(samplingAge)),
+    breakthroughTiter: Number(normalizeDigits(btt)),
+    halfLifeDays: Number(normalizeDigits(halfLife)),
+    susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
+    correctionDays: Number(normalizeDigits(correctionDays)),
+    titers,
+  }, result, { assay: kitName, vaccine: vaccineName, bttSource, halfLifeSource, correctionSource }) : null,
+  [result, samplingAge, btt, halfLife, susceptiblePercent, correctionDays, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource])
   const sensitivity = useMemo(() => {
     if (!result) return []
     try {
