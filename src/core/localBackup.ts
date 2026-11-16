@@ -33,7 +33,7 @@ export function validateLocalBackup(value: unknown): LocalBackup {
   if (candidate.schema !== 'adine-vaccine-timing-backup' || candidate.version !== 1) {
     throw new Error('نسخه یا قالب فایل پشتیبان با این برنامه سازگار نیست.')
   }
-  if (typeof candidate.exportedAt !== 'string' || !Number.isFinite(Date.parse(candidate.exportedAt))) throw new Error('تاریخ خروجی پشتیبان معتبر نیست.')
+  if (candidate.exportedAt !== undefined && (typeof candidate.exportedAt !== 'string' || !Number.isFinite(Date.parse(candidate.exportedAt)))) throw new Error('تاریخ خروجی پشتیبان معتبر نیست.')
   if (!Array.isArray(candidate.profiles) || !Array.isArray(candidate.analyses)) {
     throw new Error('ساختار گله‌ها یا تحلیل‌های فایل پشتیبان معتبر نیست.')
   }
