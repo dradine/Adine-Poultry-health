@@ -3,6 +3,7 @@ import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
+import { ASSAY_CATALOG } from './core/assayRegistry'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 
 type SavedProfile = {
@@ -293,8 +294,18 @@ export default function App() {
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
           </label>
-          <label>نام دقیق کیت و شماره کاتالوگ
-            <input value={kitName} onChange={(e) => setKitName(e.target.value)} placeholder="سازنده، نام کیت، کد محصول و نسخه" />
+          <label>انتخاب کیت سرولوژی (بانک علمی)
+            <select value={kitName} onChange={(e) => setKitName(e.target.value)}>
+              <option value="">انتخاب کیت…</option>
+              {ASSAY_CATALOG.filter((kit) => kit.disease === 'IBD').map((kit) => (
+                <option key={kit.id} value={kit.manufacturer + ' — ' + kit.name + (kit.catalog ? ' (' + kit.catalog + ')' : '')}>
+                  {kit.manufacturer} — {kit.name}{kit.catalog ? ' (' + kit.catalog + ')' : ''}{kit.status !== 'documented' ? ' · مستندات ناکامل' : ''}
+                </option>
+              ))}
+              <option value="manual">کیت دیگر / ورود دستی</option>
+            </select>
+            {kitName === 'manual' && <input value={kitName === 'manual' ? '' : kitName} onChange={(e) => setKitName(e.target.value)} placeholder="نام سازنده، کیت، کد و نسخه IFU" />}
+            <small>فقط کیت‌های مستند در فهرست اولیه محاسبات را فعال می‌کنند؛ سایر موارد نیازمند مستندات دقیق هستند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
             <input value={vaccineName} onChange={(e) => setVaccineName(e.target.value)} placeholder="نام تجاری، سویه و نوع واکسن" />
