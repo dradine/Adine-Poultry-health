@@ -8,8 +8,8 @@ describe('disease model registry', () => {
   it('separates monitoring from vaccine timing/protection calculators', () => {
     expect(getDiseaseModel('ND').status).toBe('monitor-available')
     expect(getDiseaseModel('ND').method).toContain('monitor')
-    expect(getDiseaseModel('IB').status).toBe('monitor-available')
-    expect(getDiseaseModel('IB').scope).toContain('بدون protection')
+    expect(getDiseaseModel('IBV').status).toBe('monitor-available')
+    expect(getDiseaseModel('IBV').scope).toContain('بدون protection')
     expect(getDiseaseModel('AIV').status).toBe('monitor-available')
     expect(getDiseaseModel('AIV').scope).toContain('نه تشخیص')
   })
