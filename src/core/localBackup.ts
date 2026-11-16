@@ -4,6 +4,7 @@ export type LocalBackup = {
   exportedAt: string
   profiles: unknown[]
   analyses: unknown[]
+  localFirst?: { flocks: unknown[]; modelRuns: unknown[] }
 }
 
 const PROFILE_KEY = 'adine-vaccine-timing-profiles-v1'
@@ -36,6 +37,12 @@ export function validateLocalBackup(value: unknown): LocalBackup {
   if (candidate.exportedAt !== undefined && (typeof candidate.exportedAt !== 'string' || !Number.isFinite(Date.parse(candidate.exportedAt)))) throw new Error('تاریخ خروجی پشتیبان معتبر نیست.')
   if (!Array.isArray(candidate.profiles) || !Array.isArray(candidate.analyses)) {
     throw new Error('ساختار گله‌ها یا تحلیل‌های فایل پشتیبان معتبر نیست.')
+  }
+  if (candidate.localFirst !== undefined) {
+    const localFirst = candidate.localFirst as { flocks?: unknown; modelRuns?: unknown } | null
+    if (!localFirst || !Array.isArray(localFirst.flocks) || !Array.isArray(localFirst.modelRuns)) {
+      throw new Error('ساختار داده‌های آفلاین فایل پشتیبان معتبر نیست.')
+    }
   }
   return candidate as LocalBackup
 }
