@@ -17,7 +17,8 @@ type LegacyAnalysis = {
   estimatedVaccinationAgeDays: number | null; percentileTiter: number; percentileRank: number
   sampleCount: number; plateQcAccepted: boolean; randomSamplingConfirmed: boolean
   pairingVerified: boolean
-  assayKitId?: string; vaccineProductId?: string; vaccineMarketCode?: string | null
+  assayKitId?: string; assaySource?: string; assayStatus?: string; assayNote?: string
+  vaccineProductId?: string; vaccineMarketCode?: string | null
   vaccineLabelVersion?: string | null; bttAssayKitId?: string | null
   savedAt: string
 }
@@ -66,7 +67,7 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
       minimumSampleCount: item.minimumSampleCount,
     },
     source_references: [
-      ...(item.assayKitId ? [{ kind: 'assay_kit', id: item.assayKitId, name: item.kitName }] : []),
+      ...(item.assayKitId || item.assaySource ? [{ kind: 'assay_kit', id: item.assayKitId, name: item.kitName, source: item.assaySource, validationStatus: item.assayStatus, note: item.assayNote }] : []),
       ...(item.vaccineProductId ? [{ kind: 'vaccine_product', id: item.vaccineProductId, market: item.vaccineMarketCode, labelVersion: item.vaccineLabelVersion, bttAssayKitId: item.bttAssayKitId, name: item.vaccineName }] : []),
       { kind: 'btt_source', citation: item.bttSource },
       { kind: 'half_life_source', citation: item.halfLifeSource },
