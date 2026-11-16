@@ -26,7 +26,7 @@ export function interpretIbdResult(input: IbdInput, result: IbdOutput, context: 
   const status = already ? 'already-reached' : 'candidate-window'
   const farmer = already
     ? `در نمونه‌گیری روز ${input.samplingAgeDays}، تیتر گروه انتخاب‌شده (${selected}) از آستانه عبور واکسن (${input.breakthroughTiter}) پایین‌تر/در حد آن بوده و مدل می‌گوید زمان محاسباتی ممکن است رسیده باشد. این به معنی الزام تزریق فوری یا اثبات حفاظت/عدم حفاظت گله نیست؛ برنامه واکسن و وضعیت فارم باید بررسی شود.`
-    : `با فرض اینکه ${p}٪ پرندگان هدف در زمان واکسیناسیون مستقیماً پاسخ‌پذیر باشند، مدل بر پایه تیتر انتخابی ${selected} از نمونه‌گیری روز ${input.samplingAgeDays}، روز ${date!.toFixed(1)} را به‌عنوان پنجره محاسباتی عبور از آستانه واکسن برآورد می‌کند. این روز، زمان قطعی یا تضمین‌کننده ایمنی گله نیست.`
+    : `با فرض اینکه در ${p}٪ پرندگان هدف، تیتر MDA به BTT رسیده یا پایین‌تر آمده و از نظر آنتی‌بادی مستعد واکسن زنده شده باشند، مدل بر پایه تیتر انتخابی ${selected} از نمونه‌گیری روز ${input.samplingAgeDays}، روز ${date!.toFixed(1)} را به‌عنوان پنجره محاسباتی عبور از آستانه واکسن برآورد می‌کند. این روز، زمان قطعی یا تضمین‌کننده ایمنی گله نیست.`
   const veterinarian = [
     `آمار نمونه: n=${result.sampleCount}؛ صدک/هدف پاسخ‌پذیری=${p}٪؛ رتبه مشاهده‌ای انتخاب‌شده=${rank} از ${result.sampleCount}؛ تیتر متناظر=${selected}؛ log₂(titer)= ${result.log2PercentileTiter.toFixed(3)}.`,
     `محاسبه: سن نمونه‌گیری (${input.samplingAgeDays}) + [log₂ تیتر انتخابی − log₂ BTT (${input.breakthroughTiter})] × نیمه‌عمر (${input.halfLifeDays}) + اصلاح (${input.correctionDays ?? 0}) = ${result.rawCalculatedAgeDays.toFixed(2)} روز. ${already ? 'خروجی خام از سن نمونه‌گیری جلوتر نیست؛ تاریخ آینده گزارش نمی‌شود.' : 'خروجی خام به‌عنوان سن تخمینی ثبت شده است.'}`,
