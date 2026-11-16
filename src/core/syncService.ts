@@ -162,6 +162,17 @@ export async function refreshLegacyCacheFromLocal(): Promise<void> {
 async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
   const table = item.entity
   if (item.operation === 'delete') {
+    if (item.entity === 'flocks') {
+      const [remoteRuns, localRuns] = await Promise.all([
+        supabase.from('model_runs').select('id', { count: 'exact', head: true }).eq('flock_id', item.recordId),
+        listLocalModelRuns(true),
+      ])
+      if (remoteRuns.error) throw remoteRuns.error
+      const localRunCount = localRuns.filter(run => run.flock_id === item.recordId).length
+      if ((remoteRuns.count || 0) > localRunCount) {
+        throw new Error('حذف گله متوقف شد: سوابق ابری این گله از سوابق موجود روی این دستگاه بیشتر است. ابتدا همگام‌سازی کامل سوابق را انجام دهید.')
+      }
+    }
     if (item.entity === 'flocks' && item.payload?.updated_at) {
       const { data: remote, error: readError } = await supabase.from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
       if (readError) throw readError
