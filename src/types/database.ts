@@ -21,15 +21,26 @@ export type Database = {
           breakthrough_unit: string | null
           catalog_number: string | null
           created_at: string
+          dilution_factor: number | null
           disease_code: string
           formula_spec: Json
           id: string
           kit_name: string
+          kit_version: string | null
           manufacturer: string
+          minimum_sample_count: number | null
           protocol_version: string | null
+          reference_url: string | null
+          result_units: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_document: string | null
+          source_document_hash: string | null
           source_version: string | null
+          species: string
+          target_antigen: string | null
           validation_status: string
+          wavelength_nm: number | null
         }
         Insert: {
           assay_type: string
@@ -37,15 +48,26 @@ export type Database = {
           breakthrough_unit?: string | null
           catalog_number?: string | null
           created_at?: string
+          dilution_factor?: number | null
           disease_code: string
           formula_spec?: Json
           id?: string
           kit_name: string
+          kit_version?: string | null
           manufacturer: string
+          minimum_sample_count?: number | null
           protocol_version?: string | null
+          reference_url?: string | null
+          result_units?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_document?: string | null
+          source_document_hash?: string | null
           source_version?: string | null
+          species?: string
+          target_antigen?: string | null
           validation_status?: string
+          wavelength_nm?: number | null
         }
         Update: {
           assay_type?: string
@@ -53,15 +75,26 @@ export type Database = {
           breakthrough_unit?: string | null
           catalog_number?: string | null
           created_at?: string
+          dilution_factor?: number | null
           disease_code?: string
           formula_spec?: Json
           id?: string
           kit_name?: string
+          kit_version?: string | null
           manufacturer?: string
+          minimum_sample_count?: number | null
           protocol_version?: string | null
+          reference_url?: string | null
+          result_units?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_document?: string | null
+          source_document_hash?: string | null
           source_version?: string | null
+          species?: string
+          target_antigen?: string | null
           validation_status?: string
+          wavelength_nm?: number | null
         }
         Relationships: [
           {
@@ -153,12 +186,18 @@ export type Database = {
           disease_code: string
           flock_id: string
           id: string
+          input_schema_version: string | null
           input_snapshot: Json
           limitations: string[]
+          model_assumptions: Json
           model_family: string
           model_version: string
           output_snapshot: Json
           owner_id: string
+          qc_summary: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_references: Json
         }
         Insert: {
           confidence_level?: string
@@ -167,12 +206,18 @@ export type Database = {
           disease_code: string
           flock_id: string
           id?: string
+          input_schema_version?: string | null
           input_snapshot: Json
           limitations?: string[]
+          model_assumptions?: Json
           model_family: string
           model_version: string
           output_snapshot: Json
           owner_id?: string
+          qc_summary?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_references?: Json
         }
         Update: {
           confidence_level?: string
@@ -181,12 +226,18 @@ export type Database = {
           disease_code?: string
           flock_id?: string
           id?: string
+          input_schema_version?: string | null
           input_snapshot?: Json
           limitations?: string[]
+          model_assumptions?: Json
           model_family?: string
           model_version?: string
           output_snapshot?: Json
           owner_id?: string
+          qc_summary?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_references?: Json
         }
         Relationships: [
           {
@@ -208,18 +259,32 @@ export type Database = {
       serology_batches: {
         Row: {
           assay_kit_id: string | null
+          assay_software_name: string | null
+          assay_software_version: string | null
           assay_type: string
           created_at: string
           disease_code: string
           flock_id: string
           id: string
+          ifu_version: string | null
           kit_lot: string | null
           laboratory_name: string | null
+          negative_control_mean_od: number | null
+          operator_label: string | null
           owner_id: string
           plate_id: string | null
+          plate_reader_model: string | null
+          plate_reader_serial: string | null
+          positive_control_mean_od: number | null
           protocol_metadata: Json
           qc_notes: string | null
+          qc_reviewed_at: string | null
+          qc_reviewed_by: string | null
           qc_status: string
+          reference_control_code: string | null
+          reference_control_expected_max: number | null
+          reference_control_expected_min: number | null
+          reference_control_result: number | null
           sample_count: number
           sampling_age_days: number
           sampling_date: string
@@ -227,18 +292,32 @@ export type Database = {
         }
         Insert: {
           assay_kit_id?: string | null
+          assay_software_name?: string | null
+          assay_software_version?: string | null
           assay_type: string
           created_at?: string
           disease_code: string
           flock_id: string
           id?: string
+          ifu_version?: string | null
           kit_lot?: string | null
           laboratory_name?: string | null
+          negative_control_mean_od?: number | null
+          operator_label?: string | null
           owner_id?: string
           plate_id?: string | null
+          plate_reader_model?: string | null
+          plate_reader_serial?: string | null
+          positive_control_mean_od?: number | null
           protocol_metadata?: Json
           qc_notes?: string | null
+          qc_reviewed_at?: string | null
+          qc_reviewed_by?: string | null
           qc_status?: string
+          reference_control_code?: string | null
+          reference_control_expected_max?: number | null
+          reference_control_expected_min?: number | null
+          reference_control_result?: number | null
           sample_count: number
           sampling_age_days: number
           sampling_date: string
@@ -246,18 +325,32 @@ export type Database = {
         }
         Update: {
           assay_kit_id?: string | null
+          assay_software_name?: string | null
+          assay_software_version?: string | null
           assay_type?: string
           created_at?: string
           disease_code?: string
           flock_id?: string
           id?: string
+          ifu_version?: string | null
           kit_lot?: string | null
           laboratory_name?: string | null
+          negative_control_mean_od?: number | null
+          operator_label?: string | null
           owner_id?: string
           plate_id?: string | null
+          plate_reader_model?: string | null
+          plate_reader_serial?: string | null
+          positive_control_mean_od?: number | null
           protocol_metadata?: Json
           qc_notes?: string | null
+          qc_reviewed_at?: string | null
+          qc_reviewed_by?: string | null
           qc_status?: string
+          reference_control_code?: string | null
+          reference_control_expected_max?: number | null
+          reference_control_expected_min?: number | null
+          reference_control_result?: number | null
           sample_count?: number
           sampling_age_days?: number
           sampling_date?: string
@@ -291,44 +384,59 @@ export type Database = {
         Row: {
           batch_id: string
           created_at: string
+          dilution_factor: number | null
           id: string
           owner_id: string
           raw_od: number | null
           raw_result: Json
+          replicate_no: number | null
           reported_titer: number | null
+          reported_titer_unit: string | null
+          result_flags: string[] | null
           result_status: string
           sample_code: string
           sn_ratio: number | null
           sp_ratio: number | null
           titer_log2: number | null
+          well_position: string | null
         }
         Insert: {
           batch_id: string
           created_at?: string
+          dilution_factor?: number | null
           id?: string
           owner_id?: string
           raw_od?: number | null
           raw_result?: Json
+          replicate_no?: number | null
           reported_titer?: number | null
+          reported_titer_unit?: string | null
+          result_flags?: string[] | null
           result_status?: string
           sample_code: string
           sn_ratio?: number | null
           sp_ratio?: number | null
           titer_log2?: number | null
+          well_position?: string | null
         }
         Update: {
           batch_id?: string
           created_at?: string
+          dilution_factor?: number | null
           id?: string
           owner_id?: string
           raw_od?: number | null
           raw_result?: Json
+          replicate_no?: number | null
           reported_titer?: number | null
+          reported_titer_unit?: string | null
+          result_flags?: string[] | null
           result_status?: string
           sample_code?: string
           sn_ratio?: number | null
           sp_ratio?: number | null
           titer_log2?: number | null
+          well_position?: string | null
         }
         Relationships: [
           {
@@ -344,49 +452,101 @@ export type Database = {
         Row: {
           breakthrough_titer: number | null
           breakthrough_unit: string | null
+          btt_assay_kit_id: string | null
+          btt_definition: string | null
+          btt_reference_url: string | null
           created_at: string
           disease_code: string
+          duration_of_immunity_weeks: number | null
           id: string
+          label_version: string | null
           manufacturer: string
+          market_code: string | null
+          marketing_authorisation_holder: string | null
           model_family: string
+          onset_of_immunity_days: number | null
           platform: string
           product_name: string
+          registration_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_document: string | null
           source_version: string | null
           strain: string | null
+          vaccine_age_max_days: number | null
+          vaccine_age_min_days: number | null
+          vaccine_class: string | null
+          vaccine_route: string | null
           validation_status: string
         }
         Insert: {
           breakthrough_titer?: number | null
           breakthrough_unit?: string | null
+          btt_assay_kit_id?: string | null
+          btt_definition?: string | null
+          btt_reference_url?: string | null
           created_at?: string
           disease_code: string
+          duration_of_immunity_weeks?: number | null
           id?: string
+          label_version?: string | null
           manufacturer: string
+          market_code?: string | null
+          marketing_authorisation_holder?: string | null
           model_family?: string
+          onset_of_immunity_days?: number | null
           platform: string
           product_name: string
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_document?: string | null
           source_version?: string | null
           strain?: string | null
+          vaccine_age_max_days?: number | null
+          vaccine_age_min_days?: number | null
+          vaccine_class?: string | null
+          vaccine_route?: string | null
           validation_status?: string
         }
         Update: {
           breakthrough_titer?: number | null
           breakthrough_unit?: string | null
+          btt_assay_kit_id?: string | null
+          btt_definition?: string | null
+          btt_reference_url?: string | null
           created_at?: string
           disease_code?: string
+          duration_of_immunity_weeks?: number | null
           id?: string
+          label_version?: string | null
           manufacturer?: string
+          market_code?: string | null
+          marketing_authorisation_holder?: string | null
           model_family?: string
+          onset_of_immunity_days?: number | null
           platform?: string
           product_name?: string
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_document?: string | null
           source_version?: string | null
           strain?: string | null
+          vaccine_age_max_days?: number | null
+          vaccine_age_min_days?: number | null
+          vaccine_class?: string | null
+          vaccine_route?: string | null
           validation_status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "vaccine_products_btt_assay_kit_id_fkey"
+            columns: ["btt_assay_kit_id"]
+            isOneToOne: false
+            referencedRelation: "assay_kits"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vaccine_products_disease_code_fkey"
             columns: ["disease_code"]
