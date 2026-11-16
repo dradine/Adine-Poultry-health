@@ -86,3 +86,5 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .interpretation-panel p{line-height:1.9;margin:.4rem 0}
 .interpretation-panel ul{margin:.35rem 0;padding-right:1.25rem;line-height:1.85}
 .interpretation-farmer{padding:.8rem;border-right:3px solid #557d61;background:#edf4ee;border-radius:8px}
+
+.monitor-output{direction:ltr;text-align:left;white-space:pre-wrap;overflow:auto;max-height:420px;background:#10251d;color:#d9f4e5;padding:16px;border-radius:12px;font-size:12px}.panel textarea{width:100%;font:inherit;padding:10px;border:1px solid #d8e1dc;border-radius:8px;background:#fff;resize:vertical}.panel input[type=checkbox]{width:auto;display:inline-block;margin-inline-end:8px}
