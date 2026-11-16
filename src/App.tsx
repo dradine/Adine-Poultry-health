@@ -43,6 +43,9 @@ type SavedAnalysis = {
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
   assayKitId?: string
+  assaySource?: string
+  assayStatus?: string
+  assayNote?: string
   vaccineProductId?: string
   vaccineMarketCode?: string | null
   vaccineLabelVersion?: string | null
@@ -349,6 +352,9 @@ export default function App() {
       randomSamplingConfirmed,
       pairingVerified,
       assayKitId: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedAssayId) ? selectedAssayId : undefined,
+      assaySource: selectedAssay?.source,
+      assayStatus: selectedAssay?.status,
+      assayNote: selectedAssay?.note,
       vaccineProductId: selectedVaccineProductId || undefined,
       vaccineMarketCode: selectedVaccineProduct?.market_code,
       vaccineLabelVersion: selectedVaccineProduct?.label_version,
