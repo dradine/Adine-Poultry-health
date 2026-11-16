@@ -22,12 +22,20 @@ if (catalogError) {
 }
 const { data: privateRows, error: flockError } = await client.from('flocks').select('id').limit(1)
 if (flockError && ![401, 403].includes(flockError.status)) {
-  throw new Error('Unexpected anonymous flock query error: ' + flockError.message)
+  throw new Error('Unexpected anonymous SDK flock query error: ' + flockError.message)
 }
 if (Array.isArray(privateRows) && privateRows.length > 0) {
   throw new Error('Anonymous SDK query exposed private flock rows.')
 }
-console.log('Supabase smoke passed: Auth reachable; signup setting readable; SDK can read public catalog; no private flock rows exposed to anonymous client.')
+const privateRead = await fetch(url + '/rest/v1/flocks?select=id&limit=1', { headers })
+if (![200, 401, 403].includes(privateRead.status)) {
+  throw new Error('Unexpected anonymous REST flock status: HTTP ' + privateRead.status)
+}
+if (privateRead.status === 200) {
+  const rows = await privateRead.json()
+  if (!Array.isArray(rows) || rows.length > 0) throw new Error('Anonymous REST query exposed private flock rows.')
+}
+console.log('Supabase smoke passed: Auth reachable; SDK can read public catalog; no private flock rows exposed to anonymous clients.')
 console.log('Auth site URL:', authSettings.site_url || '(not exposed by Auth settings)')
 console.log('Auth redirect allowlist:', authSettings.uri_allow_list || '(not exposed by Auth settings)')
 console.log('Email confirmation required:', authSettings.mailer_autoconfirm === true ? 'no' : 'yes')
