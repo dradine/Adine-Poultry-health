@@ -1,0 +1,2 @@
+import {describe,it,expect} from 'vitest';import {analyzeIbvTrend} from './ibvTrend';
+describe('IBV trend',()=>{it('orders observations and calculates change',()=>{const r=analyzeIbvTrend({observations:[{day:28,value:900},{day:14,value:300}],assay:'ELISA',unit:'ELISA'});expect(r.firstValue).toBe(300);expect(r.foldChange).toBe(3);expect(r.direction).toBe('up');});it('rejects duplicate days',()=>expect(()=>analyzeIbvTrend({observations:[{day:1,value:2},{day:1,value:3}],assay:'x',unit:'HI-log2'})).toThrow());});
