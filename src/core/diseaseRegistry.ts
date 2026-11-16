@@ -1,4 +1,4 @@
-export type PoultryDiseaseId = 'IBD' | 'ND' | 'IB' | 'AIV'
+export type PoultryDiseaseId = 'IBD' | 'ND' | 'IBV' | 'AIV'
 export type DiseaseModelStatus = 'experimental-available' | 'monitor-available' | 'research-only' | 'not-implemented'
 export type DiseaseModelDescriptor = {
   id: PoultryDiseaseId
@@ -23,7 +23,7 @@ export const DISEASE_MODELS: readonly DiseaseModelDescriptor[] = [
     reason: 'موتور پایش HI اضافه شده؛ مدل مستقل زمان‌بندی واکسن و حفاظت هنوز پیاده‌سازی/اعتبارسنجی نشده است.',
   },
   {
-    id: 'IB', nameFa: 'برونشیت عفونی', nameEn: 'Infectious bronchitis',
+    id: 'IBV', nameFa: 'برونشیت عفونی', nameEn: 'Infectious bronchitis',
     status: 'monitor-available', method: 'assay-specific serology trend',
     scope: 'روند مقادیر هم‌کیت/هم‌واحد در زمان؛ بدون protection/cross-protection',
     reason: 'موتور روند سرولوژی مستقل اضافه شده؛ مدل حفاظت مخاطی یا cross-protection هنوز وجود ندارد.',
