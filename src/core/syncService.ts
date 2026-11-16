@@ -176,6 +176,11 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
 export type SyncResult = { pushed: number; pulledFlocks: number; pulledRuns: number; pending: number; lastSyncAt: string }
 export async function syncLocalData(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) throw new Error('اتصال اینترنت برقرار نیست؛ اطلاعات همچنان روی همین دستگاه ذخیره می‌شوند.')
+  const boundAccount = await getSyncMeta('bound-account')
+  if (boundAccount && boundAccount !== userId) {
+    throw new Error('این دستگاه قبلاً به حساب دیگری متصل شده است. برای جلوگیری از انتقال داده‌های یک حساب به حساب دیگر، همگام‌سازی با حساب متفاوت مسدود شد.')
+  }
+  if (!boundAccount) await setSyncMeta('bound-account', userId)
   const queue = await listOutbox()
   let pushed = 0
   for (const item of queue) {
