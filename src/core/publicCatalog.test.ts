@@ -17,6 +17,8 @@ describe('public assay catalog mapping', () => {
     expect(result.id).toBe('kit-id')
     expect(result.status).toBe('documented')
     expect(result.note).toContain('23')
+    expect(result.minimumSampleCount).toBe(23)
+    expect(result.minimumSampleCountSource).toContain('RevB 2025')
     expect(result.note).toContain('No cross-kit conversion.')
   })
 
