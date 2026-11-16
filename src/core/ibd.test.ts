@@ -6,6 +6,11 @@ describe('IBD Deventer-style mathematical estimator', () => {
     const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:50,titers:sample23,correctionDays:2})
     expect(r.sampleCount).toBe(23); expect(r.percentileTiter).toBe(400)
     expect(r.estimatedVaccinationAgeDays).toBeGreaterThan(2); expect(r.coefficientOfVariationPercent).toBeGreaterThan(0)
+    expect(r.geometricMeanTiter).toBeGreaterThan(0)
+    expect(r.medianTiter).toBeGreaterThan(0)
+    expect(r.log2StandardDeviation).toBeGreaterThan(0)
+    expect(r.minimumTiter).toBe(100)
+    expect(r.maximumTiter).toBe(1600)
   })
   it('uses the 5 percent nearest-rank and warns about an unstable lower tail', () => {
     const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:5,titers:sample23})
