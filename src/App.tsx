@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
@@ -8,6 +8,9 @@ import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import DiseaseMonitoring from './DiseaseMonitoring'
+import CloudSyncPanel from './components/CloudSyncPanel'
+import { markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
 
 type SavedProfile = {
   id: string
@@ -94,6 +97,18 @@ export default function App() {
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    const refreshFromLocalDb = () => {
+      setProfiles(readProfiles())
+      setAnalyses(readAnalyses())
+    }
+    window.addEventListener('adine-cloud-data-updated', refreshFromLocalDb)
+    void migrateLegacyLocalData().catch((cause) => {
+      setError(cause instanceof Error ? cause.message : 'انتقال داده‌های قدیمی به ذخیره‌سازی محلی انجام نشد.')
+    })
+    return () => window.removeEventListener('adine-cloud-data-updated', refreshFromLocalDb)
+  }, [])
+
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
@@ -172,14 +187,21 @@ export default function App() {
       setError('نام گله و تاریخ جوجه‌ریزی را وارد کنید.')
       return
     }
-    const next = [{
-      id: crypto.randomUUID(),
+    const existing = profiles.find(item => item.flockName.trim() === flockName.trim() && item.placementDate === placementDate)
+    const record: SavedProfile = {
+      id: existing?.id || crypto.randomUUID(),
       flockName: flockName.trim(),
       placementDate,
       savedAt: new Date().toISOString(),
-    }, ...profiles]
+    }
+    const next = existing
+      ? profiles.map(item => item.id === existing.id ? record : item)
+      : [record, ...profiles]
     if (!writeLocalStorage(STORAGE_KEY, next)) { setError('ذخیره‌سازی مرورگر در دسترس نیست یا فضای آن کافی نیست. ابتدا از اطلاعات نسخه پشتیبان تهیه کنید.'); return }
     setProfiles(next)
+    void saveProfileToLocal(record)
+      .then(() => { notifyLocalDataChanged(); setError('') })
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'ذخیره محلی پایدار انجام نشد؛ از فایل پشتیبان استفاده کنید.'))
   }
 
   function saveAnalysis() {
@@ -220,6 +242,10 @@ export default function App() {
     const next = [record, ...analyses].slice(0, 100)
     if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('ذخیره تحلیل انجام نشد؛ فضای ذخیره‌سازی مرورگر کافی نیست.'); return }
     setAnalyses(next)
+    const matchingProfile = profiles.find(item => item.flockName.trim() === record.flockName && item.placementDate === record.placementDate)
+    void saveAnalysisToLocal(record, matchingProfile?.id)
+      .then(() => { notifyLocalDataChanged(); setError('') })
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'ذخیره پایدار تحلیل در صف محلی انجام نشد.'))
   }
 
   function restoreAnalysis(item: SavedAnalysis) {
@@ -247,12 +273,29 @@ export default function App() {
     const next = analyses.filter((item) => item.id !== id)
     if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('حذف سابقه انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
     setAnalyses(next)
+    void markLocalDeleted('model_runs', id)
+      .then(() => notifyLocalDataChanged())
+      .catch(cause => setError(cause instanceof Error ? cause.message : 'ثبت حذف در صف همگام‌سازی انجام نشد.'))
   }
 
   function removeProfile(id: string) {
-    const next = profiles.filter((item) => item.id !== id)
-    if (!writeLocalStorage(STORAGE_KEY, next)) { setError('حذف گله انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
-    setProfiles(next)
+    const profile = profiles.find(item => item.id === id)
+    if (!profile) return
+    const related = analyses.filter(item => item.flockName === profile.flockName && item.placementDate === profile.placementDate)
+    if (related.length && !window.confirm('تحلیل‌های وابسته به این گله نیز حذف شوند؟')) return
+    const nextProfiles = profiles.filter(item => item.id !== id)
+    const nextAnalyses = analyses.filter(item => !related.some(run => run.id === item.id))
+    if (!writeLocalStorage(STORAGE_KEY, nextProfiles) || !writeLocalStorage(ANALYSIS_STORAGE_KEY, nextAnalyses)) {
+      setError('حذف کامل انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.')
+      return
+    }
+    setProfiles(nextProfiles)
+    setAnalyses(nextAnalyses)
+    void (async () => {
+      for (const run of related) await markLocalDeleted('model_runs', run.id)
+      await markLocalDeleted('flocks', id)
+      notifyLocalDataChanged()
+    })().catch(cause => setError(cause instanceof Error ? cause.message : 'ثبت حذف در صف همگام‌سازی انجام نشد.'))
   }
 
   return (
@@ -265,6 +308,8 @@ export default function App() {
         </div>
         <span className="offline-pill"><i /> آفلاین‌محور</span>
       </header>
+
+      <CloudSyncPanel />
 
       <section className="intro">
         <div>
@@ -290,7 +335,7 @@ export default function App() {
       <section className="panel">
         <div className="panel-heading">
           <div><span className="step">۱</span><h3>اطلاعات گله</h3></div>
-          <span className="muted">ذخیره روی همین دستگاه</span>
+          <span className="muted">ذخیره محلی؛ همگام‌سازی پس از ورود</span>
         </div>
         <div className="form-grid">
           <label>نام یا کد گله
