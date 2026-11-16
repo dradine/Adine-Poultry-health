@@ -14,6 +14,8 @@ export default function CloudSyncPanel() {
   const [online, setOnline] = useState(navigator.onLine)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [recovery, setRecovery] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [pending, setPending] = useState(0)
@@ -84,8 +86,11 @@ export default function CloudSyncPanel() {
       if (error) setMessage(error.message)
       setUser(data.session?.user ?? null)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) setUser(session?.user ?? null)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (active) {
+        setUser(session?.user ?? null)
+        if (event === 'PASSWORD_RECOVERY') setRecovery(true)
+      }
     })
     const onOnline = () => { setOnline(true); const current = userRef.current; if (active && current) void syncNow(current) }
     const onOffline = () => { setOnline(false); void refreshStatus(userRef.current?.id) }
@@ -125,6 +130,7 @@ export default function CloudSyncPanel() {
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
       if (error) throw error
       setUser(data.user)
+      setRecovery(false)
       setPassword('')
       setMessage('ورود موفق بود؛ اطلاعات این دستگاه با حساب شما همگام می‌شود.')
     } catch (error) {
@@ -162,12 +168,27 @@ export default function CloudSyncPanel() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'درخواست بازیابی ناموفق بود.') }
     finally { setBusy(false) }
   }
+  async function updatePassword(event: FormEvent) {
+    event.preventDefault()
+    if (newPassword.length < 8) { setMessage('گذرواژه جدید باید حداقل ۸ نویسه داشته باشد.'); return }
+    setBusy(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      setNewPassword('')
+      setRecovery(false)
+      setMessage('گذرواژه با موفقیت تغییر کرد.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'تغییر گذرواژه انجام نشد.')
+    } finally { setBusy(false) }
+  }
   async function signOut() {
     setBusy(true)
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       setUser(null)
+      setRecovery(false)
       setMessage('از حساب خارج شدید؛ داده‌های محلی این دستگاه حذف نشده‌اند.')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'خروج انجام نشد.') }
     finally { setBusy(false) }
@@ -190,7 +211,14 @@ export default function CloudSyncPanel() {
         <span>در صف ارسال: <b>{pending.toLocaleString('fa-IR')}</b></span>
         <span>آخرین همگام‌سازی: <b>{faDate(lastSync)}</b></span>
       </div>
-      {user ? (
+      {recovery ? (
+        <form className="cloud-recovery" onSubmit={updatePassword}>
+          <label>گذرواژه جدید
+            <input type="password" value={newPassword} onChange={event => setNewPassword(event.target.value)} minLength={8} autoComplete="new-password" required dir="ltr" />
+          </label>
+          <button className="button primary" type="submit" disabled={busy}>ثبت گذرواژه جدید</button>
+        </form>
+      ) : user ? (
         <div className="cloud-account">
           <div className="cloud-user">
             <span>واردشده با</span>
