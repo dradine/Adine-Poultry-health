@@ -80,3 +80,9 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .sensitivity-grid small{font-size:11px;color:#66756d}
 
 .backup-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.backup-actions label{cursor:pointer;display:inline-flex;align-items:center}.backup-actions .button{font:inherit}
+
+.interpretation-panel{margin-top:1rem;padding:1rem;border:1px solid #cbd8cf;border-radius:14px;background:#f8fbf8;display:grid;gap:.85rem;color:#243b2d}
+.interpretation-panel h4{margin:0;font-size:1.05rem}
+.interpretation-panel p{line-height:1.9;margin:.4rem 0}
+.interpretation-panel ul{margin:.35rem 0;padding-right:1.25rem;line-height:1.85}
+.interpretation-farmer{padding:.8rem;border-right:3px solid #557d61;background:#edf4ee;border-radius:8px}
