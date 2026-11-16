@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
-import persian_fa from 'react-date-object/locales/persian_fa'
+import persian_fa from 'react-date-object/locales/persian_fa'\nimport DateObject from 'react-date-object'
 import { calculateIbdWindow, normalizeDigits, parseTiters } from './core/ibd'
 
 type SavedProfile = {
@@ -26,7 +26,7 @@ function toIsoDate(value: { toDate: () => Date } | null): string {
   return `${year}-${month}-${day}`
 }
 
-function readProfiles(): SavedProfile[] {
+function formatJalaliDate(value: string): string {\n  if (!value) return ''\n  return new DateObject({ date: new Date(value + 'T12:00:00'), calendar: persian, locale: persian_fa }).format('YYYY/MM/DD')\n}\n\nfunction readProfiles(): SavedProfile[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as SavedProfile[]
   } catch {
@@ -127,7 +127,7 @@ export default function App() {
               calendar={persian}
               locale={persian_fa}
               value={placementDate ? new Date(placementDate + 'T12:00:00') : ''}
-              onChange={(date) => setPlacementDate(date ? toIsoDate(date) : '')}
+              onChange={(date) => setPlacementDate(date && !Array.isArray(date) ? toIsoDate(date) : '')}
               format="YYYY/MM/DD"
               calendarPosition="bottom-right"
               placeholder="انتخاب تاریخ شمسی"
@@ -143,7 +143,7 @@ export default function App() {
             {profiles.map((profile) => (
               <div className="saved-row" key={profile.id}>
                 <span>{profile.flockName}</span>
-                <small>{profile.placementDate}</small>
+                <small>{toPersianDigits(formatJalaliDate(profile.placementDate))}</small>
                 <button className="link-button" onClick={() => removeProfile(profile.id)}>حذف</button>
               </div>
             ))}
@@ -181,7 +181,7 @@ export default function App() {
           <small>فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را با هم مخلوط نکنید.</small>
         </label>
         <div className="data-summary">
-          <span>تعداد تیترهای معتبر واردشده</span>
+          <span>تعداد مقادیر واردشده</span>
           <strong>{toPersianDigits(titers.length)}</strong>
         </div>
 
