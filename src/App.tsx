@@ -177,6 +177,7 @@ export default function App() {
       restoreLocalBackup(JSON.parse(await file.text()))
       setProfiles(readProfiles())
       setAnalyses(readAnalyses())
+      void migrateLegacyLocalData().then(() => notifyLocalDataChanged()).catch(cause => setError(cause instanceof Error ? cause.message : 'انتقال پشتیبان به پایگاه محلی انجام نشد.'))
       setError('پشتیبان با موفقیت ادغام شد؛ داده‌های موجود حذف نشدند.')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'بازیابی پشتیبان انجام نشد.') }
   }
