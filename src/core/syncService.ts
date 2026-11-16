@@ -16,7 +16,10 @@ type LegacyAnalysis = {
   minimumSampleCount: string; susceptiblePercent: string; titersText: string
   estimatedVaccinationAgeDays: number | null; percentileTiter: number; percentileRank: number
   sampleCount: number; plateQcAccepted: boolean; randomSamplingConfirmed: boolean
-  pairingVerified: boolean; savedAt: string
+  pairingVerified: boolean
+  assayKitId?: string; vaccineProductId?: string; vaccineMarketCode?: string | null
+  vaccineLabelVersion?: string | null; bttAssayKitId?: string | null
+  savedAt: string
 }
 function parseArray<T>(key: string): T[] {
   try {
@@ -62,7 +65,13 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
       correctionDays: item.correctionDays, susceptiblePercent: item.susceptiblePercent,
       minimumSampleCount: item.minimumSampleCount,
     },
-    source_references: [], input_schema_version: 'legacy-local-v1',
+    source_references: [
+      ...(item.assayKitId ? [{ kind: 'assay_kit', id: item.assayKitId, name: item.kitName }] : []),
+      ...(item.vaccineProductId ? [{ kind: 'vaccine_product', id: item.vaccineProductId, market: item.vaccineMarketCode, labelVersion: item.vaccineLabelVersion, bttAssayKitId: item.bttAssayKitId, name: item.vaccineName }] : []),
+      { kind: 'btt_source', citation: item.bttSource },
+      { kind: 'half_life_source', citation: item.halfLifeSource },
+      { kind: 'age_correction_source', citation: item.correctionSource },
+    ], input_schema_version: 'legacy-local-v1',
     created_at: item.savedAt,
   }
 }
