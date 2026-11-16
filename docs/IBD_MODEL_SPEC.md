@@ -58,7 +58,7 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 - Local predictive validity against observed vaccine response, bursal histology, PCR differentiation and field outcomes.
 
 
-## Deventer percentage semantics and golden validation (2026-11-17)
+## Deventer percentage semantics and golden validation (2026-11-16)
 
 The Deventer bird-percentage parameter is the **percentage of the flock that should be directly susceptible/receptive to the live vaccine at administration** (MDA below the product-specific BTT). It is not a generic “percentile to protect” and must be explained in the UI.
 
