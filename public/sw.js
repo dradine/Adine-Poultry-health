@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adine-vaccine-timing-v1';
+const CACHE_NAME = 'adine-vaccine-timing-v2';
 const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
@@ -16,7 +16,6 @@ self.addEventListener('install', (event) => {
     }));
     await cache.addAll(SHELL.slice(1));
   })());
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
