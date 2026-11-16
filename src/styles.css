@@ -119,3 +119,11 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .cloud-recovery{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
 .cloud-recovery .button{margin:0}
 @media(max-width:680px){.cloud-recovery{grid-template-columns:1fr}.cloud-recovery .button{width:100%}}
+
+.monitor-history-row{border:1px solid #e3ebe6;border-radius:10px;padding:10px;margin-top:8px;background:#fbfdfb}
+.monitor-history-row summary{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:12px;list-style:none}
+.monitor-history-row summary::-webkit-details-marker{display:none}
+.monitor-history-row summary b{color:#25573f}
+.monitor-history-row summary span{margin-right:auto;color:#62746a}
+.monitor-history-row summary small{color:#839087}
+.monitor-history-row .monitor-output{margin-top:10px}
