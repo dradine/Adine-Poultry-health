@@ -3,7 +3,8 @@ import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
-import { ASSAY_CATALOG } from './core/assayRegistry'
+import { ASSAY_CATALOG, type AssayCatalogEntry } from './core/assayRegistry'
+import { fetchPublicReferenceCatalog, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
@@ -41,6 +42,11 @@ type SavedAnalysis = {
   plateQcAccepted: boolean
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
+  assayKitId?: string
+  vaccineProductId?: string
+  vaccineMarketCode?: string | null
+  vaccineLabelVersion?: string | null
+  bttAssayKitId?: string | null
   savedAt: string
 }
 
@@ -94,25 +100,98 @@ export default function App() {
   const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
   const [pairingVerified, setPairingVerified] = useState(false)
   const [profiles, setProfiles] = useState<SavedProfile[]>(readProfiles)
+  const [assayCatalog, setAssayCatalog] = useState<AssayCatalogEntry[]>(ASSAY_CATALOG)
+  const [vaccineCatalog, setVaccineCatalog] = useState<PublicVaccineRecord[]>([])
+  const [catalogNotice, setCatalogNotice] = useState('')
+  const [selectedAssayId, setSelectedAssayId] = useState('')
+  const [selectedVaccineProductId, setSelectedVaccineProductId] = useState('')
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    let active = true
     const refreshFromLocalDb = () => {
       setProfiles(readProfiles())
       setAnalyses(readAnalyses())
     }
+    const cached = readCachedPublicCatalog()
+    if (cached) {
+      setAssayCatalog(cached.assays.map(mapPublicAssayToEntry))
+      setVaccineCatalog(cached.vaccines)
+    }
+    const refreshCatalog = async () => {
+      if (!navigator.onLine) return
+      try {
+        const catalog = await fetchPublicReferenceCatalog()
+        if (!active) return
+        setAssayCatalog(catalog.assays.map(mapPublicAssayToEntry))
+        setVaccineCatalog(catalog.vaccines)
+        setCatalogNotice('')
+      } catch (cause) {
+        if (active && !cached) setCatalogNotice(cause instanceof Error ? 'بانک آنلاین کیت/واکسن در دسترس نیست؛ فهرست محلی محدود استفاده می‌شود.' : 'بانک مرجع آنلاین در دسترس نیست.')
+      }
+    }
+    const onOnline = () => { void refreshCatalog() }
     window.addEventListener('adine-cloud-data-updated', refreshFromLocalDb)
+    window.addEventListener('online', onOnline)
     void migrateLegacyLocalData().catch((cause) => {
       setError(cause instanceof Error ? cause.message : 'انتقال داده‌های قدیمی به ذخیره‌سازی محلی انجام نشد.')
     })
-    return () => window.removeEventListener('adine-cloud-data-updated', refreshFromLocalDb)
+    void refreshCatalog()
+    return () => {
+      active = false
+      window.removeEventListener('adine-cloud-data-updated', refreshFromLocalDb)
+      window.removeEventListener('online', onOnline)
+    }
   }, [])
+
+  const selectedVaccineProduct = vaccineCatalog.find(product => product.id === selectedVaccineProductId)
+  const selectedAssay = assayCatalog.find(kit => kit.id === selectedAssayId)
+
+  function applyVaccineProduct(id: string) {
+    setSelectedVaccineProductId(id)
+    if (!id) {
+      setVaccineName('')
+      setBtt('')
+      setBttSource('')
+      setSelectedAssayId('')
+      setKitName('')
+      setError('')
+      return
+    }
+    const product = vaccineCatalog.find(item => item.id === id)
+    if (!product) { setError('محصول انتخاب‌شده در بانک مرجع پیدا نشد.'); return }
+    const linkedAssay = assayCatalog.find(item => item.id === product.btt_assay_kit_id)
+    if (!linkedAssay) {
+      setError('کیت مرجع متصل به BTT این محصول در بانک کیت‌ها پیدا نشد؛ محاسبه را با تطبیق دستی انجام ندهید.')
+      return
+    }
+    setVaccineName(product.product_name + (product.market_code ? ' (' + product.market_code + ')' : ''))
+    setBtt(product.breakthrough_titer || '')
+    setBttSource([
+      product.source_document,
+      product.source_version,
+      product.btt_definition,
+      product.btt_reference_url,
+    ].filter(Boolean).join(' · '))
+    setSelectedAssayId(linkedAssay.id)
+    setKitName(linkedAssay.manufacturer + ' — ' + linkedAssay.name + (linkedAssay.catalog ? ' (' + linkedAssay.catalog + ')' : ''))
+    setError('')
+  }
 
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
+    if (selectedAssayId && (!selectedAssay || selectedAssay.status !== 'documented')) {
+      return { result: null, error: 'این کیت فقط در سطح کاتالوگ/مستندات ناقص ثبت شده و تا دریافت IFU معتبر، مدل محاسباتی آن باز نمی‌شود.' }
+    }
+    if (selectedVaccineProductId && (!selectedVaccineProduct || selectedVaccineProduct.validation_status !== 'documented')) {
+      return { result: null, error: 'برچسب محصول واکسن مستند و قابل استفاده برای محاسبه نیست.' }
+    }
+    if (selectedVaccineProduct && selectedVaccineProduct.btt_assay_kit_id !== selectedAssayId) {
+      return { result: null, error: 'کیت انتخاب‌شده با کیت مرجع BTT این محصول یکسان نیست.' }
+    }
     const gateErrors = validateIbdRunGate({ plateControlsAccepted: plateQcAccepted, representativeRandomSampling: randomSamplingConfirmed, assayVaccinePairingVerified: pairingVerified })
     if (gateErrors.length) return { result: null, error: gateErrors.join(' ') }
     try {
@@ -131,7 +210,7 @@ export default function App() {
     } catch (cause) {
       return { result: null, error: cause instanceof Error ? cause.message : 'ورودی‌ها معتبر نیستند.' }
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified, selectedAssayId, selectedAssay, selectedVaccineProductId, selectedVaccineProduct, assayCatalog])
   const result = calculation.result
   const calculationError = calculation.error
   const interpretation = useMemo(() => result ? interpretIbdResult({
@@ -244,6 +323,11 @@ export default function App() {
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
+      assayKitId: selectedAssayId || undefined,
+      vaccineProductId: selectedVaccineProductId || undefined,
+      vaccineMarketCode: selectedVaccineProduct?.market_code,
+      vaccineLabelVersion: selectedVaccineProduct?.label_version,
+      bttAssayKitId: selectedVaccineProduct?.btt_assay_kit_id,
       savedAt: new Date().toISOString(),
     }
     const next = [record, ...analyses].slice(0, 100)
