@@ -25,6 +25,17 @@ function parseArray<T>(key: string): T[] {
   } catch { return [] }
 }
 function dateOnly(value: string): string { return value.slice(0, 10) }
+
+async function bindLocalDataToSession(bindWhenEmpty = false): Promise<void> {
+  const { data: { session }, error } = await supabase.auth.getSession()
+  if (error) throw error
+  if (!session) return
+  const bound = await getSyncMeta('bound-account')
+  if (bound && bound !== session.user.id) {
+    throw new Error('داده‌های محلی این دستگاه به حساب دیگری متصل هستند؛ برای جلوگیری از انتقال اطلاعات بین حساب‌ها، ذخیره و همگام‌سازی با این حساب مسدود شد.')
+  }
+  if (!bound && bindWhenEmpty) await setSyncMeta('bound-account', session.user.id)
+}
 function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalModelRun, 'syncState'> {
   return {
     id: item.id, flock_id: flockId, disease_code: 'IBD',
@@ -66,6 +77,8 @@ async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses:
   const profiles = parseArray<LegacyProfile>(PROFILE_KEY)
   const analyses = parseArray<LegacyAnalysis>(ANALYSIS_KEY)
   const existingFlocks = await listLocalFlocks(true)
+  const existingRuns = await listLocalModelRuns(true)
+  await bindLocalDataToSession(profiles.length > 0 || analyses.length > 0 || existingFlocks.length > 0 || existingRuns.length > 0)
   const byId = new Map(existingFlocks.map(row => [row.id, row]))
   const byNameDate = new Map(existingFlocks.map(row => [row.flock_name + '|' + row.placement_date, row]))
   let addedFlocks = 0, addedAnalyses = 0
@@ -107,6 +120,7 @@ async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses:
   return { flocks: addedFlocks, analyses: addedAnalyses }
 }
 export async function saveProfileToLocal(profile: LegacyProfile): Promise<void> {
+  await bindLocalDataToSession(true)
   const row: Omit<LocalFlock, 'syncState'> = {
     id: profile.id, flock_name: profile.flockName, species: 'broiler',
     placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
@@ -115,6 +129,7 @@ export async function saveProfileToLocal(profile: LegacyProfile): Promise<void> 
   await saveLocalFlock(row)
 }
 export async function saveAnalysisToLocal(item: LegacyAnalysis, profileId?: string): Promise<void> {
+  await bindLocalDataToSession(true)
   let flock = profileId ? (await listLocalFlocks(true)).find(row => row.id === profileId) : undefined
   if (!flock) flock = (await listLocalFlocks(true)).find(row =>
     row.flock_name === item.flockName && row.placement_date === dateOnly(item.placementDate) && !row.deleted
@@ -265,6 +280,7 @@ export type MonitorRunDraft = {
   output: unknown
 }
 export async function saveMonitorRunToLocal(draft: MonitorRunDraft): Promise<string> {
+  await bindLocalDataToSession(true)
   const existingFlock = (await listLocalFlocks(true)).find(row => row.id === draft.flock.id)
   if (!existingFlock) {
     await saveProfileToLocal({
