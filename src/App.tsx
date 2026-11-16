@@ -112,8 +112,6 @@ export default function App() {
     }, ...profiles]
     setProfiles(next)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-    setFlockName('')
-    setPlacementDate('')
   }
 
   function saveAnalysis() {
@@ -148,6 +146,21 @@ export default function App() {
     const next = [record, ...analyses].slice(0, 100)
     setAnalyses(next)
     localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(next))
+  }
+
+  function restoreAnalysis(item: SavedAnalysis) {
+    setFlockName(item.flockName)
+    setPlacementDate(item.placementDate)
+    setSamplingAge(item.samplingAge)
+    setKitName(item.kitName)
+    setVaccineName(item.vaccineName)
+    setBtt(item.btt)
+    setHalfLife(item.halfLife)
+    setCorrectionDays(item.correctionDays)
+    setMinimumSampleCount(item.minimumSampleCount)
+    setSusceptiblePercent(item.susceptiblePercent)
+    setTitersText(item.titersText)
+    setError('')
   }
 
   function removeAnalysis(id: string) {
@@ -219,6 +232,7 @@ export default function App() {
               <div className="saved-row" key={profile.id}>
                 <span>{profile.flockName}</span>
                 <small>{toPersianDigits(formatJalaliDate(profile.placementDate))}</small>
+                <button className="link-button" onClick={() => { setFlockName(profile.flockName); setPlacementDate(profile.placementDate) }}>انتخاب</button>
                 <button className="link-button" onClick={() => removeProfile(profile.id)}>حذف</button>
               </div>
             ))}
@@ -304,6 +318,7 @@ export default function App() {
               <div className="saved-row analysis-row" key={item.id}>
                 <span>{item.flockName} · {item.vaccineName}</span>
                 <small>{toPersianDigits(formatJalaliDate(item.placementDate))} · {toPersianDigits(item.estimatedVaccinationAgeDays.toFixed(1))} روز · {toPersianDigits(item.sampleCount)} نمونه</small>
+                <button className="link-button" onClick={() => restoreAnalysis(item)}>بارگذاری</button>
                 <button className="link-button" onClick={() => removeAnalysis(item.id)}>حذف</button>
               </div>
             ))}
