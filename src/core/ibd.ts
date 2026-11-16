@@ -34,6 +34,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
   if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 1) throw new Error('حداقل تعداد نمونه معتبر نیست.')
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
+  if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
   if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
   if (titers.some(v => !Number.isFinite(v) || v <= 0)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
   const sorted = [...titers].sort((a,b) => a-b)
