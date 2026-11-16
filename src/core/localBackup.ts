@@ -50,6 +50,7 @@ export function restoreLocalBackup(raw: unknown, storage: Storage = localStorage
     const ids = new Set(current.map(idOf).filter(Boolean))
     const additions: unknown[] = []
     for (const item of incoming) {
+      if (!item || typeof item !== 'object' || Array.isArray(item) || !idOf(item)) throw new Error('رکورد پشتیبان باید شیء دارای شناسه باشد؛ بازیابی متوقف شد.')
       const id = idOf(item)
       if (!id || !ids.has(id)) { additions.push(item); if (id) ids.add(id) }
     }
