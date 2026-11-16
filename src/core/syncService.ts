@@ -55,7 +55,14 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
     created_at: item.savedAt,
   }
 }
-export async function migrateLegacyLocalData(): Promise<{ flocks: number; analyses: number }> {
+let legacyMigration: Promise<{ flocks: number; analyses: number }> | null = null
+export function migrateLegacyLocalData(): Promise<{ flocks: number; analyses: number }> {
+  if (!legacyMigration) {
+    legacyMigration = migrateLegacyLocalDataOnce().catch(error => { legacyMigration = null; throw error })
+  }
+  return legacyMigration
+}
+async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses: number }> {
   const profiles = parseArray<LegacyProfile>(PROFILE_KEY)
   const analyses = parseArray<LegacyAnalysis>(ANALYSIS_KEY)
   const existingFlocks = await listLocalFlocks(true)
