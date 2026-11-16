@@ -1,20 +1,22 @@
-const CACHE_NAME = 'adine-vaccine-timing-v2';
-const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'adine-vaccine-timing-v3';
+const APP_ROOT = new URL('./', self.registration.scope).toString();
+const MANIFEST_URL = new URL('manifest.webmanifest', self.registration.scope).toString();
+const ICON_URL = new URL('icon.svg', self.registration.scope).toString();
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const page = await fetch('/');
-    await cache.put('/', page.clone());
+    const page = await fetch(APP_ROOT);
+    await cache.put(APP_ROOT, page.clone());
     const html = await page.text();
-    const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((match) => match[1]);
+    const assets = [...html.matchAll(/(?:src|href)="([^"]+\\.(?:js|css))"/g)].map((match) => match[1]);
     await Promise.all(assets.map(async (asset) => {
       try {
         const response = await fetch(asset);
         if (response.ok) await cache.put(asset, response);
-      } catch { /* Keep install resilient; online first-run can retry. */ }
+      } catch { /* First online load can retry asset caching. */ }
     }));
-    await cache.addAll(SHELL.slice(1));
+    await cache.addAll([MANIFEST_URL, ICON_URL]);
   })());
 });
 
@@ -31,9 +33,9 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(fetch(request).then((response) => {
       const copy = response.clone();
-      void caches.open(CACHE_NAME).then((cache) => cache.put('/', copy));
+      void caches.open(CACHE_NAME).then((cache) => cache.put(APP_ROOT, copy));
       return response;
-    }).catch(() => caches.match('/')));
+    }).catch(async () => (await caches.match(request)) || caches.match(APP_ROOT)));
     return;
   }
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
