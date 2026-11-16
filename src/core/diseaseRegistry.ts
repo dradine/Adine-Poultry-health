@@ -18,17 +18,20 @@ export const DISEASE_MODELS: readonly DiseaseModelDescriptor[] = [
   },
   {
     id: 'ND', nameFa: 'نیوکاسل', nameEn: 'Newcastle disease',
-    status: 'research-only', scope: 'مدل اختصاصی زمان‌بندی/تداخل MDA و واکسن لازم است',
-    reason: 'تبدیل مدل IBD به ND علمی نیست؛ مدل ND هنوز پیاده‌سازی نشده است.',
+    status: 'monitor-available', method: 'HI serology response monitor',
+    scope: 'پایش توصیفی HI قبل/بعد واکسن؛ بدون زمان‌بندی MDA یا استنتاج protection',
+    reason: 'موتور پایش HI اضافه شده؛ مدل مستقل زمان‌بندی واکسن و حفاظت هنوز پیاده‌سازی/اعتبارسنجی نشده است.',
   },
   {
     id: 'IB', nameFa: 'برونشیت عفونی', nameEn: 'Infectious bronchitis',
-    status: 'monitor-available', method: 'assay-specific serology trend', scope: 'روند مقادیر هم‌کیت/هم‌واحد در زمان؛ بدون protection/cross-protection',
+    status: 'monitor-available', method: 'assay-specific serology trend',
+    scope: 'روند مقادیر هم‌کیت/هم‌واحد در زمان؛ بدون protection/cross-protection',
     reason: 'موتور روند سرولوژی مستقل اضافه شده؛ مدل حفاظت مخاطی یا cross-protection هنوز وجود ندارد.',
   },
   {
     id: 'AIV', nameFa: 'آنفلوانزای پرندگان', nameEn: 'Avian influenza',
-    status: 'monitor-available', method: 'surveillance evidence gate', scope: 'دسته‌بندی سیگنال‌ها و ارجاع؛ نه تشخیص، DIVA خودکار یا حفاظت',
+    status: 'monitor-available', method: 'surveillance evidence gate',
+    scope: 'دسته‌بندی سیگنال‌ها و ارجاع؛ نه تشخیص، DIVA خودکار یا حفاظت',
     reason: 'ماژول evidence gate برای اولویت پیگیری اضافه شده؛ تشخیص و برنامه رسمی در اختیار دامپزشک/مرجع است.',
   },
 ] as const
