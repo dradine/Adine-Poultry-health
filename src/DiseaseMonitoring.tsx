@@ -12,7 +12,7 @@ export default function DiseaseMonitoring(){
  const [product,setProduct]=useState('')
  const [route,setRoute]=useState('')
  const [days,setDays]=useState('14')
- const [ibData,setIbData]=useState('0:300\n14:650\n28:900')
+ const [ibData,setIbData]=useState('')
  const [ibAssay,setIbAssay]=useState('')
  const [unit,setUnit]=useState<'ELISA'|'HI-log2'|'VN'>('ELISA')
  const [aiv,setAiv]=useState({vaccinationStatus:'unknown' as 'vaccinated'|'unvaccinated'|'unknown',vaccinePlatform:'unknown' as 'inactivated'|'vector'|'other'|'unknown',subtype:'',antigenMatch:'uncertain' as 'documented'|'uncertain'|'not-assessed',serologyResult:'not-tested' as 'positive'|'negative'|'inconclusive'|'not-tested',divaValidated:false,rtPcrResult:'not-tested' as 'positive'|'negative'|'not-tested',clinicalSigns:false,mortalityIncrease:false,officialProgramConfirmed:false})
