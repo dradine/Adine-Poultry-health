@@ -33,6 +33,7 @@ type SavedAnalysis = {
   halfLife: string
   correctionDays: string
   minimumSampleCount: string
+  minimumSampleCountSource: string
   susceptiblePercent: string
   titersText: string
   estimatedVaccinationAgeDays: number | null
@@ -92,6 +93,7 @@ export default function App() {
   const [halfLife, setHalfLife] = useState('')
   const [correctionDays, setCorrectionDays] = useState('0')
   const [minimumSampleCount, setMinimumSampleCount] = useState('23')
+  const [minimumSampleCountSource, setMinimumSampleCountSource] = useState('')
   const [susceptiblePercent, setSusceptiblePercent] = useState('5')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
@@ -179,6 +181,8 @@ export default function App() {
       setBttSource('')
       setSelectedAssayId('')
       setKitName('')
+      setMinimumSampleCount('23')
+      setMinimumSampleCountSource('')
       setError('')
       return
     }
@@ -187,6 +191,8 @@ export default function App() {
     setBttSource('')
     setSelectedAssayId('')
     setKitName('')
+    setMinimumSampleCount(String(product?.deventer_minimum_sample_count || 23))
+    setMinimumSampleCountSource(product?.deventer_sample_size_basis || '')
     const product = vaccineCatalog.find(item => item.id === id)
     if (!product) { setError('محصول انتخاب‌شده در بانک مرجع پیدا نشد.'); return }
     const linkedAssay = assayCatalog.find(item => item.id === product.btt_assay_kit_id)
@@ -211,6 +217,7 @@ export default function App() {
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
+    if (!minimumSampleCountSource.trim()) return { result: null, error: 'منبع حداقل تعداد نمونه باید از IFU یا برچسب همان محصول/کیت ثبت شود.' }
     if (selectedAssayId && (!selectedAssay || selectedAssay.status !== 'documented')) {
       return { result: null, error: 'این کیت فقط در سطح کاتالوگ/مستندات ناقص ثبت شده و تا دریافت IFU معتبر، مدل محاسباتی آن باز نمی‌شود.' }
     }
@@ -238,7 +245,7 @@ export default function App() {
     } catch (cause) {
       return { result: null, error: cause instanceof Error ? cause.message : 'ورودی‌ها معتبر نیستند.' }
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified, selectedAssayId, selectedAssay, selectedVaccineProductId, selectedVaccineProduct, assayCatalog])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified, selectedAssayId, selectedAssay, selectedVaccineProductId, selectedVaccineProduct, assayCatalog])
   const result = calculation.result
   const calculationError = calculation.error
   const interpretation = useMemo(() => result ? interpretIbdResult({
@@ -259,11 +266,12 @@ export default function App() {
         halfLifeDays: Number(normalizeDigits(halfLife)),
         correctionDays: Number(normalizeDigits(correctionDays)),
         minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
+        minimumSampleCountSource,
         titers,
         susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
       })
     } catch { return [] }
-  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, titers, susceptiblePercent])
+  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent])
 
   async function exportBackup() {
     try {
@@ -523,6 +531,8 @@ export default function App() {
               const selected = assayCatalog.find(kit => kit.id === e.target.value)
               setSelectedAssayId(e.target.value)
               setKitName(selected ? selected.manufacturer + ' — ' + selected.name + (selected.catalog ? ' (' + selected.catalog + ')' : '') : '')
+              setMinimumSampleCount(String(selected?.minimumSampleCount || 23))
+              setMinimumSampleCountSource(selected?.minimumSampleCountSource || '')
             }}>
               <option value="">انتخاب کیت…</option>
               {assayCatalog.filter((kit) => kit.disease === 'IBD').map((kit) => (
@@ -531,7 +541,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount('23'); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
             <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
@@ -554,7 +564,10 @@ export default function App() {
             <input value={correctionSource} onChange={(e) => setCorrectionSource(e.target.value)} placeholder="برچسب محصول یا پروتکل اعتبارسنجی‌شده؛ اگر اصلاح صفر است علت را بنویسید" />
           </label>
           <label>حداقل تعداد نمونه در این تحلیل
-            <input inputMode="numeric" value={minimumSampleCount} onChange={(e) => setMinimumSampleCount(e.target.value)} />
+            <input inputMode="numeric" value={minimumSampleCount} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setMinimumSampleCount(e.target.value); setMinimumSampleCountSource('') }} />
+          </label>
+          <label>منبع حداقل تعداد نمونه (IFU/برچسب همان محصول یا کیت)
+            <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
           </label>
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
@@ -566,7 +579,7 @@ export default function App() {
         </div>
         <label className="wide-label">تیترهای انفرادی ELISA
           <textarea value={titersText} onChange={(e) => setTitersText(e.target.value)} rows={4} placeholder="تیترها را با فاصله یا ویرگول وارد کنید؛ مثال: 3200، 2800، 4100، 1900 ..." />
-          <small>راهنمای BioChek 2025 برای پیش‌بینی زمان واکسن حداقل ۲۳ نمونه را توصیه می‌کند؛ راهنمای Elanco حداقل ۱۸ جوجه سالم را ذکر می‌کند. عدد ۲۳ الزام جهانی یا الزام اختصاصی IDEXX نیست؛ برای هر پروتکل، مبنای انتخاب را ثبت کنید. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
+          <small>راهنمای BioChek RevB 2025 برای baseline/profile و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند؛ برچسب UK Avishield IBD Plus (Revised June 2026; AN 00716/2026) حداقل ۱۸ جوجه را ذکر می‌کند. این اعداد محصول/روش‌محورند، نه cutoff جهانی؛ منبع انتخاب را ثبت کنید. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
         </label>
 
         <div className="qc-gate">
