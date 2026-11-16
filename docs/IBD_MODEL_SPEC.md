@@ -56,3 +56,25 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 - Half-life distribution for Iranian commercial broilers and breeder-source strata.
 - Sampling correction implementation by each product label.
 - Local predictive validity against observed vaccine response, bursal histology, PCR differentiation and field outcomes.
+
+
+## Deventer percentage semantics and golden validation (2026-11-17)
+
+The Deventer bird-percentage parameter is the **percentage of the flock that should be directly susceptible/receptive to the live vaccine at administration** (MDA below the product-specific BTT). It is not a generic “percentile to protect” and must be explained in the UI.
+
+- Elanco's AviPro field guideline describes **5% as its field-experience default** under the assumption that the vaccine can spread horizontally from the initially responding birds. This is conditional on successful administration and housing/spread conditions; it is not a universal biological constant.
+- Published field studies have used **75%** as their requested susceptible fraction. This is a separate scenario and should not be confused with the Elanco 5% default.
+- The application therefore retains 5% as the starting scenario but exposes the percentage for veterinarian-selected scenario analysis. Poor MDA uniformity, cages vs deep litter, high field pressure, and multiple-dose strategies require explicit interpretation.
+- Golden example from Elanco AviPro guidelines: sample age 2 days; 20 IDEXX titres (published list); BTT 125; broiler half-life 3 days; 75% scenario; correction 2 days. The 15th ordered titre is 4027 and the formula yields approximately 19.0 days. This is now a regression test. The 5% scenario selects the first ordered titre (1224) in the same list and must produce an earlier estimate.
+- The correction term is an explicit 0–4 day value only when sampling occurred at 0–4 days. It must be sourced from the exact vaccine/product guidance or an explicitly validated protocol; the software does not infer it from age.
+
+## Assay quality gate
+
+A numerical estimate is blocked until the operator confirms: (1) the plate/run passed the exact kit IFU and laboratory SOP controls, including reference controls where applicable; (2) sampling was random and representative; and (3) the vaccine BTT is documented for the exact assay, kit version and titer unit. These are operator attestations, not automated validation. Future import from BioChek II/xChekPlus must preserve raw OD, controls, lot, assay version and software-generated titre; it must not treat imported titre-only data as proof of plate validity.
+
+## Current kit/software evidence
+
+- BioChek CK113 IBD: indirect ELISA; 1:500; A405; 30-30-15 min; reference controls available. Official 2025 manual RevB recommends at least 23 samples for baseline/profile and vaccination-date prediction; 15 may be sufficient for trend detection after baseline establishment but not quantitative analysis. This is manufacturer guidance, not a universal rule.
+- BioChek 2025 manual specifies kit-specific S/P-to-titer slope/intercept values and states these can differ among assays/manufacturers. The app must never infer a BioChek formula from a different kit or from generic OD data.
+- IDEXX IBD Ab 99-09260: indirect ELISA. The package insert's S/P-to-titer conversion is explicitly a rough indication; it advises quantitative assessment by calibration against a known quantitative standard. The official product page warns products may not be available/registered in every country.
+- BioChek II supports custom CSV/TXT export to LIMS. xChekPlus can export case-view results to Excel/TXT and provides control tracking. Import adapters must be built against actual example files from the laboratory and must be schema/version-specific; no guessed column mapping is permitted.
