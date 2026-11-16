@@ -5,7 +5,7 @@ import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
 import { ASSAY_CATALOG } from './core/assayRegistry'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
-import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'\nimport { interpretIbdResult } from './core/ibdInterpretation'
 
 type SavedProfile = {
   id: string
@@ -413,6 +413,14 @@ export default function App() {
             {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
             <p>هشدارها: {result.warnings.join(' ')}</p>
             <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
+            {interpretation && <section className="interpretation-panel">
+              <h4>تفسیر آموزشی نتیجه</h4>
+              <div className="interpretation-farmer"><b>توضیح قابل ارائه به مرغدار</b><p>{interpretation.farmer}</p></div>
+              <div><b>منطق علمی و محاسبات</b><ul>{interpretation.veterinarian.map((line, i) => <li key={i}>{line}</li>)}</ul></div>
+              <div><b>فرض‌های لازم</b><ul>{interpretation.assumptions.map((line, i) => <li key={i}>{line}</li>)}</ul></div>
+              <div><b>محدودیت‌های تفسیر</b><ul>{interpretation.limitations.map((line, i) => <li key={i}>{line}</li>)}</ul></div>
+              <div><b>اقدام بعدی</b><ul>{interpretation.nextActions.map((line, i) => <li key={i}>{line}</li>)}</ul></div>
+            </section>}
           </div>
         ) : (
           <div className="empty-result">{calculationError || 'برای محاسبه، تیترهای انفرادی، BTT، نیمه‌عمر و منبع مستند هر پارامتر را وارد و کنترل‌های کیفیت را تأیید کنید.'}</div>
