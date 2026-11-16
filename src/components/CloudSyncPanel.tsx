@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../core/supabase'
-import { countPendingChanges, listLocalFlocks, listLocalModelRuns, notifyLocalDataChanged } from '../core/localFirstDb'
+import { countPendingChanges, listLocalFlocks, listLocalModelRuns } from '../core/localFirstDb'
 import { getLastSync, migrateLegacyLocalData, syncLocalData } from '../core/syncService'
 
 function faDate(value: string | null): string {
