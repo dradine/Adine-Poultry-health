@@ -9,7 +9,7 @@ import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTite
 import { interpretIbdResult } from './core/ibdInterpretation'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import CloudSyncPanel from './components/CloudSyncPanel'
-import { markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
 
 type SavedProfile = {
@@ -158,9 +158,11 @@ export default function App() {
     } catch { return [] }
   }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, titers, susceptiblePercent])
 
-  function exportBackup() {
+  async function exportBackup() {
     try {
-      const blob = new Blob([JSON.stringify(createLocalBackup(), null, 2)], { type: 'application/json' })
+      const [flocks, modelRuns] = await Promise.all([listLocalFlocks(), listLocalModelRuns()])
+      const backup = { ...createLocalBackup(), localFirst: { flocks, modelRuns } }
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const anchor = document.createElement('a')
       anchor.href = url
@@ -168,13 +170,17 @@ export default function App() {
       anchor.click()
       URL.revokeObjectURL(url)
       setError('')
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تهیه پشتیبان انجام نشد.') }
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'تهیه پشتیبان کامل انجام نشد؛ پایگاه محلی را بررسی کنید.') }
   }
 
   async function importBackup(file?: File) {
     if (!file) return
     try {
-      restoreLocalBackup(JSON.parse(await file.text()))
+      const parsed: unknown = JSON.parse(await file.text())
+      restoreLocalBackup(parsed)
+      if (parsed && typeof parsed === 'object' && 'localFirst' in parsed) {
+        await importLocalFirstBackup((parsed as { localFirst: { flocks?: unknown[]; modelRuns?: unknown[] } }).localFirst)
+      }
       setProfiles(readProfiles())
       setAnalyses(readAnalyses())
       void migrateLegacyLocalData().then(() => notifyLocalDataChanged()).catch(cause => setError(cause instanceof Error ? cause.message : 'انتقال پشتیبان به پایگاه محلی انجام نشد.'))
