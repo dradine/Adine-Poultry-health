@@ -48,7 +48,7 @@
 ## محدوده علمی
 موتور فعلی صرفاً برآورد ریاضی مقدماتی Deventer-style برای واکسن زنده متعارف IBD است. برای immune-complex، HVT-VP2، واکسن‌های غیرفعال، ND، IBV و AIV نباید از این فرمول استفاده شود. BTT و نیمه‌عمر باید با نسخه دقیق بروشور محصول و مقیاس دقیق کیت تطابق داشته باشند. تبدیل بین کیت‌ها بدون اعتبارسنجی ممنوع است.
 
-حداقل نمونه، پارامتر کیت/پروتکل است؛ ۲۳ مقدار پیش‌فرض پروفایل توسعه بر اساس راهنمای BioChek است، نه قانون جهانی. بعضی بروشورها اعداد دیگری مانند ۱۸ یا ۲۰ را ذکر می‌کنند.
+حداقل نمونه، پارامتر محصول/کیت است؛ BioChek CK113 RevB 2025 برای baseline/profile عدد ۲۳ را توصیه می‌کند، درحالی‌که برچسب UK Avishield IBD Plus (June 2026) حداقل ۱۸ جوجه را برای Deventer ذکر می‌کند. این اعداد قابل تعمیم به همه محصولات و آزمون‌ها نیستند.
 
 ## محدودیت‌های نسخه
 - هنوز اتصال احراز هویت و همگام‌سازی Supabase به رابط برنامه انجام نشده است.
@@ -58,7 +58,7 @@
 
 ## منابع علمی پایه
 - WOAH Terrestrial Manual 2024 — Infectious bursal disease.
-- UK VMD authorised product information, revised 2024 — product-specific Deventer guidance.
+- UK VMD authorised product information, revised June 2026 (AN 00716/2026) — product-specific Deventer guidance; BTT 500 IDEXX units and minimum 18 chicks.
 - BioChek CK113 IBD ELISA product information and ELISA interpretation guidance.
 - Elanco AviPro IBD vaccination guidelines.
 - Smiałek et al. 2024 — comparison of commercial IBD vaccination protocols, serology and bursal lesions.
