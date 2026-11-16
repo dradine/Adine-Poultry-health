@@ -7,6 +7,11 @@ describe('IBD Deventer-style mathematical estimator', () => {
     expect(r.sampleCount).toBe(23); expect(r.percentileTiter).toBe(400)
     expect(r.estimatedVaccinationAgeDays).toBeGreaterThan(10); expect(r.coefficientOfVariationPercent).toBeGreaterThan(0)
   })
+  it('uses the 5 percent nearest-rank and warns about an unstable lower tail', () => {
+    const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:5,titers:sample23})
+    expect(r.percentileRank).toBe(2)
+    expect(r.warnings.some(w=>w.includes('سه نمونه'))).toBe(true)
+  })
   it('rejects undersized samples', () => {
     expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[64,128,256]})).toThrow(/حداقل 23 نمونه/)
   })
