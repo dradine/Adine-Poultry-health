@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, parseTiters, validateIbdRunGate } from './ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, parseTiters, validateIbdRunGate } from './ibd'
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -56,5 +56,15 @@ describe('published Deventer reference example', () => {
     expect(r.percentileRank).toBe(1)
     expect(r.percentileTiter).toBe(1224)
     expect(r.estimatedVaccinationAgeDays).toBeLessThan(19.03)
+  })
+})
+
+describe('Deventer sensitivity analysis', () => {
+  it('shows distinct vaccination ages for different directly receptive flock fractions', () => {
+    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],correctionDays:2,minimumSampleCount:18})
+    expect(r.map(x=>x.susceptiblePercent)).toEqual([5,25,75,90])
+    expect(r[0].vaccinationAgeDays).toBeLessThan(r[1].vaccinationAgeDays)
+    expect(r[1].vaccinationAgeDays).toBeLessThan(r[2].vaccinationAgeDays)
+    expect(r[2].vaccinationAgeDays).toBeLessThan(r[3].vaccinationAgeDays)
   })
 })
