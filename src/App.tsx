@@ -302,10 +302,9 @@ export default function App() {
                   {kit.manufacturer} — {kit.name}{kit.catalog ? ' (' + kit.catalog + ')' : ''}{kit.status !== 'documented' ? ' · مستندات ناکامل' : ''}
                 </option>
               ))}
-              <option value="manual">کیت دیگر / ورود دستی</option>
             </select>
-            {kitName === 'manual' && <input value={kitName === 'manual' ? '' : kitName} onChange={(e) => setKitName(e.target.value)} placeholder="نام سازنده، کیت، کد و نسخه IFU" />}
-            <small>فقط کیت‌های مستند در فهرست اولیه محاسبات را فعال می‌کنند؛ سایر موارد نیازمند مستندات دقیق هستند.</small>
+            <input value={kitName} onChange={(e) => setKitName(e.target.value)} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <small>فهرست فعلی فقط کیت‌های IBD را نشان می‌دهد؛ کیت‌های غیرمستند نیازمند بررسی IFU هستند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
             <input value={vaccineName} onChange={(e) => setVaccineName(e.target.value)} placeholder="نام تجاری، سویه و نوع واکسن" />
