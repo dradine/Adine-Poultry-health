@@ -112,3 +112,15 @@ describe('IBD numerical and boundary safety', () => {
     expect(() => calculateIbdWindow({ ...valid, titers: parseTiters('128 xyz') })).toThrow()
   })
 })
+
+describe('IBD percentile and extreme input regression', () => {
+  it('uses first observation for a percentile whose rank rounds to zero', () => {
+    const r = calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:0.01,titers:sample23})
+    expect(r.percentileRank).toBe(1)
+    expect(r.percentileTiter).toBe(Math.min(...sample23))
+  })
+  it('rejects biologically implausible age and numeric overflow titers', () => {
+    expect(() => calculateIbdWindow({samplingAgeDays:366,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:5,titers:sample23})).toThrow()
+    expect(() => calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:5,titers:[...sample23.slice(0,22),1e100]})).toThrow()
+  })
+})
