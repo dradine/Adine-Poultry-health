@@ -69,3 +69,46 @@ describe('Deventer sensitivity analysis', () => {
     expect(r[2].vaccinationAgeDays!).toBeLessThan(r[3].vaccinationAgeDays!)
   })
 })
+
+describe('IBD numerical and boundary safety', () => {
+  const valid = { samplingAgeDays: 14, breakthroughTiter: 500, halfLifeDays: 3.8, susceptiblePercent: 5, titers: sample23 }
+  it.each([0, -1, 100, NaN, Infinity])('rejects invalid susceptible fraction %s', (p) => {
+    expect(() => calculateIbdWindow({ ...valid, susceptiblePercent: p })).toThrow()
+  })
+  it.each([0, -1, NaN, Infinity])('rejects invalid BTT %s', (btt) => {
+    expect(() => calculateIbdWindow({ ...valid, breakthroughTiter: btt })).toThrow()
+  })
+  it.each([0, -1, NaN, Infinity])('rejects invalid half-life %s', (halfLifeDays) => {
+    expect(() => calculateIbdWindow({ ...valid, halfLifeDays })).toThrow()
+  })
+  it('rejects NaN and infinite titers instead of silently calculating', () => {
+    expect(() => calculateIbdWindow({ ...valid, titers: [...sample23.slice(0,22), NaN] })).toThrow()
+    expect(() => calculateIbdWindow({ ...valid, titers: [...sample23.slice(0,22), Infinity] })).toThrow()
+  })
+  it('handles tied titers deterministically and returns a valid observed rank', () => {
+    const tied = Array(23).fill(256)
+    const r = calculateIbdWindow({ ...valid, titers: tied, susceptiblePercent: 5 })
+    expect(r.percentileTiter).toBe(256)
+    expect(r.percentileRank).toBe(2)
+    expect(r.minimumTiter).toBe(256)
+    expect(r.maximumTiter).toBe(256)
+    expect(r.log2StandardDeviation).toBe(0)
+  })
+  it('uses exact nearest-rank boundary at 100 percent exclusion', () => {
+    const r = calculateIbdWindow({ ...valid, susceptiblePercent: 99.9 })
+    expect(r.percentileRank).toBe(23)
+    expect(r.percentileTiter).toBe(Math.max(...sample23))
+  })
+  it('rejects correction days outside supported range and fractional minimum count', () => {
+    expect(() => calculateIbdWindow({ ...valid, correctionDays: 4.01 })).toThrow()
+    expect(() => calculateIbdWindow({ ...valid, minimumSampleCount: 2.5 })).toThrow()
+  })
+  it('normalizes Arabic/Persian digits and decimal separators without changing signs', () => {
+    expect(parseTiters('۱۲٫۵، ١٢٫٥')).toEqual([12.5, 12.5])
+    expect(parseTiters('-۱۲')).toEqual([-12])
+  })
+  it('exposes malformed tokens as NaN so calculation gate can reject them', () => {
+    expect(parseTiters('۱۲۸، xyz')).toEqual([128, NaN])
+    expect(() => calculateIbdWindow({ ...valid, titers: parseTiters('128 xyz') })).toThrow()
+  })
+})
