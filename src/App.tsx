@@ -553,6 +553,7 @@ export default function App() {
           <label>BTT محصول (تیتر)
             <input inputMode="decimal" value={btt} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setBtt(e.target.value)} placeholder="فقط از بروشور همان محصول" />
             {selectedVaccineProduct && <small>{selectedVaccineProduct.btt_definition} · واحد: {selectedVaccineProduct.breakthrough_unit}</small>}
+            {selectedVaccineProduct?.deventer_sample_size_basis && <small>حداقل نمونه محصول: {selectedVaccineProduct.deventer_minimum_sample_count} · {selectedVaccineProduct.deventer_sample_size_basis}</small>}
           </label>
           <label>منبع دقیق BTT (بروشور/نسخه/صفحه/واحد)
             <input value={bttSource} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setBttSource(e.target.value)} placeholder="نام محصول، نسخه برچسب، صفحه و مقیاس ELISA" />
