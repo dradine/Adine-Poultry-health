@@ -32,7 +32,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0) throw new Error('سن نمونه‌گیری معتبر نیست.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت و مستند از بروشور همان واکسن باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عدد مثبت و مستند باشد.')
-  if (susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
+  if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
   if (titers.length === 0 || titers.some((v) => !Number.isFinite(v) || v <= 0)) {
     throw new Error('تیترها باید اعداد مثبت باشند؛ نتایج زیر حد تشخیص یا نامعتبر را وارد نکنید.')
   }
