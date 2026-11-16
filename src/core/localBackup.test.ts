@@ -80,3 +80,21 @@ describe('backup record validation',()=>{
   expect(()=>validateLocalBackup({schema:'adine-vaccine-timing-backup',version:1,exportedAt:'nonsense',profiles:[],analyses:[]})).toThrow()
  })
 })
+
+describe('local-first backup extension', () => {
+  it('accepts a complete IndexedDB snapshot while preserving version 1 compatibility', () => {
+    const result = validateLocalBackup({
+      schema: 'adine-vaccine-timing-backup', version: 1,
+      profiles: [], analyses: [],
+      localFirst: { flocks: [{ id: 'f1' }], modelRuns: [{ id: 'r1' }] },
+    })
+    expect(result.localFirst?.flocks).toHaveLength(1)
+    expect(result.localFirst?.modelRuns).toHaveLength(1)
+  })
+  it('rejects an incomplete IndexedDB snapshot', () => {
+    expect(() => validateLocalBackup({
+      schema: 'adine-vaccine-timing-backup', version: 1,
+      profiles: [], analyses: [], localFirst: { flocks: [] },
+    })).toThrow()
+  })
+})
