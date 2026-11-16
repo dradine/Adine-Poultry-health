@@ -47,6 +47,7 @@ export default function App() {
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
   const [correctionDays, setCorrectionDays] = useState('0')
+  const [minimumSampleCount, setMinimumSampleCount] = useState('23')
   const [susceptiblePercent, setSusceptiblePercent] = useState('75')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
@@ -64,13 +65,13 @@ export default function App() {
         halfLifeDays: Number(normalizeDigits(halfLife)),
         susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
         correctionDays: Number(normalizeDigits(correctionDays)),
-        minimumSampleCount: 23,
+        minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
         titers,
       })
     } catch {
       return null
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, titers, kitName, vaccineName])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName])
 
   function saveProfile() {
     setError('')
@@ -181,6 +182,9 @@ export default function App() {
           <label>نیمه‌عمر آنتی‌بادی (روز)
             <input inputMode="decimal" value={halfLife} onChange={(e) => setHalfLife(e.target.value)} placeholder="بر اساس داده معتبر همین گله/جمعیت" />
           </label>
+          <label>حداقل تعداد نمونه طبق بروشور کیت
+            <input inputMode="numeric" value={minimumSampleCount} onChange={(e) => setMinimumSampleCount(e.target.value)} />
+          </label>
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
           </label>
@@ -190,7 +194,7 @@ export default function App() {
         </div>
         <label className="wide-label">تیترهای انفرادی ELISA
           <textarea value={titersText} onChange={(e) => setTitersText(e.target.value)} rows={4} placeholder="تیترها را با فاصله یا ویرگول وارد کنید؛ مثال: 3200، 2800، 4100، 1900 ..." />
-          <small>برای این پروفایل آزمایشی حداقل ۲۳ نمونه لازم است (مبنای راهنمای BioChek؛ نه حد جهانی). فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
+          <small>حداقل تعداد نمونه را مطابق بروشور دقیق کیت/پروتکل وارد کنید؛ مقدار پیش‌فرض ۲۳ بر اساس راهنمای BioChek است و حد جهانی نیست. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
         </label>
         <div className="data-summary">
           <span>تعداد مقادیر واردشده</span>
