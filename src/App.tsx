@@ -262,6 +262,12 @@ export default function App() {
           <p>ثبت اطلاعات گله و بررسی اولیه زمان‌بندی واکسن گامبورو بر پایه تیتر آنتی‌بادی مادری.</p>
         </div>
         <div className="intro-symbol">IBD</div>
+        <div className="backup-actions">
+          <button className="button secondary" onClick={exportBackup}>خروجی پشتیبان JSON</button>
+          <label className="button secondary">بازیابی پشتیبان
+            <input type="file" accept="application/json,.json" hidden onChange={(e) => { void importBackup(e.target.files?.[0]); e.currentTarget.value = '' }} />
+          </label>
+        </div>
       </section>
 
       <div className="notice">
