@@ -1,32 +1,20 @@
-import { describe, expect, it } from 'vitest';
-import { calculateIbdWindow, parseTiters } from './ibd';
-
-describe('IBD preliminary calculator', () => {
-  it('calculates a log2 percentile and preliminary age', () => {
-    const result = calculateIbdWindow({
-      samplingAgeDays: 10,
-      breakthroughTiter: 128,
-      halfLifeDays: 3,
-      susceptiblePercent: 50,
-      titers: [64, 128, 256, 512],
-    });
-    expect(result.log2PercentileTiter).toBe(7.5);
-    expect(result.estimatedVaccinationAgeDays).toBe(11.5);
-    expect(result.sampleCount).toBe(4);
-  });
-
-  it('accepts Persian digits in individual titre entry', () => {
-    expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128, 256]);
-  });
-
-  it('does not silently accept invalid or zero titres', () => {
-    const titers = parseTiters('128,نامعتبر,0');
-    expect(() => calculateIbdWindow({
-      samplingAgeDays: 10,
-      breakthroughTiter: 128,
-      halfLifeDays: 3,
-      susceptiblePercent: 75,
-      titers,
-    })).toThrow();
-  });
-});
+import { describe, expect, it } from 'vitest'
+import { calculateIbdWindow, parseTiters } from './ibd'
+const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
+describe('IBD Deventer-style mathematical estimator', () => {
+  it('uses nearest-rank observed titre and applies correction days', () => {
+    const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:50,titers:sample23,correctionDays:2})
+    expect(r.sampleCount).toBe(23); expect(r.percentileTiter).toBe(400)
+    expect(r.estimatedVaccinationAgeDays).toBeGreaterThan(10); expect(r.coefficientOfVariationPercent).toBeGreaterThan(0)
+  })
+  it('rejects undersized samples', () => {
+    expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[64,128,256]})).toThrow(/حداقل 23 نمونه/)
+  })
+  it('flags a threshold already reached at sampling', () => {
+    const r=calculateIbdWindow({samplingAgeDays:14,breakthroughTiter:4096,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    expect(r.thresholdAlreadyReachedAtSampling).toBe(true); expect(r.estimatedVaccinationAgeDays).toBe(14)
+  })
+  it('accepts Persian digits',()=>expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128,256]))
+  it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
+  it('rejects invalid correction range',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:5})).toThrow())
+})
