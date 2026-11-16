@@ -17,4 +17,6 @@ if (![401, 403].includes(anonymousRead.status)) {
   throw new Error('RLS smoke test expected anonymous catalogue access to be denied; received HTTP ' + anonymousRead.status)
 }
 console.log('Supabase smoke passed: Auth reachable; signup setting readable; anonymous database access denied.')
-console.log('Email confirmation required:', authSettings.mailer_autoconfirm === true ? 'no' : 'yes / depends on project configuration')
+console.log('Auth site URL:', authSettings.site_url || '(not exposed by Auth settings)')
+console.log('Auth redirect allowlist:', authSettings.uri_allow_list || '(not exposed by Auth settings)')
+console.log('Email confirmation required:', authSettings.mailer_autoconfirm === true ? 'no' : 'yes')
