@@ -12,7 +12,7 @@ export type IbdOutput = {
   percentileTiter: number
   percentileRank: number
   rawCalculatedAgeDays: number
-  estimatedVaccinationAgeDays: number
+  estimatedVaccinationAgeDays: number | null
   thresholdAlreadyReachedAtSampling: boolean
   sampleCount: number
   arithmeticMean: number
@@ -62,7 +62,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const log2PercentileTiter = Math.log2(percentileTiter)
   const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + correctionDays
   const thresholdAlreadyReachedAtSampling = rawCalculatedAgeDays <= samplingAgeDays
-  const estimatedVaccinationAgeDays = Math.max(samplingAgeDays, rawCalculatedAgeDays)
+  const estimatedVaccinationAgeDays = thresholdAlreadyReachedAtSampling ? null : rawCalculatedAgeDays
   const arithmeticMean = titers.reduce((s,v)=>s+v,0)/titers.length
   const medianTiter = sorted.length % 2 === 0
     ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
@@ -88,7 +88,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
     coefficientOfVariationPercent, warnings }
 }
 
-export type IbdSensitivityPoint = { susceptiblePercent: number; vaccinationAgeDays: number; selectedTiter: number; selectedRank: number }
+export type IbdSensitivityPoint = { susceptiblePercent: number; vaccinationAgeDays: number | null; selectedTiter: number; selectedRank: number }
 export function calculateIbdSensitivity(input: IbdInput, percentages: number[] = [5, 25, 75, 90]): IbdSensitivityPoint[] {
   return percentages.map(susceptiblePercent => {
     const result = calculateIbdWindow({ ...input, susceptiblePercent })
