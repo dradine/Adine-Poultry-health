@@ -6,7 +6,8 @@ import DateObject from 'react-date-object'
 import { ASSAY_CATALOG } from './core/assayRegistry'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
-import { interpretIbdResult } from './core/ibdInterpretation'\nimport DiseaseMonitoring from './DiseaseMonitoring'
+import { interpretIbdResult } from './core/ibdInterpretation'
+import DiseaseMonitoring from './DiseaseMonitoring'
 
 type SavedProfile = {
   id: string
@@ -456,7 +457,9 @@ export default function App() {
         )}
       </section>
 
-      <DiseaseMonitoring />\n\n      <section className="panel roadmap">
+      <DiseaseMonitoring />
+
+      <section className="panel roadmap">
         <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
         <div className="disease-grid">
           <div className="disease active"><b>گامبورو (IBD)</b><small>نسخه اولیه در حال اعتبارسنجی</small></div>
