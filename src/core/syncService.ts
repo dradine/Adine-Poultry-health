@@ -245,3 +245,66 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
 export async function getLastSync(userId: string): Promise<string | null> {
   return getSyncMeta('last-sync:' + userId)
 }
+
+
+export type MonitorRunDraft = {
+  flock: { id: string; flockName: string; placementDate: string; savedAt?: string }
+  diseaseCode: 'ND' | 'IBV' | 'AIV'
+  input: Record<string, unknown>
+  output: unknown
+}
+export async function saveMonitorRunToLocal(draft: MonitorRunDraft): Promise<string> {
+  const existingFlock = (await listLocalFlocks(true)).find(row => row.id === draft.flock.id)
+  if (!existingFlock) {
+    await saveProfileToLocal({
+      id: draft.flock.id,
+      flockName: draft.flock.flockName,
+      placementDate: draft.flock.placementDate,
+      savedAt: draft.flock.savedAt || new Date().toISOString(),
+    })
+  }
+  const modelFamily = draft.diseaseCode === 'ND'
+    ? 'nd-hi-serology-response-monitor'
+    : draft.diseaseCode === 'IBV'
+      ? 'ibv-assay-specific-serology-trend'
+      : 'aiv-surveillance-evidence-gate'
+  const limitations = draft.diseaseCode === 'ND'
+    ? [
+        'Descriptive HI response monitor only; no universal protective HI threshold is implied.',
+        'Paired rise is meaningful only for the same individually identified birds and same assay antigen.',
+        'Does not predict clinical protection, shedding, transmission or vaccine take.',
+      ]
+    : draft.diseaseCode === 'IBV'
+      ? [
+          'Trend is comparable only within the same assay, kit, unit and validated method.',
+          'Serum trend does not establish mucosal protection or genotype-specific cross-protection.',
+          'Does not predict clinical protection, shedding or transmission.',
+        ]
+      : [
+          'Evidence triage only; not a diagnosis, official notification or DIVA validation.',
+          'A negative PCR result does not exclude infection if sampling, timing or assay sensitivity are inadequate.',
+          'Does not infer vaccine protection or transmission risk quantitatively.',
+        ]
+  const now = new Date().toISOString()
+  const id = crypto.randomUUID()
+  await saveLocalModelRun({
+    id,
+    flock_id: draft.flock.id,
+    disease_code: draft.diseaseCode,
+    model_version: draft.diseaseCode.toLowerCase() + '-monitor-0.1.0',
+    model_family: modelFamily,
+    input_snapshot: draft.input,
+    output_snapshot: (draft.output && typeof draft.output === 'object'
+      ? draft.output
+      : { value: draft.output }) as Record<string, unknown>,
+    confidence_level: draft.diseaseCode === 'AIV' ? 'insufficient' : 'low',
+    decision_status: 'review_required',
+    limitations,
+    qc_summary: { enteredByUser: true, rawLabFileImported: false },
+    model_assumptions: { interpretation: 'descriptive-monitor-only', noProtectionInference: true },
+    source_references: [],
+    input_schema_version: 'disease-monitor-input-v1',
+    created_at: now,
+  })
+  return id
+}
