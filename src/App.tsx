@@ -186,15 +186,15 @@ export default function App() {
       setError('')
       return
     }
+    const product = vaccineCatalog.find(item => item.id === id)
+    if (!product) { setError('محصول انتخاب‌شده در بانک مرجع پیدا نشد.'); return }
     setVaccineName('')
     setBtt('')
     setBttSource('')
     setSelectedAssayId('')
     setKitName('')
-    setMinimumSampleCount(String(product?.deventer_minimum_sample_count || 23))
-    setMinimumSampleCountSource(product?.deventer_sample_size_basis || '')
-    const product = vaccineCatalog.find(item => item.id === id)
-    if (!product) { setError('محصول انتخاب‌شده در بانک مرجع پیدا نشد.'); return }
+    setMinimumSampleCount(String(product.deventer_minimum_sample_count || 23))
+    setMinimumSampleCountSource(product.deventer_sample_size_basis || '')
     const linkedAssay = assayCatalog.find(item => item.id === product.btt_assay_kit_id)
     if (!linkedAssay) {
       setError('کیت مرجع متصل به BTT این محصول در بانک کیت‌ها پیدا نشد؛ محاسبه را با تطبیق دستی انجام ندهید.')
@@ -238,6 +238,7 @@ export default function App() {
           susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
           correctionDays: Number(normalizeDigits(correctionDays)),
           minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
+          minimumSampleCountSource,
           titers,
         }),
         error: '',
@@ -350,6 +351,7 @@ export default function App() {
       halfLife,
       correctionDays,
       minimumSampleCount,
+      minimumSampleCountSource,
       susceptiblePercent,
       titersText,
       estimatedVaccinationAgeDays: result.estimatedVaccinationAgeDays,
@@ -391,6 +393,7 @@ export default function App() {
     setHalfLife(item.halfLife)
     setCorrectionDays(item.correctionDays)
     setMinimumSampleCount(item.minimumSampleCount)
+    setMinimumSampleCountSource(item.minimumSampleCountSource || '')
     setSusceptiblePercent(item.susceptiblePercent)
     setTitersText(item.titersText)
     setPlateQcAccepted(item.plateQcAccepted)
