@@ -1,0 +1,46 @@
+name: Deploy test preview
+
+on:
+  push:
+    branches: [feature/ibd-first-mvp]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adine-poultry-test-preview
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Build app for the GitHub Pages preview path
+        run: npm run build -- --base=/Adine-Poultry-health/
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload test preview
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy test preview
+        id: deployment
+        uses: actions/deploy-pages@v4
