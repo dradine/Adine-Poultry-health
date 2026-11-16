@@ -235,7 +235,7 @@ export default function CloudSyncPanel() {
         <details className="cloud-auth">
           <summary>ورود یا ساخت حساب برای همگام‌سازی بین دستگاه‌ها</summary>
           <p className="muted cloud-redirect-note">آدرس بازگشت تأیید ایمیل (باید در Supabase Auth مجاز باشد): <span dir="ltr">{window.location.origin + window.location.pathname}</span></p>
-          <form onSubmit={signIn}>
+          <form onSubmit={mode === 'signin' ? signIn : (event) => { event.preventDefault(); void signUp() }}>
             <label>ایمیل حساب
               <input type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required placeholder="name@example.com" dir="ltr" />
             </label>
@@ -247,7 +247,7 @@ export default function CloudSyncPanel() {
               <button className="button secondary" type="button" disabled={busy} onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setMessage('') }}>
                 {mode === 'signin' ? 'ساخت حساب جدید' : 'بازگشت به ورود'}
               </button>
-              {mode === 'signup' && <button className="button primary" type="button" disabled={busy} onClick={() => void signUp()}>ثبت‌نام</button>}
+              {mode === 'signup' && <button className="button primary" type="submit" disabled={busy}>ثبت‌نام</button>}
             </div>
             {mode === 'signin' && <button className="cloud-link" type="button" disabled={busy} onClick={() => void resetPassword()}>بازیابی گذرواژه</button>}
           </form>
