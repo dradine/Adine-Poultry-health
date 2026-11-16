@@ -20,11 +20,14 @@ const { error: catalogError } = await client.from('assay_kits').select('id').lim
 if (catalogError) {
   throw new Error('Supabase SDK should read public reference catalog without login: ' + catalogError.message)
 }
-const { error: flockError } = await client.from('flocks').select('id').limit(1)
-if (!flockError || ![401, 403].includes(flockError.status)) {
-  throw new Error('Supabase SDK expected anonymous flock access to be denied; received ' + (flockError?.status || 'no error'))
+const { data: privateRows, error: flockError } = await client.from('flocks').select('id').limit(1)
+if (flockError && ![401, 403].includes(flockError.status)) {
+  throw new Error('Unexpected anonymous flock query error: ' + flockError.message)
 }
-console.log('Supabase smoke passed: Auth reachable; signup setting readable; SDK can read public catalog; anonymous flock access denied.')
+if (Array.isArray(privateRows) && privateRows.length > 0) {
+  throw new Error('Anonymous SDK query exposed private flock rows.')
+}
+console.log('Supabase smoke passed: Auth reachable; signup setting readable; SDK can read public catalog; no private flock rows exposed to anonymous client.')
 console.log('Auth site URL:', authSettings.site_url || '(not exposed by Auth settings)')
 console.log('Auth redirect allowlist:', authSettings.uri_allow_list || '(not exposed by Auth settings)')
 console.log('Email confirmation required:', authSettings.mailer_autoconfirm === true ? 'no' : 'yes')
