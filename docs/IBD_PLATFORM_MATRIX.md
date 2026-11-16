@@ -37,9 +37,16 @@ This document prevents the Deventer estimator from being applied to unlike vacci
 - Elanco, AviPro IBD Xtreme German product information: https://assets.elanco.com/0cec44ed-3eaa-0009-2029-666567e7e4de/5260802d-5d27-4091-aa4b-a288160365b3/FI_DE_0415_AviPro_IBDXtreme.pdf
 - Ceva, Transmune booklet: https://poultry.ceva.com/app/uploads/sites/9/2023/01/TRANSMUNE-BOOKLET-2022.pdf
 - Boehringer Ingelheim, VAXXITEK HVT+IBD: https://animalhealth.boehringer-ingelheim.com/poultry/products/vaxxitek/vaxxitek-hvtibd-vaccine
+- WOAH Terrestrial Manual 2024, IBD Chapter 3.3.8: https://www.woah.org/fileadmin/Home/fr/Health_standards/tahm/3.03.08_IBD.pdf
+- Review, Advances in Infectious Bursal Disease Virus Vaccines (2025): https://pmc.ncbi.nlm.nih.gov/articles/PMC12735676/
 - UK VMD authorised Avishield IBD Plus product information (BTT, assay scale, route and label timing): https://www.vmd.defra.gov.uk/productinformationdatabase/files/QRD_Documents/QRD-Auth_2715448.PDF
 - IDEXX IBD Ab Test part 99-09260: https://www.idexx.com/en/livestock/livestock-tests/poultry-tests/idexx-ibd-ab-test/
 - IDEXX IBD Ab Test package insert 06-01129-18: https://s3.amazonaws.com/idexx-ws-web-documents/org/lpd-web-insert/idexx%20ibd%20ab%20test-06-01129-18.pdf
+
+## WOAH diagnostic framework and 2025 review
+- WOAH Terrestrial Manual 2024 classifies ELISA as strongly recommended for assessing post-vaccination immune status, but the same chapter separates antibody detection from agent detection and virus characterisation. RT-PCR alone does not normally distinguish live vaccine strains from field isolates; virus characterisation/sequence and bursal pathology may be needed for that purpose.
+- WOAH recognises conventional live attenuated, inactivated, recombinant VP2 and immune-complex vaccines as distinct categories. Live attenuated vaccines are classified by increasing invasiveness and ability to overcome MDA; immune-complex and recombinant vaccines allow hatchery administration even in the presence of MDA. This supports strict platform-specific model routing.
+- The 2025 review of IBDV vaccines also distinguishes live, immune-complex, HVT-VP2 and inactivated/subunit platforms. It is a review, not a substitute for product SPCs or independent local field validation.
 
 ## Interpretation cautions
 - Manufacturer brochures are product evidence, not independent comparative trials.
