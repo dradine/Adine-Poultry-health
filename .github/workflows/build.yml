@@ -13,6 +13,11 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - uses: actions/upload-artifact@v4
+        with:
+          name: generated-package-lock
+          path: package-lock.json
+          retention-days: 1
       - run: npm run test
       - run: npm run build
       - run: npm run smoke:supabase
