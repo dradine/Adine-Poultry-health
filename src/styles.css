@@ -115,3 +115,7 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .cloud-message{margin:0;padding:10px 12px;background:#f0f6f2;border-radius:9px;color:#345b45;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
 .cloud-footnote{margin:0}
 @media(max-width:680px){.cloud-panel{padding:14px}.cloud-heading{align-items:flex-start}.cloud-auth form{grid-template-columns:1fr}.cloud-account{align-items:flex-start}.cloud-buttons{width:100%}.cloud-buttons .button{flex:1}.cloud-stats{gap:7px 12px}}
+
+.cloud-recovery{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+.cloud-recovery .button{margin:0}
+@media(max-width:680px){.cloud-recovery{grid-template-columns:1fr}.cloud-recovery .button{width:100%}}
