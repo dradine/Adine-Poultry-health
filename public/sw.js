@@ -9,7 +9,7 @@ self.addEventListener('install', (event) => {
     const page = await fetch(APP_ROOT);
     await cache.put(APP_ROOT, page.clone());
     const html = await page.text();
-    const assets = [...html.matchAll(/(?:src|href)="([^"]+\\.(?:js|css))"/g)].map((match) => match[1]);
+    const assets = [...html.matchAll(/(?:src|href)="([^"]+\.(?:js|css))"/g)].map((match) => match[1]);
     await Promise.all(assets.map(async (asset) => {
       try {
         const response = await fetch(asset);
