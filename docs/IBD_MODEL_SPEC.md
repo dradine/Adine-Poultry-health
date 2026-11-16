@@ -9,7 +9,7 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 `Age = sampling_age + (log2(T_percentile) - log2(BTT)) × antibody_half_life + correction`
 
 - `T_percentile` is the observed titre at the selected flock percentage after sorting individual titres ascending. Current code uses nearest-rank (ceil(p*n)) and does not interpolate a synthetic titre.
-- `correction` is constrained to 0–4 days; the appropriate value must follow the exact vaccine label/protocol and sampling age.
+- `correction` is constrained to 0–4 days and the current code permits a non-zero correction only when sampling occurred at 0–4 days of age, following the cited product-information convention. The exact product label/protocol takes precedence.
 - If the raw estimate is at or before sampling age, the UI reports that the threshold may already have been reached at sampling; it does not display a negative future interval.
 - All titres, BTT and half-life must be on a compatible, documented assay scale. No cross-kit conversion is assumed.
 
