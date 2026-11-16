@@ -74,7 +74,16 @@ A numerical estimate is blocked until the operator confirms: (1) the plate/run p
 
 ## Current kit/software evidence
 
-- BioChek CK113 IBD: indirect ELISA; 1:500; A405; 30-30-15 min; reference controls available. Official 2025 manual RevB recommends at least 23 samples for baseline/profile and vaccination-date prediction; 15 may be sufficient for trend detection after baseline establishment but not quantitative analysis. This is manufacturer guidance, not a universal rule.
+- BioChek CK113 IBD: indirect ELISA; 1:500; A405; 30-30-15 min; reference controls available. See official 2025 RevB manual and `docs/ASSAY_QC_AND_IMPORT.md` for the updated sampling and QC requirements. Official 2025 manual RevB recommends at least 23 samples for baseline/profile and vaccination-date prediction; 15 may be sufficient for trend detection after baseline establishment but not quantitative analysis. This is manufacturer guidance, not a universal rule.
 - BioChek 2025 manual specifies kit-specific S/P-to-titer slope/intercept values and states these can differ among assays/manufacturers. The app must never infer a BioChek formula from a different kit or from generic OD data.
-- IDEXX IBD Ab 99-09260: indirect ELISA. The package insert's S/P-to-titer conversion is explicitly a rough indication; it advises quantitative assessment by calibration against a known quantitative standard. The official product page warns products may not be available/registered in every country.
+- IDEXX IBD Ab 99-09260: indirect ELISA. Official IDEXX xChekPlus can export case-view results to Excel/TXT and track control replicates; BioChek II supports configurable CSV/TXT LIMS exports. Import adapters require lab-specific sample files. The package insert's S/P-to-titer conversion is explicitly a rough indication; it advises quantitative assessment by calibration against a known quantitative standard. The official product page warns products may not be available/registered in every country.
 - BioChek II supports custom CSV/TXT export to LIMS. xChekPlus can export case-view results to Excel/TXT and provides control tracking. Import adapters must be built against actual example files from the laboratory and must be schema/version-specific; no guessed column mapping is permitted.
+
+
+## Primary source URLs
+- Elanco AviPro IBD field guideline and Deventer example: https://assets.elanco.com/0cec44ed-3eaa-0009-2029-666567e7e4de/9e5c171d-f412-458e-a429-7befca1705cf/avipro-ibd-vaccination-guidelines.pdf
+- Deventer field validation paper (Lukert? See DOI source metadata; published in Avian Pathology): https://doi.org/10.1080/03079450701589175
+- BioChek Poultry ELISA Interpretation Manual RevB 2025: https://www.biochek.com/wp-content/uploads/2025/11/BioChek-Poultry-ELISA-Interpretation-Manual-RevB-2025.pdf
+- WOAH Terrestrial Manual 2024, IBD chapter 3.3.8: https://www.woah.org/fileadmin/Home/fr/Health_standards/tahm/3.03.08_IBD.pdf
+- IDEXX IBD Ab Test 99-09260: https://www.idexx.com/en/livestock/livestock-tests/poultry-tests/idexx-ibd-ab-test/
+- IDEXX package insert 06-01129-18: https://s3.amazonaws.com/idexx-ws-web-documents/org/lpd-web-insert/idexx%20ibd%20ab%20test-06-01129-18.pdf
