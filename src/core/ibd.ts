@@ -24,6 +24,18 @@ export type IbdOutput = {
   coefficientOfVariationPercent: number
   warnings: string[]
 }
+export type IbdRunGateInput = {
+  plateControlsAccepted: boolean
+  representativeRandomSampling: boolean
+  assayVaccinePairingVerified: boolean
+}
+export function validateIbdRunGate(input: IbdRunGateInput): string[] {
+  const errors: string[] = []
+  if (!input.plateControlsAccepted) errors.push('اعتبار کنترل‌های مثبت/منفی و کنترل مرجعِ قابل‌اعمال باید طبق IFU همان کیت و SOP آزمایشگاه تأیید شود.')
+  if (!input.representativeRandomSampling) errors.push('نمونه‌گیری تصادفی و نماینده از نقاط مختلف سالن هنوز تأیید نشده است.')
+  if (!input.assayVaccinePairingVerified) errors.push('تطابق دقیق BTT واکسن با سازنده، شماره کیت، نسخه روش و واحد تیتر تأیید نشده است.')
+  return errors
+}
 function nearestRank(sorted: number[], percentile: number): { value: number; rank: number } {
   if (!sorted.length) throw new Error('برای محاسبه، تیتر معتبر لازم است.')
   const rank = Math.ceil((percentile / 100) * sorted.length)
@@ -38,7 +50,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
-  if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 1) throw new Error('حداقل تعداد نمونه معتبر نیست.')
+  if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2) throw new Error('حداقل تعداد نمونه باید حداقل ۲ باشد.')
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
   if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
   if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
@@ -65,7 +77,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const maximumTiter = sorted[sorted.length-1]
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
-  if (percentileRank <= 3) warnings.push('این درصد هدف به سه نمونه یا کمتر از پایین‌ترین انتهای توزیع متکی است؛ برآورد صدک ناپایدار است و باید با نمونه‌گیری/تحلیل تکمیلی و قضاوت دامپزشک بررسی شود.')
+  if (percentileRank <= 3) warnings.push('صدک انتخاب‌شده فقط بر پایه سه نمونه یا کمتر از انتهای پایین توزیع است؛ برآورد آن ناپایدار است. هدف ۵٪ در نمونه ۲۳تایی عملاً به دو مشاهده اول وابسته می‌شود؛ تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.')
   if (titers.length < 23) warnings.push('تعداد نمونه کمتر از ۲۳ است؛ راهنمای BioChek برای برآورد کمی و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند. این عدد قانون جهانی نیست.')
   if (thresholdAlreadyReachedAtSampling) warnings.push('برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
