@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../core/supabase'
 import { countPendingChanges, listLocalFlocks, listLocalModelRuns, notifyLocalDataChanged } from '../core/localFirstDb'
@@ -11,6 +11,7 @@ function faDate(value: string | null): string {
 
 export default function CloudSyncPanel() {
   const [user, setUser] = useState<User | null>(null)
+  const [online, setOnline] = useState(navigator.onLine)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -78,7 +79,8 @@ export default function CloudSyncPanel() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (active) setUser(session?.user ?? null)
     })
-    const onOnline = () => { const current = userRef.current; if (active && current) void syncNow(current) }
+    const onOnline = () => { setOnline(true); const current = userRef.current; if (active && current) void syncNow(current) }
+    const onOffline = () => { setOnline(false); void refreshStatus(userRef.current?.id) }
     const onLocalChange = () => {
       if (!active) return
       const current = userRef.current
@@ -89,12 +91,14 @@ export default function CloudSyncPanel() {
       if (active) void refreshStatus(userRef.current?.id)
     }
     window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
     window.addEventListener('adine-local-data-changed', onLocalChange)
     window.addEventListener('adine-cloud-data-updated', onCloudUpdate)
     return () => {
       active = false
       subscription.unsubscribe()
       window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
       window.removeEventListener('adine-local-data-changed', onLocalChange)
       window.removeEventListener('adine-cloud-data-updated', onCloudUpdate)
     }
@@ -105,7 +109,7 @@ export default function CloudSyncPanel() {
     else void refreshStatus()
   }, [user?.id])
 
-  async function signIn(event: React.FormEvent) {
+  async function signIn(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
     setMessage('')
@@ -168,8 +172,8 @@ export default function CloudSyncPanel() {
           <strong>ذخیره‌سازی محلی و همگام‌سازی ابری</strong>
           <small>ثبت اطلاعات بدون اینترنت؛ ارسال امن پس از اتصال و ورود</small>
         </div>
-        <span className={navigator.onLine ? 'connection-state online' : 'connection-state offline'}>
-          {navigator.onLine ? 'اینترنت متصل' : 'بدون اینترنت'}
+        <span className={online ? 'connection-state online' : 'connection-state offline'}>
+          {online ? 'اینترنت متصل' : 'بدون اینترنت'}
         </span>
       </div>
       <div className="cloud-stats">
@@ -185,7 +189,7 @@ export default function CloudSyncPanel() {
             <b dir="ltr">{user.email || user.phone || user.id}</b>
           </div>
           <div className="cloud-buttons">
-            <button className="button primary" disabled={busy || !navigator.onLine} onClick={() => void syncNow(user)}>
+            <button className="button primary" disabled={busy || !online} onClick={() => void syncNow(user)}>
               {busy ? 'در حال انجام…' : 'همگام‌سازی اکنون'}
             </button>
             <button className="button secondary" disabled={busy} onClick={() => void signOut()}>خروج از حساب</button>
