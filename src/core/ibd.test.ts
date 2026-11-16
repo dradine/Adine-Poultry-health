@@ -42,3 +42,19 @@ describe('IBD assay quality gate', () => {
     expect(errors.join(' ')).toContain('تطابق دقیق BTT')
   })
 })
+
+describe('published Deventer reference example', () => {
+  const elancoTiters = [1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209]
+  it('reproduces the published 75% susceptible scenario for 2-day sampling', () => {
+    const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,susceptiblePercent:75,titers:elancoTiters,correctionDays:2,minimumSampleCount:18})
+    expect(r.percentileRank).toBe(15)
+    expect(r.percentileTiter).toBe(4027)
+    expect(r.estimatedVaccinationAgeDays).toBeCloseTo(19.03,1)
+  })
+  it('keeps Elanco 5% field-spread default distinct from a 75% susceptible scenario', () => {
+    const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,susceptiblePercent:5,titers:elancoTiters,correctionDays:2,minimumSampleCount:18})
+    expect(r.percentileRank).toBe(1)
+    expect(r.percentileTiter).toBe(1224)
+    expect(r.estimatedVaccinationAgeDays).toBeLessThan(19.03)
+  })
+})
