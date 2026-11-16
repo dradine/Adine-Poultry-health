@@ -126,6 +126,7 @@ export async function markLocalDeleted(entity: 'flocks' | 'model_runs', id: stri
     store.put(row)
     tx.objectStore('outbox').add({
       entity, operation: 'delete', recordId: id,
+      payload: stripLocalFields(row as unknown as Record<string, unknown>),
       createdAt: new Date().toISOString(), attempts: 0,
     } satisfies OutboxItem)
   }
