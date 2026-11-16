@@ -61,6 +61,7 @@ export function normalizeDigits(value: string): string {
 export function parseTiters(value: string): number[] {
   return value
     .split(/[\s,،;；]+/)
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item > 0)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => Number(normalizeDigits(item)))
 }
