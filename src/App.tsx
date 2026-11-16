@@ -40,6 +40,7 @@ type SavedAnalysis = {
   percentileTiter: number
   percentileRank: number
   sampleCount: number
+  warnings?: string[]
   plateQcAccepted: boolean
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
@@ -358,6 +359,7 @@ export default function App() {
       percentileTiter: result.percentileTiter,
       percentileRank: result.percentileRank,
       sampleCount: result.sampleCount,
+      warnings: result.warnings,
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
