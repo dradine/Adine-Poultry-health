@@ -87,6 +87,10 @@ export function mapPublicAssayToEntry(row: PublicAssayRecord): AssayCatalogEntry
     status,
     source: row.reference_url || row.source_document || '',
     note: notes.join(' · '),
+    minimumSampleCount: row.minimum_sample_count ?? undefined,
+    minimumSampleCountSource: row.minimum_sample_count
+      ? (typeof row.formula_spec?.minimum_sample_count_basis === 'string' ? row.formula_spec.minimum_sample_count_basis : row.source_version || row.protocol_version)
+      : undefined,
   }
 }
 export async function fetchPublicReferenceCatalog(): Promise<PublicReferenceCatalog> {
