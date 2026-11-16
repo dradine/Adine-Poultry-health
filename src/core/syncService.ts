@@ -162,6 +162,15 @@ export async function refreshLegacyCacheFromLocal(): Promise<void> {
 async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
   const table = item.entity
   if (item.operation === 'delete') {
+    if (item.entity === 'flocks' && item.payload?.updated_at) {
+      const { data: remote, error: readError } = await supabase.from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
+      if (readError) throw readError
+      const remoteTime = remote?.updated_at ? Date.parse(remote.updated_at) : 0
+      const localTime = Date.parse(String(item.payload.updated_at))
+      if (remoteTime && localTime && remoteTime > localTime + 1000) {
+        throw new Error('تعارض حذف گله: نسخه ابری پس از آخرین نسخه این دستگاه تغییر کرده است. حذف متوقف شد تا اطلاعات جدیدتر از بین نرود.')
+      }
+    }
     const { error } = await supabase.from(table).delete().eq('id', item.recordId)
     if (error) throw error
     await removeLocalRecord(item.entity, item.recordId)
@@ -198,8 +207,10 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
   if (boundAccount && boundAccount !== userId) {
     throw new Error('این دستگاه قبلاً به حساب دیگری متصل شده است. برای جلوگیری از انتقال داده‌های یک حساب به حساب دیگر، همگام‌سازی با حساب متفاوت مسدود شد.')
   }
-  if (!boundAccount) await setSyncMeta('bound-account', userId)
-  const queue = await listOutbox()
+  const [queue, localFlocks, localRuns] = await Promise.all([listOutbox(), listLocalFlocks(), listLocalModelRuns()])
+  if (!boundAccount && (queue.length > 0 || localFlocks.length > 0 || localRuns.length > 0)) {
+    await setSyncMeta('bound-account', userId)
+  }
   let pushed = 0
   for (const item of queue) {
     try {
@@ -220,6 +231,9 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
   for (const row of (flocksResponse.data || []) as unknown as Record<string, unknown>[]) await upsertLocalFromCloud('flocks', row)
   for (const row of (runsResponse.data || []) as unknown as Record<string, unknown>[]) await upsertLocalFromCloud('model_runs', row)
   const lastSyncAt = new Date().toISOString()
+  if (!boundAccount && queue.length === 0 && localFlocks.length === 0 && localRuns.length === 0 && ((flocksResponse.data?.length || 0) > 0 || (runsResponse.data?.length || 0) > 0)) {
+    await setSyncMeta('bound-account', userId)
+  }
   await setSyncMeta('last-sync:' + userId, lastSyncAt)
   await refreshLegacyCacheFromLocal()
   return {
