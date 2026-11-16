@@ -3,7 +3,7 @@ import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
-import { calculateIbdWindow, normalizeDigits, parseTiters } from './core/ibd'
+import { calculateIbdWindow, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 
 type SavedProfile = {
   id: string
@@ -28,6 +28,9 @@ type SavedAnalysis = {
   percentileTiter: number
   percentileRank: number
   sampleCount: number
+  plateQcAccepted: boolean
+  randomSamplingConfirmed: boolean
+  pairingVerified: boolean
   savedAt: string
 }
 
@@ -74,6 +77,9 @@ export default function App() {
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
+  const [plateQcAccepted, setPlateQcAccepted] = useState(false)
+  const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
+  const [pairingVerified, setPairingVerified] = useState(false)
   const [profiles, setProfiles] = useState<SavedProfile[]>(readProfiles)
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
@@ -81,6 +87,8 @@ export default function App() {
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
+    const gateErrors = validateIbdRunGate({ plateControlsAccepted: plateQcAccepted, representativeRandomSampling: randomSamplingConfirmed, assayVaccinePairingVerified: pairingVerified })
+    if (gateErrors.length) return { result: null, error: gateErrors.join(' ') }
     try {
       return {
         result: calculateIbdWindow({
@@ -97,7 +105,7 @@ export default function App() {
     } catch (cause) {
       return { result: null, error: cause instanceof Error ? cause.message : 'ورودی‌ها معتبر نیستند.' }
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
   const result = calculation.result
   const calculationError = calculation.error
 
@@ -144,6 +152,9 @@ export default function App() {
       percentileTiter: result.percentileTiter,
       percentileRank: result.percentileRank,
       sampleCount: result.sampleCount,
+      plateQcAccepted,
+      randomSamplingConfirmed,
+      pairingVerified,
       savedAt: new Date().toISOString(),
     }
     const next = [record, ...analyses].slice(0, 100)
@@ -163,6 +174,9 @@ export default function App() {
     setMinimumSampleCount(item.minimumSampleCount)
     setSusceptiblePercent(item.susceptiblePercent)
     setTitersText(item.titersText)
+    setPlateQcAccepted(item.plateQcAccepted)
+    setRandomSamplingConfirmed(item.randomSamplingConfirmed)
+    setPairingVerified(item.pairingVerified)
     setError('')
   }
 
@@ -264,7 +278,7 @@ export default function App() {
           <label>نیمه‌عمر آنتی‌بادی (روز)
             <input inputMode="decimal" value={halfLife} onChange={(e) => setHalfLife(e.target.value)} placeholder="بر اساس داده معتبر همین گله/جمعیت" />
           </label>
-          <label>حداقل تعداد نمونه طبق بروشور کیت
+          <label>حداقل تعداد نمونه در این تحلیل
             <input inputMode="numeric" value={minimumSampleCount} onChange={(e) => setMinimumSampleCount(e.target.value)} />
           </label>
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
@@ -272,13 +286,21 @@ export default function App() {
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
-            <small>پیش‌فرض ۵٪ بر اساس راهنمای Elanco؛ مقدار جهانی و ثابت نیست. با توجه به نوع واکسن، بستر، انتشار افقی، یکنواختی MDA و ریسک فارم تعیین شود.</small>
+            <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
           </label>
         </div>
         <label className="wide-label">تیترهای انفرادی ELISA
           <textarea value={titersText} onChange={(e) => setTitersText(e.target.value)} rows={4} placeholder="تیترها را با فاصله یا ویرگول وارد کنید؛ مثال: 3200، 2800، 4100، 1900 ..." />
-          <small>حداقل تعداد نمونه را مطابق بروشور دقیق کیت/پروتکل وارد کنید؛ مقدار پیش‌فرض ۲۳ بر اساس راهنمای BioChek است و حد جهانی نیست. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
+          <small>راهنمای BioChek 2025 برای پیش‌بینی زمان واکسن حداقل ۲۳ نمونه را توصیه می‌کند؛ راهنمای Elanco حداقل ۱۸ جوجه سالم را ذکر می‌کند. عدد ۲۳ الزام جهانی یا الزام اختصاصی IDEXX نیست؛ برای هر پروتکل، مبنای انتخاب را ثبت کنید. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
         </label>
+
+        <div className="qc-gate">
+          <div className="saved-title">دروازه کنترل کیفیت پیش از محاسبه</div>
+          <p>این تأییدها را برنامه به‌صورت خودکار از دستگاه آزمایش نمی‌خواند؛ فقط پس از کنترل گزارش معتبر آزمایشگاه آن‌ها را علامت بزنید.</p>
+          <label><input type="checkbox" checked={plateQcAccepted} onChange={(e) => setPlateQcAccepted(e.target.checked)} /> کنترل‌های مثبت و منفی و کنترل مرجعِ قابل‌اعمال، طبق IFU همان کیت و SOP آزمایشگاه، در محدوده پذیرش بوده‌اند.</label>
+          <label><input type="checkbox" checked={randomSamplingConfirmed} onChange={(e) => setRandomSamplingConfirmed(e.target.checked)} /> نمونه‌ها به‌صورت تصادفی و نماینده از نقاط مختلف سالن و از جوجه‌های سالم انتخاب شده‌اند.</label>
+          <label><input type="checkbox" checked={pairingVerified} onChange={(e) => setPairingVerified(e.target.checked)} /> BTT دقیقاً با همان واکسن، همان کیت، همان نسخه آزمون و همان واحد تیتر تطبیق داده شده است.</label>
+        </div>
         <div className="data-summary">
           <span>تعداد مقادیر واردشده</span>
           <strong>{toPersianDigits(titers.length)}</strong>
