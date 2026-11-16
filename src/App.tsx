@@ -5,7 +5,8 @@ import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
 import { ASSAY_CATALOG } from './core/assayRegistry'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
-import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'\nimport { interpretIbdResult } from './core/ibdInterpretation'
+import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
+import { interpretIbdResult } from './core/ibdInterpretation'
 
 type SavedProfile = {
   id: string
