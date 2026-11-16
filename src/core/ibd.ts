@@ -10,6 +10,7 @@ export type IbdInput = {
 export type IbdOutput = {
   log2PercentileTiter: number
   percentileTiter: number
+  percentileRank: number
   rawCalculatedAgeDays: number
   estimatedVaccinationAgeDays: number
   thresholdAlreadyReachedAtSampling: boolean
@@ -18,10 +19,10 @@ export type IbdOutput = {
   coefficientOfVariationPercent: number
   warnings: string[]
 }
-function nearestRank(sorted: number[], percentile: number): number {
+function nearestRank(sorted: number[], percentile: number): { value: number; rank: number } {
   if (!sorted.length) throw new Error('برای محاسبه، تیتر معتبر لازم است.')
   const rank = Math.ceil((percentile / 100) * sorted.length)
-  return sorted[Math.max(0, Math.min(sorted.length - 1, rank - 1))]
+  return { value: sorted[Math.max(0, Math.min(sorted.length - 1, rank - 1))], rank }
 }
 /** Mathematical Deventer-style estimator for conventional live IBD vaccines only.
  * Does not validate assay, product BTT, half-life, sampling or field protection. */
@@ -38,7 +39,9 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
   if (titers.some(v => !Number.isFinite(v) || v <= 0)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
   const sorted = [...titers].sort((a,b) => a-b)
-  const percentileTiter = nearestRank(sorted, susceptiblePercent)
+  const selected = nearestRank(sorted, susceptiblePercent)
+  const percentileTiter = selected.value
+  const percentileRank = selected.rank
   const log2PercentileTiter = Math.log2(percentileTiter)
   const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + correctionDays
   const thresholdAlreadyReachedAtSampling = rawCalculatedAgeDays <= samplingAgeDays
@@ -47,11 +50,12 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const variance = titers.reduce((s,v)=>s+(v-arithmeticMean)**2,0)/(titers.length-1)
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
+  if (percentileRank <= 3) warnings.push('این درصد هدف به سه نمونه یا کمتر از پایین‌ترین انتهای توزیع متکی است؛ برآورد صدک ناپایدار است و باید با نمونه‌گیری/تحلیل تکمیلی و قضاوت دامپزشک بررسی شود.')
   if (titers.length < 23) warnings.push('تعداد نمونه کمتر از ۲۳ است؛ راهنمای BioChek برای برآورد کمی و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند. این عدد قانون جهانی نیست.')
   if (thresholdAlreadyReachedAtSampling) warnings.push('برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
-  return { log2PercentileTiter, percentileTiter, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
+  return { log2PercentileTiter, percentileTiter, percentileRank, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
     thresholdAlreadyReachedAtSampling, sampleCount:titers.length, arithmeticMean,
     coefficientOfVariationPercent, warnings }
 }
