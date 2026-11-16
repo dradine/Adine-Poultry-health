@@ -21,7 +21,7 @@ if (catalogError) {
   throw new Error('Supabase SDK should read public reference catalog without login: ' + catalogError.message)
 }
 const { data: privateRows, error: flockError } = await client.from('flocks').select('id').limit(1)
-if (flockError && ![401, 403].includes(flockError.status)) {
+if (flockError && ![401, 403].includes(flockError.status) && flockError.code !== '42501') {
   throw new Error('Unexpected anonymous SDK flock query error: ' + flockError.message)
 }
 if (Array.isArray(privateRows) && privateRows.length > 0) {
