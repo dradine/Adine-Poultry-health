@@ -22,6 +22,7 @@ export default function CloudSyncPanel() {
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const syncing = useRef(false)
+  const rerunRequested = useRef(false)
   const userRef = useRef<User | null>(null)
   userRef.current = user
 
@@ -41,13 +42,15 @@ export default function CloudSyncPanel() {
   }
 
   async function syncNow(currentUser = user) {
-    if (!currentUser || syncing.current) return
+    if (!currentUser) return
+    if (syncing.current) { rerunRequested.current = true; return }
     if (!navigator.onLine) {
       setMessage('این دستگاه آفلاین است؛ اطلاعات محلی امن می‌مانند و پس از اتصال دوباره همگام می‌شوند.')
       await refreshStatus(currentUser.id)
       return
     }
     syncing.current = true
+    let completed = false
     setBusy(true)
     setMessage('در حال همگام‌سازی امن اطلاعات گله و تحلیل‌ها…')
     try {
@@ -56,6 +59,7 @@ export default function CloudSyncPanel() {
       setMessage('همگام‌سازی انجام شد: ' + result.pushed + ' تغییر ارسال، ' +
         result.pulledFlocks + ' گله و ' + result.pulledRuns + ' تحلیل دریافت شد.')
       setLastSync(result.lastSyncAt)
+      completed = true
       window.dispatchEvent(new CustomEvent('adine-cloud-data-updated'))
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'همگام‌سازی کامل نشد؛ تغییرات در صف محلی باقی ماندند.')
@@ -63,6 +67,10 @@ export default function CloudSyncPanel() {
       syncing.current = false
       setBusy(false)
       await refreshStatus(currentUser.id)
+      if (completed && rerunRequested.current && userRef.current && navigator.onLine) {
+        rerunRequested.current = false
+        queueMicrotask(() => { const latest = userRef.current; if (latest) void syncNow(latest) })
+      }
     }
   }
 
