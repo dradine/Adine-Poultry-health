@@ -30,7 +30,7 @@ let dbPromise: Promise<IDBDatabase> | undefined
 function openDb(): Promise<IDBDatabase> {
   if (typeof indexedDB === 'undefined') return Promise.reject(new Error('ذخیره‌سازی IndexedDB در این مرورگر در دسترس نیست.'))
   if (!dbPromise) {
-    dbPromise = new Promise((resolve, reject) => {
+    dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION)
       request.onupgradeneeded = () => {
         const db = request.result
@@ -60,7 +60,7 @@ function openDb(): Promise<IDBDatabase> {
       request.onblocked = () => reject(new Error('به‌روزرسانی پایگاه داده محلی مسدود شده است؛ تب‌های قدیمی برنامه را ببندید.'))
     }).catch(error => { dbPromise = undefined; throw error })
   }
-  return dbPromise
+  return dbPromise!
 }
 function transactionDone(tx: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
