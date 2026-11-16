@@ -1,15 +1,28 @@
 const CACHE_NAME = 'adine-vaccine-timing-v1';
-const APP_SHELL = ['/', '/manifest.webmanifest'];
+const SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const page = await fetch('/');
+    await cache.put('/', page.clone());
+    const html = await page.text();
+    const assets = [...html.matchAll(/(?:src|href)="([^"]+\\.(?:js|css))"/g)].map((match) => match[1]);
+    await Promise.all(assets.map(async (asset) => {
+      try {
+        const response = await fetch(asset);
+        if (response.ok) await cache.put(asset, response);
+      } catch { /* Keep install resilient; online first-run can retry. */ }
+    }));
+    await cache.addAll(SHELL.slice(1));
+  })());
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((key) => key.startsWith('adine-vaccine-timing-') && key !== CACHE_NAME).map((key) => caches.delete(key))))
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((key) => key.startsWith('adine-vaccine-timing-') && key !== CACHE_NAME).map((key) => caches.delete(key))
+  )));
   self.clients.claim();
 });
 
