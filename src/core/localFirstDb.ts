@@ -72,12 +72,13 @@ function transactionDone(tx: IDBTransaction): Promise<void> {
 async function readAll<T>(storeName: StoreName): Promise<T[]> {
   const db = await openDb()
   const tx = db.transaction(storeName, 'readonly')
+  const done = transactionDone(tx)
   const request = tx.objectStore(storeName).getAll()
   const result = await new Promise<T[]>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result as T[])
     request.onerror = () => reject(request.error)
   })
-  await transactionDone(tx)
+  await done
   return result
 }
 function stripLocalFields(value: Record<string, unknown>): Record<string, unknown> {
@@ -87,6 +88,7 @@ function stripLocalFields(value: Record<string, unknown>): Record<string, unknow
 export async function saveLocalFlock(flock: Omit<LocalFlock, 'syncState'> & { syncState?: SyncState }): Promise<void> {
   const db = await openDb()
   const tx = db.transaction(['flocks', 'outbox'], 'readwrite')
+  const done = transactionDone(tx)
   const record: LocalFlock = { ...flock, syncState: 'pending', deleted: false }
   tx.objectStore('flocks').put(record)
   tx.objectStore('outbox').add({
@@ -94,11 +96,12 @@ export async function saveLocalFlock(flock: Omit<LocalFlock, 'syncState'> & { sy
     payload: stripLocalFields(record as unknown as Record<string, unknown>),
     createdAt: new Date().toISOString(), attempts: 0,
   } satisfies OutboxItem)
-  await transactionDone(tx)
+  await done
 }
 export async function saveLocalModelRun(run: Omit<LocalModelRun, 'syncState'> & { syncState?: SyncState }): Promise<void> {
   const db = await openDb()
   const tx = db.transaction(['modelRuns', 'outbox'], 'readwrite')
+  const done = transactionDone(tx)
   const record: LocalModelRun = { ...run, syncState: 'pending', deleted: false }
   tx.objectStore('modelRuns').put(record)
   tx.objectStore('outbox').add({
@@ -106,12 +109,13 @@ export async function saveLocalModelRun(run: Omit<LocalModelRun, 'syncState'> & 
     payload: stripLocalFields(record as unknown as Record<string, unknown>),
     createdAt: new Date().toISOString(), attempts: 0,
   } satisfies OutboxItem)
-  await transactionDone(tx)
+  await done
 }
 export async function markLocalDeleted(entity: 'flocks' | 'model_runs', id: string): Promise<void> {
   const db = await openDb()
   const storeName = entity === 'flocks' ? 'flocks' : 'modelRuns'
   const tx = db.transaction([storeName, 'outbox'], 'readwrite')
+  const done = transactionDone(tx)
   const store = tx.objectStore(storeName)
   const request = store.get(id)
   request.onsuccess = () => {
@@ -125,7 +129,7 @@ export async function markLocalDeleted(entity: 'flocks' | 'model_runs', id: stri
       createdAt: new Date().toISOString(), attempts: 0,
     } satisfies OutboxItem)
   }
-  await transactionDone(tx)
+  await done
 }
 export async function listLocalFlocks(includeDeleted = false): Promise<LocalFlock[]> {
   const rows = await readAll<LocalFlock>('flocks')
@@ -141,57 +145,64 @@ export async function listOutbox(): Promise<OutboxItem[]> {
 export async function getSyncMeta(key: string): Promise<string | null> {
   const db = await openDb()
   const tx = db.transaction('meta', 'readonly')
+  const done = transactionDone(tx)
   const req = tx.objectStore('meta').get(key)
   const value = await new Promise<string | null>((resolve,reject) => {
     req.onsuccess = () => resolve((req.result as {value?:string}|undefined)?.value ?? null)
     req.onerror = () => reject(req.error)
   })
-  await transactionDone(tx)
+  await done
   return value
 }
 export async function setSyncMeta(key: string, value: string): Promise<void> {
   const db = await openDb()
   const tx = db.transaction('meta', 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore('meta').put({ key, value })
-  await transactionDone(tx)
+  await done
 }
 export async function removeOutboxItem(item: OutboxItem): Promise<void> {
   if (item.id === undefined) return
   const db = await openDb()
   const tx = db.transaction('outbox', 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore('outbox').delete(item.id)
-  await transactionDone(tx)
+  await done
 }
 export async function recordOutboxFailure(item: OutboxItem, error: string): Promise<void> {
   if (item.id === undefined) return
   const db = await openDb()
   const tx = db.transaction('outbox', 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore('outbox').put({ ...item, attempts: item.attempts + 1, lastError: error })
-  await transactionDone(tx)
+  await done
 }
 export async function markLocalSynced(entity: 'flocks' | 'model_runs', id: string): Promise<void> {
   const db = await openDb()
   const storeName = entity === 'flocks' ? 'flocks' : 'modelRuns'
   const tx = db.transaction(storeName, 'readwrite')
+  const done = transactionDone(tx)
   const store = tx.objectStore(storeName)
   const req = store.get(id)
   req.onsuccess = () => {
     const row = req.result as (LocalFlock | LocalModelRun | undefined)
     if (row && !row.deleted) { row.syncState = 'synced'; store.put(row) }
   }
-  await transactionDone(tx)
+  await done
 }
 export async function removeLocalRecord(entity: 'flocks' | 'model_runs', id: string): Promise<void> {
   const db = await openDb()
   const storeName = entity === 'flocks' ? 'flocks' : 'modelRuns'
   const tx = db.transaction(storeName, 'readwrite')
+  const done = transactionDone(tx)
   tx.objectStore(storeName).delete(id)
-  await transactionDone(tx)
+  await done
 }
 export async function upsertLocalFromCloud(entity: 'flocks' | 'model_runs', value: Record<string, unknown>): Promise<void> {
   const db = await openDb()
   const storeName = entity === 'flocks' ? 'flocks' : 'modelRuns'
   const tx = db.transaction(storeName, 'readwrite')
+  const done = transactionDone(tx)
   const store = tx.objectStore(storeName)
   const req = store.get(String(value.id))
   req.onsuccess = () => {
@@ -199,7 +210,7 @@ export async function upsertLocalFromCloud(entity: 'flocks' | 'model_runs', valu
     if (local?.syncState === 'pending' || local?.deleted) return
     store.put({ ...value, syncState: 'synced', deleted: false })
   }
-  await transactionDone(tx)
+  await done
 }
 export async function countPendingChanges(): Promise<number> {
   return (await listOutbox()).length
