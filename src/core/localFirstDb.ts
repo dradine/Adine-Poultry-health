@@ -222,29 +222,72 @@ export function notifyLocalDataChanged(): void {
 
 
 export async function importLocalFirstBackup(snapshot: { flocks?: unknown[]; modelRuns?: unknown[] }): Promise<{ flocks: number; modelRuns: number }> {
-  const currentFlocks = new Set((await listLocalFlocks(true)).map(row => row.id))
-  const currentRuns = new Set((await listLocalModelRuns(true)).map(row => row.id))
-  let addedFlocks = 0
-  let addedRuns = 0
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  const existingFlocks = await listLocalFlocks(true)
+  const existingRuns = await listLocalModelRuns(true)
+  const flockIds = new Set(existingFlocks.map(row => row.id))
+  const runIds = new Set(existingRuns.map(row => row.id))
+  const incomingFlocks: Omit<LocalFlock, 'syncState'>[] = []
+  const incomingRuns: Omit<LocalModelRun, 'syncState'>[] = []
+
   for (const value of snapshot.flocks || []) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('رکورد گله در فایل پشتیبان معتبر نیست.')
     const row = value as LocalFlock
-    if (!row.id || !row.flock_name || !row.placement_date || !row.created_at || !row.updated_at) throw new Error('اطلاعات پایه گله در فایل پشتیبان ناقص است.')
-    if (currentFlocks.has(row.id)) continue
-    const { syncState: _syncState, deleted: _deleted, ...record } = row
-    await saveLocalFlock(record)
-    currentFlocks.add(row.id)
-    addedFlocks++
+    if (!uuid.test(row.id) || !row.flock_name?.trim() || !row.species?.trim() ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(row.placement_date) ||
+      !row.created_at || !Number.isFinite(Date.parse(row.created_at)) ||
+      !row.updated_at || !Number.isFinite(Date.parse(row.updated_at))) {
+      throw new Error('اطلاعات پایه گله در فایل پشتیبان ناقص یا نامعتبر است.')
+    }
+    if (flockIds.has(row.id)) continue
+    const { syncState: _syncState, deleted: _deleted, owner_id: _owner, ...record } = row
+    incomingFlocks.push(record)
+    flockIds.add(row.id)
   }
+
   for (const value of snapshot.modelRuns || []) {
     if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('رکورد تحلیل در فایل پشتیبان معتبر نیست.')
     const row = value as LocalModelRun
-    if (!row.id || !row.flock_id || !row.disease_code || !row.model_version || !row.model_family || !row.created_at) throw new Error('اطلاعات پایه تحلیل در فایل پشتیبان ناقص است.')
-    if (currentRuns.has(row.id)) continue
-    const { syncState: _syncState, deleted: _deleted, ...record } = row
-    await saveLocalModelRun(record)
-    currentRuns.add(row.id)
-    addedRuns++
+    if (!uuid.test(row.id) || !uuid.test(row.flock_id) ||
+      !['IBD', 'ND', 'IBV', 'AIV'].includes(row.disease_code) ||
+      !row.model_version?.trim() || !row.model_family?.trim() ||
+      !row.input_snapshot || typeof row.input_snapshot !== 'object' || Array.isArray(row.input_snapshot) ||
+      !row.output_snapshot || typeof row.output_snapshot !== 'object' || Array.isArray(row.output_snapshot) ||
+      !['insufficient', 'low', 'moderate', 'high'].includes(row.confidence_level) ||
+      !['not_ready', 'provisional', 'review_required', 'ready_for_vet_review'].includes(row.decision_status) ||
+      !Array.isArray(row.limitations) || !row.limitations.every(item => typeof item === 'string') ||
+      !row.created_at || !Number.isFinite(Date.parse(row.created_at))) {
+      throw new Error('اطلاعات پایه تحلیل در فایل پشتیبان ناقص یا نامعتبر است.')
+    }
+    if (!flockIds.has(row.flock_id)) throw new Error('تحلیل به گله‌ای متصل است که در فایل پشتیبان وجود ندارد.')
+    if (runIds.has(row.id)) continue
+    const { syncState: _syncState, deleted: _deleted, owner_id: _owner, ...record } = row
+    incomingRuns.push(record)
+    runIds.add(row.id)
   }
-  return { flocks: addedFlocks, modelRuns: addedRuns }
+
+  if (incomingFlocks.length === 0 && incomingRuns.length === 0) return { flocks: 0, modelRuns: 0 }
+  const db = await openDb()
+  const tx = db.transaction(['flocks', 'modelRuns', 'outbox'], 'readwrite')
+  const done = transactionDone(tx)
+  for (const row of incomingFlocks) {
+    const record: LocalFlock = { ...row, syncState: 'pending', deleted: false }
+    tx.objectStore('flocks').put(record)
+    tx.objectStore('outbox').add({
+      entity: 'flocks', operation: 'upsert', recordId: record.id,
+      payload: stripLocalFields(record as unknown as Record<string, unknown>),
+      createdAt: new Date().toISOString(), attempts: 0,
+    } satisfies OutboxItem)
+  }
+  for (const row of incomingRuns) {
+    const record: LocalModelRun = { ...row, syncState: 'pending', deleted: false }
+    tx.objectStore('modelRuns').put(record)
+    tx.objectStore('outbox').add({
+      entity: 'model_runs', operation: 'upsert', recordId: record.id,
+      payload: stripLocalFields(record as unknown as Record<string, unknown>),
+      createdAt: new Date().toISOString(), attempts: 0,
+    } satisfies OutboxItem)
+  }
+  await done
+  return { flocks: incomingFlocks.length, modelRuns: incomingRuns.length }
 }
