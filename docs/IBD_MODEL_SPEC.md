@@ -30,7 +30,7 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 - Raw OD and derived S/P or S/N retained with exact manufacturer formula/version.
 - Result status distinguishes numeric, below LOD, above ULOQ, invalid and missing.
 - Sample count and sampling design assessed; random/representative sampling is required.
-- Report arithmetic/geometric summaries, median, percentile, CV and distribution. CV is descriptive and has no universal rejection cut-off.
+- Report arithmetic mean, geometric mean titre (GMT), median, minimum/maximum, selected percentile/rank, arithmetic-scale sample CV and log2-scale SD. CV is descriptive and has no universal rejection cut-off; do not conflate arithmetic CV with log-scale dispersion.
 - Store exact model version, input snapshot, assumptions, warnings and source document/version with every run.
 
 ## Product-platform routing
@@ -50,6 +50,7 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 - Comparative challenge study (2019): HVT-IBD vector, immune-complex and live IBD vaccines were studied as distinct platforms, not interchangeable Deventer variants.
 
 ## Not yet validated
+- Golden-example reconciliation: reproduce published Deventer/Elanco examples exactly, including correction days and rank conventions, before labelling any product configuration validated.
 - Percentile rank convention against original Deventer technical sources for each supported product.
 - Product-specific BTT values and kit conversion tables.
 - Half-life distribution for Iranian commercial broilers and breeder-source strata.
