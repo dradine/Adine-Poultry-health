@@ -112,3 +112,11 @@ export async function fetchPublicReferenceCatalog(): Promise<PublicReferenceCata
   localStorage.setItem(CACHE_KEY, JSON.stringify(catalog))
   return catalog
 }
+
+export function findBttAssayForProduct(
+  product: PublicVaccineRecord,
+  assays: AssayCatalogEntry[],
+): AssayCatalogEntry | undefined {
+  if (!product.btt_assay_kit_id) return undefined
+  return assays.find(assay => assay.id === product.btt_assay_kit_id)
+}
