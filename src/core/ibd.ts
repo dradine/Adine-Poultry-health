@@ -16,6 +16,11 @@ export type IbdOutput = {
   thresholdAlreadyReachedAtSampling: boolean
   sampleCount: number
   arithmeticMean: number
+  medianTiter: number
+  geometricMeanTiter: number
+  log2StandardDeviation: number
+  minimumTiter: number
+  maximumTiter: number
   coefficientOfVariationPercent: number
   warnings: string[]
 }
@@ -47,7 +52,17 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const thresholdAlreadyReachedAtSampling = rawCalculatedAgeDays <= samplingAgeDays
   const estimatedVaccinationAgeDays = Math.max(samplingAgeDays, rawCalculatedAgeDays)
   const arithmeticMean = titers.reduce((s,v)=>s+v,0)/titers.length
+  const medianTiter = sorted.length % 2 === 0
+    ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+    : sorted[Math.floor(sorted.length / 2)]
+  const geometricMeanTiter = Math.exp(titers.reduce((s,v)=>s+Math.log(v),0)/titers.length)
   const variance = titers.reduce((s,v)=>s+(v-arithmeticMean)**2,0)/(titers.length-1)
+  const log2Values = titers.map(v=>Math.log2(v))
+  const log2Mean = log2Values.reduce((s,v)=>s+v,0)/log2Values.length
+  const log2Variance = log2Values.reduce((s,v)=>s+(v-log2Mean)**2,0)/(log2Values.length-1)
+  const log2StandardDeviation = Math.sqrt(log2Variance)
+  const minimumTiter = sorted[0]
+  const maximumTiter = sorted[sorted.length-1]
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
   if (percentileRank <= 3) warnings.push('این درصد هدف به سه نمونه یا کمتر از پایین‌ترین انتهای توزیع متکی است؛ برآورد صدک ناپایدار است و باید با نمونه‌گیری/تحلیل تکمیلی و قضاوت دامپزشک بررسی شود.')
@@ -56,7 +71,8 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
   return { log2PercentileTiter, percentileTiter, percentileRank, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
-    thresholdAlreadyReachedAtSampling, sampleCount:titers.length, arithmeticMean,
+    thresholdAlreadyReachedAtSampling, sampleCount:titers.length, arithmeticMean, medianTiter,
+    geometricMeanTiter, log2StandardDeviation, minimumTiter, maximumTiter,
     coefficientOfVariationPercent, warnings }
 }
 export function normalizeDigits(value: string): string {
