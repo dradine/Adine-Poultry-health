@@ -33,3 +33,37 @@ describe('offline backup',()=>{
     expect(JSON.parse(s.getItem('adine-vaccine-timing-analyses-v1')!)).toHaveLength(1)
   })
 })
+
+describe('offline backup failure safety', () => {
+  it('rolls back the first write if the second write fails', () => {
+    class FailingStorage extends MemoryStorage {
+      private calls = 0
+      override setItem(k: string, v: string) {
+        this.calls += 1
+        if (this.calls === 2) throw new Error('quota')
+        super.setItem(k, v)
+      }
+    }
+    const s = new FailingStorage()
+    s.setItem('adine-vaccine-timing-profiles-v1', JSON.stringify([{ id: 'existing-p' }]))
+    s.setItem('adine-vaccine-timing-analyses-v1', JSON.stringify([{ id: 'existing-a' }]))
+    // Reset failure counter after seeding.
+    s['calls'] = 0
+    expect(() => restoreLocalBackup({ schema: 'adine-vaccine-timing-backup', version: 1, profiles: [{ id: 'new-p' }], analyses: [{ id: 'new-a' }] }, s)).toThrow('quota')
+    expect(JSON.parse(s.getItem('adine-vaccine-timing-profiles-v1')!)).toEqual([{ id: 'existing-p' }])
+    expect(JSON.parse(s.getItem('adine-vaccine-timing-analyses-v1')!)).toEqual([{ id: 'existing-a' }])
+  })
+  it('does not modify either dataset when existing local JSON is malformed', () => {
+    const s = new MemoryStorage()
+    s.setItem('adine-vaccine-timing-profiles-v1', '{bad json')
+    s.setItem('adine-vaccine-timing-analyses-v1', JSON.stringify([{ id: 'a1' }]))
+    expect(() => restoreLocalBackup({ schema: 'adine-vaccine-timing-backup', version: 1, profiles: [], analyses: [] }, s)).toThrow()
+    expect(s.getItem('adine-vaccine-timing-profiles-v1')).toBe('{bad json')
+    expect(s.getItem('adine-vaccine-timing-analyses-v1')).toBe(JSON.stringify([{ id: 'a1' }]))
+  })
+  it('deduplicates repeated IDs inside the imported file itself', () => {
+    const s = new MemoryStorage()
+    restoreLocalBackup({ schema: 'adine-vaccine-timing-backup', version: 1, profiles: [{ id: 'p2' }, { id: 'p2' }, { id: 'p3' }], analyses: [] }, s)
+    expect(JSON.parse(s.getItem('adine-vaccine-timing-profiles-v1')!)).toEqual([{ id: 'p2' }, { id: 'p3' }])
+  })
+})
