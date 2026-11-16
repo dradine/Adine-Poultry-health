@@ -124,3 +124,24 @@ describe('IBD percentile and extreme input regression', () => {
     expect(() => calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:5,titers:[...sample23.slice(0,22),1e100]})).toThrow()
   })
 })
+
+describe('product-specific sample-size provenance', () => {
+  it('does not apply the BioChek 23-sample guidance to a product label specifying 18 chicks', () => {
+    const source = 'UK VMD product information revised June 2026; AN 00716/2026 section 8'
+    const r = calculateIbdWindow({
+      samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 3.8,
+      susceptiblePercent: 75, titers: Array.from({ length: 18 }, (_, i) => 100 + i * 10),
+      minimumSampleCount: 18, minimumSampleCountSource: source,
+    })
+    expect(r.sampleCount).toBe(18)
+    expect(r.warnings.join(' ')).toContain(source)
+    expect(r.warnings.join(' ')).not.toContain('BioChek')
+  })
+  it('warns when a numeric sample-size threshold has no source', () => {
+    const r = calculateIbdWindow({
+      samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3,
+      susceptiblePercent: 75, titers: sample23, minimumSampleCount: 23,
+    })
+    expect(r.warnings.join(' ')).toContain('منبع حداقل تعداد نمونه ثبت نشده')
+  })
+})
