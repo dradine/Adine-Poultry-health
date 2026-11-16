@@ -15,7 +15,7 @@ describe('IBD Deventer-style mathematical estimator', () => {
   it('uses the 5 percent nearest-rank and warns about an unstable lower tail', () => {
     const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:5,titers:sample23})
     expect(r.percentileRank).toBe(2)
-    expect(r.warnings.some(w=>w.includes('سه نمونه'))).toBe(true)
+    expect(r.warnings.some(w=>w.includes('مشاهده از انتهای پایین'))).toBe(true)
   })
   it('rejects undersized samples', () => {
     expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[64,128,256]})).toThrow(/حداقل 23 نمونه/)
