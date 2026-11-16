@@ -9,6 +9,8 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 `Age = sampling_age + (log2(T_percentile) - log2(BTT)) × antibody_half_life + correction`
 
 - `T_percentile` is the observed titre at the selected flock percentage after sorting individual titres ascending. Current code uses nearest-rank (ceil(p*n)) and does not interpolate a synthetic titre.
+- The UI default target is 5% based on Elanco's field-guidance description of 5% as a default; this is not a universal target. The veterinarian can select another target based on product protocol, litter/cage system, vaccine spread, MDA uniformity and field risk.
+- Low-tail targets are statistically fragile in small samples. The app reports the selected order-statistic rank and flags a selected rank among the lowest three observations.
 - `correction` is constrained to 0–4 days and the current code permits a non-zero correction only when sampling occurred at 0–4 days of age, following the cited product-information convention. The exact product label/protocol takes precedence.
 - If the raw estimate is at or before sampling age, the UI reports that the threshold may already have been reached at sampling; it does not display a negative future interval.
 - All titres, BTT and half-life must be on a compatible, documented assay scale. No cross-kit conversion is assumed.
@@ -40,7 +42,8 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 ## Source anchors
 - UK VMD authorised product information, revised June 2024: product-specific Deventer method, minimum 18 chicks, IDEXX-standard BTT 500 for that product, and correction/conversion caveats.
 - BioChek IBD ELISA product page: CK113, indirect ELISA, 405 nm, 1:500 dilution, intended uses include flock monitoring and vaccination-date prediction.
-- BioChek interpretation guidance: recommends 23 samples for quantitative flock baselines/profiles and vaccination-date prediction; smaller samples increase prediction variability. Company-specific guidance.
+- BioChek interpretation guidance: recommends 23 samples for quantitative flock baselines/profiles and vaccination-date prediction; identifies 18 as a minimum and says larger titre variability requires larger samples. Company-specific guidance.
+- Elanco AviPro IBD field guideline: describes 5% as a default percentage of birds that can be successfully vaccinated to allow vaccine spread; also illustrates alternative target percentages and stresses flock homogeneity and epidemiological pressure.
 - WOAH Terrestrial Manual 2024, IBD chapter: serology, pathology, histopathology and agent detection have distinct purposes; serology alone is not a complete post-vaccination protection assessment.
 - Smiałek et al. 2024: commercial broiler comparison of three IBD vaccination protocols; IDEXX used for Deventer timing while BioChek was a separate serological kit, supporting non-interchangeability without validation.
 - Comparative challenge study (2019): HVT-IBD vector, immune-complex and live IBD vaccines were studied as distinct platforms, not interchangeable Deventer variants.
