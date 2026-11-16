@@ -43,7 +43,7 @@
 برای اجرای نسخه شاخه توسعه در مرورگر، [پروژه را در StackBlitz باز کنید](https://stackblitz.com/github/dradine/Adine-Poultry-health/tree/feature/ibd-first-mvp). این پیش‌نمایش از روی شاخه عمومی GitHub ساخته می‌شود و build تولیدی را اجرا می‌کند. برای ورود ابری، آدرس بازگشت ایمیل باید در Supabase Auth مجاز باشد و تأیید ایمیل انجام شود.
 
 ## اجرای محلی
-npm install و سپس npm run dev. برای ساخت نسخه انتشار: npm run build. تست‌ها: npm test.
+`npm ci` و سپس `npm run dev`؛ آدرس توسعه `http://localhost:3000` است. برای آزمون PWA و Service Worker: `npm run build` و سپس `npm run preview`. تست‌ها: `npm test`.
 
 ## محدوده علمی
 موتور فعلی صرفاً برآورد ریاضی مقدماتی Deventer-style برای واکسن زنده متعارف IBD است. برای immune-complex، HVT-VP2، واکسن‌های غیرفعال، ND، IBV و AIV نباید از این فرمول استفاده شود. BTT و نیمه‌عمر باید با نسخه دقیق بروشور محصول و مقیاس دقیق کیت تطابق داشته باشند. تبدیل بین کیت‌ها بدون اعتبارسنجی ممنوع است.
