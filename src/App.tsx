@@ -92,7 +92,8 @@ export default function App() {
 
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
-    if (!kitName.trim() || !vaccineName.trim() || !bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
+    if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
+    if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
     const gateErrors = validateIbdRunGate({ plateControlsAccepted: plateQcAccepted, representativeRandomSampling: randomSamplingConfirmed, assayVaccinePairingVerified: pairingVerified })
     if (gateErrors.length) return { result: null, error: gateErrors.join(' ') }
     try {
