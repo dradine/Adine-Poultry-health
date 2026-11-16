@@ -1,0 +1,69 @@
+import 'fake-indexeddb/auto'
+import { describe, expect, it } from 'vitest'
+import {
+  countPendingChanges, listLocalFlocks, listLocalModelRuns, listOutbox,
+  markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun,
+  upsertLocalFromCloud,
+} from './localFirstDb'
+
+const makeFlock = (id: string) => ({
+  id, flock_name: 'آزمایش فارم', species: 'broiler', placement_date: '2026-11-16',
+  timezone: 'Asia/Tehran', created_at: '2026-11-16T10:00:00.000Z',
+  updated_at: '2026-11-16T10:00:00.000Z',
+})
+
+describe('IndexedDB local-first persistence', () => {
+  it('persists a flock and atomically creates an outbox operation', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    const row = (await listLocalFlocks()).find(item => item.id === id)
+    expect(row?.flock_name).toBe('آزمایش فارم')
+    expect(row?.syncState).toBe('pending')
+    const queue = (await listOutbox()).filter(item => item.recordId === id)
+    expect(queue).toHaveLength(1)
+    expect(queue[0].operation).toBe('upsert')
+  })
+
+  it('persists model runs as appendable local records', async () => {
+    const flockId = crypto.randomUUID()
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(flockId))
+    await saveLocalModelRun({
+      id, flock_id: flockId, disease_code: 'IBD',
+      model_version: 'test-1', model_family: 'deventer-live-conventional',
+      input_snapshot: { titers: [100, 200] }, output_snapshot: { age: 21 },
+      confidence_level: 'low', decision_status: 'review_required',
+      limitations: ['test'], created_at: '2026-11-16T10:00:00.000Z',
+    })
+    const run = (await listLocalModelRuns()).find(item => item.id === id)
+    expect(run?.output_snapshot.age).toBe(21)
+    expect(run?.syncState).toBe('pending')
+  })
+
+  it('does not overwrite unsynced local changes with cloud rows', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await upsertLocalFromCloud('flocks', { ...makeFlock(id), flock_name: 'نسخه ابری' })
+    const row = (await listLocalFlocks()).find(item => item.id === id)
+    expect(row?.flock_name).toBe('آزمایش فارم')
+    expect(row?.syncState).toBe('pending')
+  })
+
+  it('marks a local record as a tombstone and retains deletion provenance', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await markLocalDeleted('flocks', id)
+    expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
+    const deletion = (await listOutbox()).find(item => item.recordId === id && item.operation === 'delete')
+    expect(deletion?.payload?.updated_at).toBe('2026-11-16T10:00:00.000Z')
+  })
+
+  it('marks successful sync state without removing the local record', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await markLocalSynced('flocks', id)
+    const row = (await listLocalFlocks()).find(item => item.id === id)
+    expect(row?.syncState).toBe('synced')
+    expect(await countPendingChanges()).toBeGreaterThan(0)
+  })
+})
