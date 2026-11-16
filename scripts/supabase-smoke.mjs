@@ -18,7 +18,11 @@ const client = createClient(url, key, {
 })
 const { error: catalogError } = await client.from('assay_kits').select('id').limit(1)
 if (catalogError) {
-  throw new Error('Supabase SDK should read public reference catalog without login: ' + catalogError.message)
+  throw new Error('Supabase SDK should read public assay catalog without login: ' + catalogError.message)
+}
+const { error: vaccineCatalogError } = await client.from('vaccine_products').select('id').limit(1)
+if (vaccineCatalogError) {
+  throw new Error('Supabase SDK should read public vaccine catalog without login: ' + vaccineCatalogError.message)
 }
 const { data: privateRows, error: flockError } = await client.from('flocks').select('id').limit(1)
 if (flockError && ![401, 403].includes(flockError.status) && flockError.code !== '42501') {
