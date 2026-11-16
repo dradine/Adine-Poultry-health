@@ -63,8 +63,9 @@ describe('Deventer sensitivity analysis', () => {
   it('shows distinct vaccination ages for different directly receptive flock fractions', () => {
     const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18})
     expect(r.map(x=>x.susceptiblePercent)).toEqual([5,25,75,90])
-    expect(r[0].vaccinationAgeDays).toBeLessThan(r[1].vaccinationAgeDays)
-    expect(r[1].vaccinationAgeDays).toBeLessThan(r[2].vaccinationAgeDays)
-    expect(r[2].vaccinationAgeDays).toBeLessThan(r[3].vaccinationAgeDays)
+    expect(r.every(x => x.vaccinationAgeDays !== null)).toBe(true)
+    expect(r[0].vaccinationAgeDays!).toBeLessThan(r[1].vaccinationAgeDays!)
+    expect(r[1].vaccinationAgeDays!).toBeLessThan(r[2].vaccinationAgeDays!)
+    expect(r[2].vaccinationAgeDays!).toBeLessThan(r[3].vaccinationAgeDays!)
   })
 })
