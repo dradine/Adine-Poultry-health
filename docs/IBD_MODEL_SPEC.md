@@ -40,7 +40,8 @@ For a documented ELISA scale and vaccine-product breakthrough titre (BTT):
 - Inactivated: not an early-chick Deventer scheduling use case; evaluate breeder vaccination/booster programme separately.
 
 ## Source anchors
-- UK VMD authorised product information, revised June 2024: product-specific Deventer method, minimum 18 chicks, IDEXX-standard BTT 500 for that product, and correction/conversion caveats.
+- UK VMD authorised Avishield IBD Plus product information, revised June 2024: product-specific Deventer method, minimum 18 chicks, BTT ≤500 IDEXX-standard ELISA units for that product, route/age/onset/duration details, and correction/conversion caveats.
+- IDEXX IBD Ab Test part 99-09260 and package insert 06-01129-18: indirect ELISA, 1:500 dilution, A650 and S/P-to-titre conversion. The insert explicitly warns that the conversion is only a rough titre indication and that protection is not established from S/P or titre alone.
 - BioChek IBD ELISA product page: CK113, indirect ELISA, 405 nm, 1:500 dilution, intended uses include flock monitoring and vaccination-date prediction.
 - BioChek interpretation guidance: recommends 23 samples for quantitative flock baselines/profiles and vaccination-date prediction; identifies 18 as a minimum and says larger titre variability requires larger samples. Company-specific guidance.
 - Elanco AviPro IBD field guideline: describes 5% as a default percentage of birds that can be successfully vaccinated to allow vaccine spread; also illustrates alternative target percentages and stresses flock homogeneity and epidemiological pressure.
