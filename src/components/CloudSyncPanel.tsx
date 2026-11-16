@@ -21,6 +21,8 @@ export default function CloudSyncPanel() {
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const syncing = useRef(false)
+  const userRef = useRef<User | null>(null)
+  userRef.current = user
 
   async function refreshStatus(userId?: string) {
     try {
@@ -76,14 +78,15 @@ export default function CloudSyncPanel() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (active) setUser(session?.user ?? null)
     })
-    const onOnline = () => { if (active && user) void syncNow(user) }
+    const onOnline = () => { const current = userRef.current; if (active && current) void syncNow(current) }
     const onLocalChange = () => {
       if (!active) return
-      void refreshStatus(user?.id)
-      if (user && navigator.onLine) void syncNow(user)
+      const current = userRef.current
+      void refreshStatus(current?.id)
+      if (current && navigator.onLine) void syncNow(current)
     }
     const onCloudUpdate = () => {
-      if (active) void refreshStatus(user?.id)
+      if (active) void refreshStatus(userRef.current?.id)
     }
     window.addEventListener('online', onOnline)
     window.addEventListener('adine-local-data-changed', onLocalChange)
