@@ -145,7 +145,7 @@ export default function CloudSyncPanel() {
     setBusy(true)
     setMessage('')
     try {
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password })
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: window.location.origin + window.location.pathname } })
       if (error) throw error
       if (data.session) {
         setUser(data.user)
@@ -162,7 +162,7 @@ export default function CloudSyncPanel() {
     if (!email.trim()) { setMessage('ابتدا ایمیل حساب را وارد کنید.'); return }
     setBusy(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin })
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + window.location.pathname })
       if (error) throw error
       setMessage('اگر حسابی با این ایمیل وجود داشته باشد، دستور بازیابی گذرواژه ارسال می‌شود.')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'درخواست بازیابی ناموفق بود.') }
