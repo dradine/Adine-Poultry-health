@@ -87,6 +87,14 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
     geometricMeanTiter, log2StandardDeviation, minimumTiter, maximumTiter,
     coefficientOfVariationPercent, warnings }
 }
+
+export type IbdSensitivityPoint = { susceptiblePercent: number; vaccinationAgeDays: number; selectedTiter: number; selectedRank: number }
+export function calculateIbdSensitivity(input: IbdInput, percentages: number[] = [5, 25, 75, 90]): IbdSensitivityPoint[] {
+  return percentages.map(susceptiblePercent => {
+    const result = calculateIbdWindow({ ...input, susceptiblePercent })
+    return { susceptiblePercent, vaccinationAgeDays: result.estimatedVaccinationAgeDays, selectedTiter: result.percentileTiter, selectedRank: result.percentileRank }
+  })
+}
 export function normalizeDigits(value: string): string {
   return value.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/٫/g,'.').replace(/٬/g,'')
