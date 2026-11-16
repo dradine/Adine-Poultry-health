@@ -6,6 +6,7 @@ export type IbdInput = {
   titers: number[]
   correctionDays?: number
   minimumSampleCount?: number
+  minimumSampleCountSource?: string
 }
 export type IbdOutput = {
   log2PercentileTiter: number
@@ -77,8 +78,9 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const maximumTiter = sorted[sorted.length-1]
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
-  if (percentileRank <= 3) warnings.push('صدک انتخاب‌شده فقط بر پایه سه نمونه یا کمتر از انتهای پایین توزیع است؛ برآورد آن ناپایدار است. هدف ۵٪ در نمونه ۲۳تایی عملاً به دو مشاهده اول وابسته می‌شود؛ تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.')
-  if (titers.length < 23) warnings.push('تعداد نمونه کمتر از ۲۳ است؛ راهنمای BioChek برای برآورد کمی و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند. این عدد قانون جهانی نیست.')
+  if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
+  if (!input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ مقدار انتخابی باید با IFU/برچسب همان محصول و کیت تطبیق داده شود.')
+  else warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
   if (thresholdAlreadyReachedAtSampling) warnings.push('برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
