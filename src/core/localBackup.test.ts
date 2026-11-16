@@ -69,3 +69,14 @@ describe('offline backup failure safety', () => {
     expect(JSON.parse(s.getItem('adine-vaccine-timing-profiles-v1')!)).toEqual([{ id: 'p2' }, { id: 'p3' }])
   })
 })
+
+describe('backup record validation',()=>{
+ it('rejects missing IDs and non-object records before any writes',()=>{
+  const s=new MemoryStorage()
+  expect(()=>restoreLocalBackup({schema:'adine-vaccine-timing-backup',version:1,exportedAt:new Date().toISOString(),profiles:[{name:'bad'}],analyses:[]},s)).toThrow()
+  expect(s.length).toBe(0)
+ })
+ it('rejects invalid export timestamp',()=>{
+  expect(()=>validateLocalBackup({schema:'adine-vaccine-timing-backup',version:1,exportedAt:'nonsense',profiles:[],analyses:[]})).toThrow()
+ })
+})
