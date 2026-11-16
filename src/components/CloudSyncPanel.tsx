@@ -234,6 +234,7 @@ export default function CloudSyncPanel() {
       ) : (
         <details className="cloud-auth">
           <summary>ورود یا ساخت حساب برای همگام‌سازی بین دستگاه‌ها</summary>
+          <p className="muted cloud-redirect-note">آدرس بازگشت تأیید ایمیل (باید در Supabase Auth مجاز باشد): <span dir="ltr">{window.location.origin + window.location.pathname}</span></p>
           <form onSubmit={signIn}>
             <label>ایمیل حساب
               <input type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required placeholder="name@example.com" dir="ltr" />
