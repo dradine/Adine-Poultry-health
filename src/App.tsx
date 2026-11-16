@@ -3,7 +3,7 @@ import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
-import { calculateIbdWindow, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 
 type SavedProfile = {
   id: string
@@ -108,6 +108,20 @@ export default function App() {
   }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
   const result = calculation.result
   const calculationError = calculation.error
+  const sensitivity = useMemo(() => {
+    if (!result) return []
+    try {
+      return calculateIbdSensitivity({
+        samplingAgeDays: Number(normalizeDigits(samplingAge)),
+        breakthroughTiter: Number(normalizeDigits(btt)),
+        halfLifeDays: Number(normalizeDigits(halfLife)),
+        correctionDays: Number(normalizeDigits(correctionDays)),
+        minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
+        titers,
+        susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
+      })
+    } catch { return [] }
+  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, titers, susceptiblePercent])
 
   function saveProfile() {
     setError('')
@@ -326,6 +340,13 @@ export default function App() {
               <div><small>انحراف معیار log₂</small><b>{toPersianDigits(result.log2StandardDeviation.toFixed(2))}</b></div>
               <div><small>CV حسابی</small><b>{toPersianDigits(result.coefficientOfVariationPercent.toFixed(1))}٪</b></div>
               <div><small>دامنه تیتر</small><b>{toPersianDigits(result.minimumTiter)}–{toPersianDigits(result.maximumTiter)}</b></div>
+            </div>
+            <div className="sensitivity-panel">
+              <b>تحلیل حساسیت درصد پاسخ‌پذیری</b>
+              <p>تغییر سهم پرندگانی که باید مستقیماً به واکسن پاسخ‌پذیر باشند، می‌تواند زمان برآوردی را جابه‌جا کند. ۵٪ سناریوی پیش‌فرض راهنمای میدانی Elanco است؛ ۷۵٪ در برخی مطالعات میدانی استفاده شده است.</p>
+              <div className="sensitivity-grid">
+                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{toPersianDigits(point.vaccinationAgeDays.toFixed(1))} روز</strong><small>تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
+              </div>
             </div>
             {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
             <p>هشدارها: {result.warnings.join(' ')}</p>
