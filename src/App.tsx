@@ -120,7 +120,10 @@ export default function App() {
       setVaccineCatalog(cached.vaccines)
     }
     const refreshCatalog = async () => {
-      if (!navigator.onLine) return
+      if (!navigator.onLine) {
+        if (!cached) setCatalogNotice('برای دریافت بانک کامل کیت و واکسن، یک بار با اینترنت برنامه را باز کنید؛ فهرست محلی محدود در دسترس است.')
+        return
+      }
       try {
         const catalog = await fetchPublicReferenceCatalog()
         if (!active) return
@@ -176,6 +179,11 @@ export default function App() {
       setError('')
       return
     }
+    setVaccineName('')
+    setBtt('')
+    setBttSource('')
+    setSelectedAssayId('')
+    setKitName('')
     const product = vaccineCatalog.find(item => item.id === id)
     if (!product) { setError('محصول انتخاب‌شده در بانک مرجع پیدا نشد.'); return }
     const linkedAssay = assayCatalog.find(item => item.id === product.btt_assay_kit_id)
@@ -493,8 +501,8 @@ export default function App() {
             <select value={selectedVaccineProductId} onChange={(e) => applyVaccineProduct(e.target.value)}>
               <option value="">ورود دستی / محصول دیگر…</option>
               {vaccineCatalog.filter(product => product.disease_code === 'IBD').map(product => (
-                <option key={product.id} value={product.id}>
-                  {product.product_name} · {product.market_code || 'بازار نامشخص'} · {product.label_version || 'نسخه نامشخص'}
+                <option key={product.id} value={product.id} disabled={product.validation_status !== 'documented'}>
+                  {product.product_name} · {product.market_code || 'بازار نامشخص'} · {product.label_version || 'نسخه نامشخص'}{product.validation_status !== 'documented' ? ' · مستندات ناکامل' : ''}
                 </option>
               ))}
             </select>
