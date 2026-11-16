@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
-import persian_fa from 'react-date-object/locales/persian_fa'\nimport DateObject from 'react-date-object'
+import persian_fa from 'react-date-object/locales/persian_fa'
+import DateObject from 'react-date-object'
 import { calculateIbdWindow, normalizeDigits, parseTiters } from './core/ibd'
 
 type SavedProfile = {
@@ -26,7 +27,12 @@ function toIsoDate(value: { toDate: () => Date } | null): string {
   return `${year}-${month}-${day}`
 }
 
-function formatJalaliDate(value: string): string {\n  if (!value) return ''\n  return new DateObject({ date: new Date(value + 'T12:00:00'), calendar: persian, locale: persian_fa }).format('YYYY/MM/DD')\n}\n\nfunction readProfiles(): SavedProfile[] {
+function formatJalaliDate(value: string): string {
+  if (!value) return ''
+  return new DateObject({ date: new Date(value + 'T12:00:00'), calendar: persian, locale: persian_fa }).format('YYYY/MM/DD')
+}
+
+function readProfiles(): SavedProfile[] {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as SavedProfile[]
   } catch {
