@@ -50,6 +50,14 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   }
 }
 
+export function normalizeDigits(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
+    .replace(/٫/g, '.')
+    .replace(/٬/g, '');
+}
+
 export function parseTiters(value: string): number[] {
   return value
     .split(/[\s,،;；]+/)
