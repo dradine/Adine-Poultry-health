@@ -503,7 +503,7 @@ export default function App() {
         )}
       </section>
 
-      <DiseaseMonitoring />
+      <DiseaseMonitoring profiles={profiles} />
 
       <section className="panel roadmap">
         <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
