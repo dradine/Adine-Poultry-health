@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import DatePicker from 'react-multi-date-picker'
 import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
-import { calculateIbdWindow, parseTiters } from './core/ibd'
+import { calculateIbdWindow, normalizeDigits, parseTiters } from './core/ibd'
 
 type SavedProfile = {
   id: string
@@ -52,10 +52,10 @@ export default function App() {
     if (!btt || !halfLife || titers.length === 0) return null
     try {
       return calculateIbdWindow({
-        samplingAgeDays: Number(samplingAge),
-        breakthroughTiter: Number(btt),
-        halfLifeDays: Number(halfLife),
-        susceptiblePercent: Number(susceptiblePercent),
+        samplingAgeDays: Number(normalizeDigits(samplingAge)),
+        breakthroughTiter: Number(normalizeDigits(btt)),
+        halfLifeDays: Number(normalizeDigits(halfLife)),
+        susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
         titers,
       })
     } catch {
