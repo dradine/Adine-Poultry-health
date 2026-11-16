@@ -29,6 +29,8 @@ export type PublicVaccineRecord = {
   breakthrough_unit: string | null
   model_family: string | null
   validation_status: string
+  deventer_minimum_sample_count: number | null
+  deventer_sample_size_basis: string | null
   btt_assay_kit_id: string | null
   btt_definition: string | null
   btt_reference_url: string | null
@@ -93,7 +95,7 @@ export async function fetchPublicReferenceCatalog(): Promise<PublicReferenceCata
       'id,disease_code,manufacturer,kit_name,catalog_number,assay_type,protocol_version,source_document,source_version,validation_status,minimum_sample_count,reference_url,formula_spec'
     ).order('manufacturer'),
     supabase.from('vaccine_products').select(
-      'id,disease_code,manufacturer,product_name,platform,strain,breakthrough_titer,breakthrough_unit,model_family,validation_status,btt_assay_kit_id,btt_definition,btt_reference_url,source_document,source_version,label_version,market_code,registration_number,marketing_authorisation_holder,vaccine_route,vaccine_age_min_days,vaccine_age_max_days,onset_of_immunity_days,duration_of_immunity_weeks'
+      'id,disease_code,manufacturer,product_name,platform,strain,breakthrough_titer,breakthrough_unit,model_family,validation_status,deventer_minimum_sample_count,deventer_sample_size_basis,btt_assay_kit_id,btt_definition,btt_reference_url,source_document,source_version,label_version,market_code,registration_number,marketing_authorisation_holder,vaccine_route,vaccine_age_min_days,vaccine_age_max_days,onset_of_immunity_days,duration_of_immunity_weeks'
     ).order('product_name'),
   ])
   if (assaysResponse.error) throw assaysResponse.error
