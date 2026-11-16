@@ -54,8 +54,8 @@
 
 در commitهای اخیر:
 - `npm ci` با package-lock موفق.
-- ۷۱ تست واحد در ۱۱ فایل موفق، شامل تست‌های IndexedDB، backup restore، نگاشت کاتالوگ و ثبت خروجی پایش.
-- آخرین اجرای کامل موفق روی کد فعلی: [43952580863](https://github.com/dradine/Adine-Poultry-health/actions/runs/43952580863)؛ commit `db440403773dd1bcda41776f7bcae327c8721eea`.
+- ۷۵ تست واحد در ۱۱ فایل موفق، شامل IndexedDB، backup restore، نگاشت کاتالوگ، تطبیق دقیق BTT/assay و راهنمای نمونه‌گیری محصول‌محور.
+- آخرین اجرای کامل موفق: [43953744494](https://github.com/dradine/Adine-Poultry-health/actions/runs/43953744494)؛ commit `6fe633c215091bcbddbabf6325e1028d69d1efa6`.
 - TypeScript و Vite build موفق.
 - build عادی و build با base path برای GitHub Pages موفق.
 - Supabase Auth smoke و anonymous-access denial موفق.
@@ -66,7 +66,7 @@
 ## بانک مرجع واکسن و کیت
 
 - کاتالوگ‌های مرجع از Supabase بدون ورود قابل خواندن و در localStorage cache می‌شوند تا در بازدید بعدی آفلاین هم در دسترس باشند.
-- انتخاب محصول Avishield IBD Plus به‌صورت خودکار BTT=500 واحد IDEXX و کیت متصل IDEXX IBD Ab Test، کاتالوگ 99-09260 را انتخاب می‌کند.
+- انتخاب محصول Avishield IBD Plus به‌صورت خودکار BTT=500 واحد IDEXX، کیت متصل IDEXX IBD Ab Test، کاتالوگ 99-09260 و حداقل ۱۸ جوجه طبق برچسب ۲۰۲۶ را انتخاب می‌کند.
 - رکورد محصول مربوط به برچسب GB با آخرین بازنگری June 2026 (AN 00716/2026) است؛ BTT=500 واحد IDEXX، کیت مرجع 99-09260 و حداقل ۱۸ جوجه طبق بخش ۸ برچسب ثبت شده‌اند. این برچسب مجوز عرضه در ایران نیست.
 - کیت‌های غیرمستند در رجیستری، قفل محاسبه دارند؛ ورود دستی فقط با تکمیل provenance و تأیید تطبیق انجام می‌شود.
 - BioChek CK113 به‌روزرسانی منبع RevB 2025 و راهنمای حداقل ۲۳ نمونه برای baseline/profile و پیش‌بینی زمان واکسیناسیون دریافت کرده است؛ این توصیه سازنده به همه کیت‌ها تعمیم داده نمی‌شود.
