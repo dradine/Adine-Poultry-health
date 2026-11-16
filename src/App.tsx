@@ -46,6 +46,7 @@ export default function App() {
   const [samplingAge, setSamplingAge] = useState('14')
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
+  const [correctionDays, setCorrectionDays] = useState('0')
   const [susceptiblePercent, setSusceptiblePercent] = useState('75')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
@@ -62,12 +63,14 @@ export default function App() {
         breakthroughTiter: Number(normalizeDigits(btt)),
         halfLifeDays: Number(normalizeDigits(halfLife)),
         susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
+        correctionDays: Number(normalizeDigits(correctionDays)),
+        minimumSampleCount: 23,
         titers,
       })
     } catch {
       return null
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, titers, kitName, vaccineName])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, titers, kitName, vaccineName])
 
   function saveProfile() {
     setError('')
@@ -178,13 +181,16 @@ export default function App() {
           <label>نیمه‌عمر آنتی‌بادی (روز)
             <input inputMode="decimal" value={halfLife} onChange={(e) => setHalfLife(e.target.value)} placeholder="بر اساس داده معتبر همین گله/جمعیت" />
           </label>
+          <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
+            <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
+          </label>
           <label>درصد هدف پرندگان زیر آستانه (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
           </label>
         </div>
         <label className="wide-label">تیترهای انفرادی ELISA
           <textarea value={titersText} onChange={(e) => setTitersText(e.target.value)} rows={4} placeholder="تیترها را با فاصله یا ویرگول وارد کنید؛ مثال: 3200، 2800، 4100، 1900 ..." />
-          <small>فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را با هم مخلوط نکنید.</small>
+          <small>برای این پروفایل آزمایشی حداقل ۲۳ نمونه لازم است (مبنای راهنمای BioChek؛ نه حد جهانی). فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
         </label>
         <div className="data-summary">
           <span>تعداد مقادیر واردشده</span>
@@ -205,8 +211,11 @@ export default function App() {
               <div><small>صدک تیتر انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
               <div><small>مقدار log₂ صدک</small><b>{toPersianDigits(result.log2PercentileTiter.toFixed(2))}</b></div>
               <div><small>تعداد نمونه</small><b>{toPersianDigits(result.sampleCount)}</b></div>
+              <div><small>CV توصیفی</small><b>{toPersianDigits(result.coefficientOfVariationPercent.toFixed(1))}٪</b></div>
             </div>
-            <p>این عدد زمان قطعی واکسیناسیون نیست. کیفیت نمونه‌گیری، توزیع تیترها، اعتبار BTT، نیمه‌عمر، نوع واکسن و شواهد میدانی باید بررسی شوند.</p>
+            {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
+            <p>هشدارها: {result.warnings.join(' ')}</p>
+            <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
           </div>
         ) : (
           <div className="empty-result">برای محاسبه، تیترهای انفرادی، BTT و نیمه‌عمر معتبر را وارد کنید.</div>
