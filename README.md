@@ -17,6 +17,7 @@
 - ثبت مستندات BioChek CK113 IBD و IDEXX IBD Ab Test 99-09260 در کاتالوگ کیت‌ها
 - ثبت نمونه برچسب بریتانیا برای Avishield IBD Plus با BTT=500 فقط در مقیاس IDEXX، همراه با شماره ثبت و تاریخ نسخه
 - Service Worker برای cache فایل‌های برنامه پس از اولین بارگذاری آنلاین
+- خروجی و بازیابی پشتیبان JSON با schema نسخه‌دار؛ بازیابی merge-only بر اساس ID و rollback در خطای ذخیره‌سازی
 
 ## اجرای محلی
 npm install و سپس npm run dev. برای ساخت نسخه انتشار: npm run build. تست‌ها: npm test.
