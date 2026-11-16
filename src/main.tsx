@@ -4,7 +4,10 @@ import App from './App'
 import './styles.css'
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js').catch(() => undefined) })
+  window.addEventListener('load', () => {
+    const base = import.meta.env.BASE_URL
+    void navigator.serviceWorker.register(base + 'sw.js', { scope: base }).catch(() => undefined)
+  })
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
