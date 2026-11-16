@@ -54,8 +54,8 @@
 
 در commitهای اخیر:
 - `npm ci` با package-lock موفق.
-- ۶۹ تست واحد در ۱۰ فایل موفق، شامل تست‌های IndexedDB، backup restore و ثبت خروجی پایش؛ commit ممیزی‌شده `4ec597fc7ca32fbccfee548b8085f07cf5934c34`.
-- اجرای نهایی CI برای همین commit موفق: [43950704089](https://github.com/dradine/Adine-Poultry-health/actions/runs/43950704089).
+- ۷۱ تست واحد در ۱۱ فایل موفق، شامل تست‌های IndexedDB، backup restore، نگاشت کاتالوگ و ثبت خروجی پایش.
+- آخرین اجرای کامل موفق روی کد فعلی: [43952580863](https://github.com/dradine/Adine-Poultry-health/actions/runs/43952580863)؛ commit `db440403773dd1bcda41776f7bcae327c8721eea`.
 - TypeScript و Vite build موفق.
 - build عادی و build با base path برای GitHub Pages موفق.
 - Supabase Auth smoke و anonymous-access denial موفق.
