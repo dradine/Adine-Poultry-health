@@ -4,64 +4,60 @@ export type IbdInput = {
   halfLifeDays: number
   susceptiblePercent: number
   titers: number[]
+  correctionDays?: number
+  minimumSampleCount?: number
 }
-
 export type IbdOutput = {
   log2PercentileTiter: number
   percentileTiter: number
+  rawCalculatedAgeDays: number
   estimatedVaccinationAgeDays: number
+  thresholdAlreadyReachedAtSampling: boolean
   sampleCount: number
+  arithmeticMean: number
+  coefficientOfVariationPercent: number
+  warnings: string[]
 }
-
-function quantile(sorted: number[], percentile: number): number {
-  if (sorted.length === 0) throw new Error('برای محاسبه، حداقل یک تیتر معتبر لازم است.')
-  const position = (sorted.length - 1) * percentile / 100
-  const lower = Math.floor(position)
-  const upper = Math.ceil(position)
-  if (lower === upper) return sorted[lower]
-  return sorted[lower] + (sorted[upper] - sorted[lower]) * (position - lower)
+function nearestRank(sorted: number[], percentile: number): number {
+  if (!sorted.length) throw new Error('برای محاسبه، تیتر معتبر لازم است.')
+  const rank = Math.ceil((percentile / 100) * sorted.length)
+  return sorted[Math.max(0, Math.min(sorted.length - 1, rank - 1))]
 }
-
-/**
- * Preliminary Deventer-style calculation helper.
- * Inputs must be numeric titres from one documented assay/product combination.
- * This is deliberately not labelled as a validated vaccine recommendation.
- */
+/** Mathematical Deventer-style estimator for conventional live IBD vaccines only.
+ * Does not validate assay, product BTT, half-life, sampling or field protection. */
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
-  const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers } = input
+  const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
+    correctionDays = 0, minimumSampleCount = 23 } = input
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0) throw new Error('سن نمونه‌گیری معتبر نیست.')
-  if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت و مستند از بروشور همان واکسن باشد.')
-  if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عدد مثبت و مستند باشد.')
+  if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
+  if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
-  if (titers.length === 0 || titers.some((v) => !Number.isFinite(v) || v <= 0)) {
-    throw new Error('تیترها باید اعداد مثبت باشند؛ نتایج زیر حد تشخیص یا نامعتبر را وارد نکنید.')
-  }
-
-  const log2Titers = titers.map((v) => Math.log2(v)).sort((a, b) => a - b)
-  const log2PercentileTiter = quantile(log2Titers, susceptiblePercent)
-  const estimatedVaccinationAgeDays =
-    samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays
-
-  return {
-    log2PercentileTiter,
-    percentileTiter: 2 ** log2PercentileTiter,
-    estimatedVaccinationAgeDays,
-    sampleCount: titers.length,
-  }
+  if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 1) throw new Error('حداقل تعداد نمونه معتبر نیست.')
+  if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
+  if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
+  if (titers.some(v => !Number.isFinite(v) || v <= 0)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
+  const sorted = [...titers].sort((a,b) => a-b)
+  const percentileTiter = nearestRank(sorted, susceptiblePercent)
+  const log2PercentileTiter = Math.log2(percentileTiter)
+  const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + correctionDays
+  const thresholdAlreadyReachedAtSampling = rawCalculatedAgeDays <= samplingAgeDays
+  const estimatedVaccinationAgeDays = Math.max(samplingAgeDays, rawCalculatedAgeDays)
+  const arithmeticMean = titers.reduce((s,v)=>s+v,0)/titers.length
+  const variance = titers.reduce((s,v)=>s+(v-arithmeticMean)**2,0)/(titers.length-1)
+  const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
+  const warnings = []
+  if (titers.length < 23) warnings.push('تعداد نمونه کمتر از ۲۳ است؛ راهنمای BioChek برای برآورد کمی و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند. این عدد قانون جهانی نیست.')
+  if (thresholdAlreadyReachedAtSampling) warnings.push('برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
+  warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
+  warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
+  return { log2PercentileTiter, percentileTiter, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
+    thresholdAlreadyReachedAtSampling, sampleCount:titers.length, arithmeticMean,
+    coefficientOfVariationPercent, warnings }
 }
-
 export function normalizeDigits(value: string): string {
-  return value
-    .replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
-    .replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)))
-    .replace(/٫/g, '.')
-    .replace(/٬/g, '');
+  return value.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/٫/g,'.').replace(/٬/g,'')
 }
-
 export function parseTiters(value: string): number[] {
-  return value
-    .split(/[\s,،;；]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .map((item) => Number(normalizeDigits(item)))
+  return value.split(/[\s,،;；]+/).map(item=>item.trim()).filter(Boolean).map(item=>Number(normalizeDigits(item)))
 }
