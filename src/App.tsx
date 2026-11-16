@@ -11,8 +11,28 @@ type SavedProfile = {
   placementDate: string
   savedAt: string
 }
+type SavedAnalysis = {
+  id: string
+  flockName: string
+  placementDate: string
+  samplingAge: string
+  kitName: string
+  vaccineName: string
+  btt: string
+  halfLife: string
+  correctionDays: string
+  minimumSampleCount: string
+  susceptiblePercent: string
+  titersText: string
+  estimatedVaccinationAgeDays: number
+  percentileTiter: number
+  percentileRank: number
+  sampleCount: number
+  savedAt: string
+}
 
 const STORAGE_KEY = 'adine-vaccine-timing-profiles-v1'
+const ANALYSIS_STORAGE_KEY = 'adine-vaccine-timing-analyses-v1'
 
 function toPersianDigits(value: string | number): string {
   return String(value).replace(/\d/g, (digit) => '۰۱۲۳۴۵۶۷۸۹'[Number(digit)])
@@ -33,11 +53,10 @@ function formatJalaliDate(value: string): string {
 }
 
 function readProfiles(): SavedProfile[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as SavedProfile[]
-  } catch {
-    return []
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') as SavedProfile[] } catch { return [] }
+}
+function readAnalyses(): SavedAnalysis[] {
+  try { return JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || '[]') as SavedAnalysis[] } catch { return [] }
 }
 
 export default function App() {
@@ -53,25 +72,31 @@ export default function App() {
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
   const [profiles, setProfiles] = useState<SavedProfile[]>(readProfiles)
+  const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
 
   const titers = useMemo(() => parseTiters(titersText), [titersText])
-  const result = useMemo(() => {
-    if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return null
+  const calculation = useMemo(() => {
+    if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     try {
-      return calculateIbdWindow({
-        samplingAgeDays: Number(normalizeDigits(samplingAge)),
-        breakthroughTiter: Number(normalizeDigits(btt)),
-        halfLifeDays: Number(normalizeDigits(halfLife)),
-        susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
-        correctionDays: Number(normalizeDigits(correctionDays)),
-        minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
-        titers,
-      })
-    } catch {
-      return null
+      return {
+        result: calculateIbdWindow({
+          samplingAgeDays: Number(normalizeDigits(samplingAge)),
+          breakthroughTiter: Number(normalizeDigits(btt)),
+          halfLifeDays: Number(normalizeDigits(halfLife)),
+          susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
+          correctionDays: Number(normalizeDigits(correctionDays)),
+          minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
+          titers,
+        }),
+        error: '',
+      }
+    } catch (cause) {
+      return { result: null, error: cause instanceof Error ? cause.message : 'ورودی‌ها معتبر نیستند.' }
     }
   }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName])
+  const result = calculation.result
+  const calculationError = calculation.error
 
   function saveProfile() {
     setError('')
@@ -89,6 +114,46 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
     setFlockName('')
     setPlacementDate('')
+  }
+
+  function saveAnalysis() {
+    setError('')
+    if (!flockName.trim() || !placementDate) {
+      setError('برای ذخیره تحلیل، ابتدا نام گله و تاریخ جوجه‌ریزی را وارد کنید.')
+      return
+    }
+    if (!result) {
+      setError('تا زمانی که کنترل‌های ورودی موفق نشده‌اند، تحلیل قابل ذخیره نیست.')
+      return
+    }
+    const record: SavedAnalysis = {
+      id: crypto.randomUUID(),
+      flockName: flockName.trim(),
+      placementDate,
+      samplingAge,
+      kitName: kitName.trim(),
+      vaccineName: vaccineName.trim(),
+      btt,
+      halfLife,
+      correctionDays,
+      minimumSampleCount,
+      susceptiblePercent,
+      titersText,
+      estimatedVaccinationAgeDays: result.estimatedVaccinationAgeDays,
+      percentileTiter: result.percentileTiter,
+      percentileRank: result.percentileRank,
+      sampleCount: result.sampleCount,
+      savedAt: new Date().toISOString(),
+    }
+    const next = [record, ...analyses].slice(0, 100)
+    setAnalyses(next)
+    localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(next))
+  }
+
+  function removeAnalysis(id: string) {
+    const next = analyses.filter((item) => item.id !== id)
+    setAnalyses(next)
+    localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(next))
   }
 
   function removeProfile(id: string) {
@@ -110,7 +175,7 @@ export default function App() {
 
       <section className="intro">
         <div>
-          <span className="section-kicker">نسخه آزمایشی ۰.۱</span>
+          <span className="section-kicker">نسخه آزمایشی ۰.۲</span>
           <h2>تصمیم علمی، بر اساس داده واقعی گله</h2>
           <p>ثبت اطلاعات گله و بررسی اولیه زمان‌بندی واکسن گامبورو بر پایه تیتر آنتی‌بادی مادری.</p>
         </div>
@@ -224,7 +289,25 @@ export default function App() {
             <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
           </div>
         ) : (
-          <div className="empty-result">برای محاسبه، تیترهای انفرادی، BTT و نیمه‌عمر معتبر را وارد کنید.</div>
+          <div className="empty-result">{calculationError || 'برای محاسبه، تیترهای انفرادی، BTT و نیمه‌عمر معتبر را وارد کنید.'}</div>
+        )}
+        {result && (
+          <div className="save-analysis-row">
+            <button className="button primary" onClick={saveAnalysis}>ذخیره این تحلیل روی دستگاه</button>
+            <small>حداکثر ۱۰۰ تحلیل اخیر روی همین دستگاه نگهداری می‌شود.</small>
+          </div>
+        )}
+        {analyses.length > 0 && (
+          <div className="saved-list">
+            <div className="saved-title">سوابق محاسبات ذخیره‌شده روی دستگاه</div>
+            {analyses.slice(0, 10).map((item) => (
+              <div className="saved-row analysis-row" key={item.id}>
+                <span>{item.flockName} · {item.vaccineName}</span>
+                <small>{toPersianDigits(formatJalaliDate(item.placementDate))} · {toPersianDigits(item.estimatedVaccinationAgeDays.toFixed(1))} روز · {toPersianDigits(item.sampleCount)} نمونه</small>
+                <button className="link-button" onClick={() => removeAnalysis(item.id)}>حذف</button>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 
@@ -238,7 +321,7 @@ export default function App() {
         </div>
       </section>
 
-      <footer>نسخه توسعه‌ای · ذخیره محلی اطلاعات · تاریخ‌های ورودی با تقویم شمسی</footer>
+      <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
   )
 }
