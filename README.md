@@ -38,6 +38,8 @@
 
 ## پیش‌نمایش آزمایشی
 
+[راهنمای تست نسخه آزمایشی](docs/TEST_GUIDE_FA.md)
+
 برای اجرای نسخه شاخه توسعه در مرورگر، [پروژه را در StackBlitz باز کنید](https://stackblitz.com/github/dradine/Adine-Poultry-health/tree/feature/ibd-first-mvp). این پیش‌نمایش از روی شاخه عمومی GitHub ساخته می‌شود و build تولیدی را اجرا می‌کند. برای ورود ابری، آدرس بازگشت ایمیل باید در Supabase Auth مجاز باشد و تأیید ایمیل انجام شود.
 
 ## اجرای محلی
