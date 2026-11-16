@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { listLocalFlocks, listLocalModelRuns, listOutbox } from './localFirstDb'
 import { saveMonitorRunToLocal } from './syncService'
 
