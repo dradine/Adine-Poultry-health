@@ -58,6 +58,9 @@ function readProfiles(): SavedProfile[] {
 function readAnalyses(): SavedAnalysis[] {
   try { return JSON.parse(localStorage.getItem(ANALYSIS_STORAGE_KEY) || '[]') as SavedAnalysis[] } catch { return [] }
 }
+function writeLocalStorage(key: string, value: unknown): boolean {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true } catch { return false }
+}
 
 export default function App() {
   const [flockName, setFlockName] = useState('')
@@ -110,8 +113,8 @@ export default function App() {
       placementDate,
       savedAt: new Date().toISOString(),
     }, ...profiles]
+    if (!writeLocalStorage(STORAGE_KEY, next)) { setError('ذخیره‌سازی مرورگر در دسترس نیست یا فضای آن کافی نیست. ابتدا از اطلاعات نسخه پشتیبان تهیه کنید.'); return }
     setProfiles(next)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
 
   function saveAnalysis() {
@@ -144,8 +147,8 @@ export default function App() {
       savedAt: new Date().toISOString(),
     }
     const next = [record, ...analyses].slice(0, 100)
+    if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('ذخیره تحلیل انجام نشد؛ فضای ذخیره‌سازی مرورگر کافی نیست.'); return }
     setAnalyses(next)
-    localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(next))
   }
 
   function restoreAnalysis(item: SavedAnalysis) {
@@ -165,14 +168,14 @@ export default function App() {
 
   function removeAnalysis(id: string) {
     const next = analyses.filter((item) => item.id !== id)
+    if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('حذف سابقه انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
     setAnalyses(next)
-    localStorage.setItem(ANALYSIS_STORAGE_KEY, JSON.stringify(next))
   }
 
   function removeProfile(id: string) {
     const next = profiles.filter((item) => item.id !== id)
+    if (!writeLocalStorage(STORAGE_KEY, next)) { setError('حذف گله انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
     setProfiles(next)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
 
   return (
