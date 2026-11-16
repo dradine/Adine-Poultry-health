@@ -78,3 +78,5 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .sensitivity-grid>div{display:grid;gap:4px;padding:10px;background:#fff;border:1px solid #e2eae5;border-radius:9px}
 .sensitivity-grid strong{font-size:18px;color:#205b47}
 .sensitivity-grid small{font-size:11px;color:#66756d}
+
+.backup-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}.backup-actions label{cursor:pointer;display:inline-flex;align-items:center}.backup-actions .button{font:inherit}
