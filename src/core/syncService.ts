@@ -13,7 +13,7 @@ type LegacyAnalysis = {
   id: string; flockName: string; placementDate: string; samplingAge: string
   kitName: string; vaccineName: string; bttSource: string; halfLifeSource: string
   correctionSource: string; btt: string; halfLife: string; correctionDays: string
-  minimumSampleCount: string; susceptiblePercent: string; titersText: string
+  minimumSampleCount: string; minimumSampleCountSource?: string; susceptiblePercent: string; titersText: string
   estimatedVaccinationAgeDays: number | null; percentileTiter: number; percentileRank: number
   sampleCount: number; plateQcAccepted: boolean; randomSamplingConfirmed: boolean
   pairingVerified: boolean
@@ -43,7 +43,7 @@ async function bindLocalDataToSession(bindWhenEmpty = false): Promise<void> {
 function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalModelRun, 'syncState'> {
   return {
     id: item.id, flock_id: flockId, disease_code: 'IBD',
-    model_version: 'ibd-deventer-mvp-0.2.0', model_family: 'deventer-live-conventional',
+    model_version: 'ibd-deventer-mvp-0.3.0', model_family: 'deventer-live-conventional',
     input_snapshot: { ...item },
     output_snapshot: {
       estimatedVaccinationAgeDays: item.estimatedVaccinationAgeDays,
@@ -65,14 +65,16 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
       samplingAge: item.samplingAge, btt: item.btt, halfLife: item.halfLife,
       correctionDays: item.correctionDays, susceptiblePercent: item.susceptiblePercent,
       minimumSampleCount: item.minimumSampleCount,
+      minimumSampleCountSource: item.minimumSampleCountSource,
     },
     source_references: [
       ...(item.assayKitId || item.assaySource ? [{ kind: 'assay_kit', id: item.assayKitId, name: item.kitName, source: item.assaySource, validationStatus: item.assayStatus, note: item.assayNote }] : []),
       ...(item.vaccineProductId ? [{ kind: 'vaccine_product', id: item.vaccineProductId, market: item.vaccineMarketCode, labelVersion: item.vaccineLabelVersion, bttAssayKitId: item.bttAssayKitId, name: item.vaccineName }] : []),
+      { kind: 'sample_size_guidance', minimumSampleCount: item.minimumSampleCount, citation: item.minimumSampleCountSource },
       { kind: 'btt_source', citation: item.bttSource },
       { kind: 'half_life_source', citation: item.halfLifeSource },
       { kind: 'age_correction_source', citation: item.correctionSource },
-    ], input_schema_version: 'legacy-local-v1',
+    ], input_schema_version: 'ibd-mvp-v2',
     created_at: item.savedAt,
   }
 }
