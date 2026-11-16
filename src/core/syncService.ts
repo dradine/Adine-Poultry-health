@@ -58,7 +58,7 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
 let legacyMigration: Promise<{ flocks: number; analyses: number }> | null = null
 export function migrateLegacyLocalData(): Promise<{ flocks: number; analyses: number }> {
   if (!legacyMigration) {
-    legacyMigration = migrateLegacyLocalDataOnce().catch(error => { legacyMigration = null; throw error })
+    legacyMigration = migrateLegacyLocalDataOnce().finally(() => { legacyMigration = null })
   }
   return legacyMigration
 }
@@ -167,8 +167,26 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
     await removeLocalRecord(item.entity, item.recordId)
   } else {
     const payload = { ...(item.payload || {}), owner_id: userId }
-    const { error } = await supabase.from(table).upsert(payload, { onConflict: 'id' })
-    if (error) throw error
+    if (item.entity === 'flocks') {
+      const { data: remote, error: readError } = await supabase
+        .from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
+      if (readError) throw readError
+      const localTime = Date.parse(String(payload.updated_at || ''))
+      const remoteTime = remote?.updated_at ? Date.parse(remote.updated_at) : 0
+      if (remoteTime && localTime && remoteTime > localTime + 1000) {
+        throw new Error('تعارض ویرایش گله: نسخه ابری جدیدتر از نسخه این دستگاه است. تغییر محلی در صف باقی ماند و برای جلوگیری از بازنویسی اطلاعات دستگاه دیگر، ارسال متوقف شد.')
+      }
+      const { error } = await supabase.from('flocks').upsert(payload, { onConflict: 'id' })
+      if (error) throw error
+    } else {
+      const { data: existing, error: readError } = await supabase
+        .from('model_runs').select('id').eq('id', item.recordId).maybeSingle()
+      if (readError) throw readError
+      if (!existing) {
+        const { error } = await supabase.from('model_runs').insert(payload)
+        if (error) throw error
+      }
+    }
     await markLocalSynced(item.entity, item.recordId)
   }
   await removeOutboxItem(item)
