@@ -49,7 +49,7 @@ export default function App() {
 
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const result = useMemo(() => {
-    if (!btt || !halfLife || titers.length === 0) return null
+    if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return null
     try {
       return calculateIbdWindow({
         samplingAgeDays: Number(normalizeDigits(samplingAge)),
@@ -61,7 +61,7 @@ export default function App() {
     } catch {
       return null
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, titers])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, titers, kitName, vaccineName])
 
   function saveProfile() {
     setError('')
