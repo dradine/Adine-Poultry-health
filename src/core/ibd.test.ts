@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, parseTiters } from './ibd'
+import { calculateIbdWindow, parseTiters, validateIbdRunGate } from './ibd'
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -28,4 +28,17 @@ describe('IBD Deventer-style mathematical estimator', () => {
   it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
   it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
   it('accepts a documented correction for day-old sampling',()=>expect(calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:2}).estimatedVaccinationAgeDays).toBeGreaterThan(2))
+})
+
+describe('IBD assay quality gate', () => {
+  it('blocks calculation unless all three independent checks are confirmed', () => {
+    expect(validateIbdRunGate({plateControlsAccepted:false,representativeRandomSampling:false,assayVaccinePairingVerified:false})).toHaveLength(3)
+    expect(validateIbdRunGate({plateControlsAccepted:true,representativeRandomSampling:true,assayVaccinePairingVerified:true})).toEqual([])
+  })
+  it('identifies each missing QC prerequisite', () => {
+    const errors=validateIbdRunGate({plateControlsAccepted:true,representativeRandomSampling:false,assayVaccinePairingVerified:false})
+    expect(errors).toHaveLength(2)
+    expect(errors.join(' ')).toContain('نمونه‌گیری تصادفی')
+    expect(errors.join(' ')).toContain('تطابق دقیق BTT')
+  })
 })
