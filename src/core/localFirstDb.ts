@@ -219,3 +219,32 @@ export async function countPendingChanges(): Promise<number> {
 export function notifyLocalDataChanged(): void {
   if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('adine-local-data-changed'))
 }
+
+
+export async function importLocalFirstBackup(snapshot: { flocks?: unknown[]; modelRuns?: unknown[] }): Promise<{ flocks: number; modelRuns: number }> {
+  const currentFlocks = new Set((await listLocalFlocks(true)).map(row => row.id))
+  const currentRuns = new Set((await listLocalModelRuns(true)).map(row => row.id))
+  let addedFlocks = 0
+  let addedRuns = 0
+  for (const value of snapshot.flocks || []) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('رکورد گله در فایل پشتیبان معتبر نیست.')
+    const row = value as LocalFlock
+    if (!row.id || !row.flock_name || !row.placement_date || !row.created_at || !row.updated_at) throw new Error('اطلاعات پایه گله در فایل پشتیبان ناقص است.')
+    if (currentFlocks.has(row.id)) continue
+    const { syncState: _syncState, deleted: _deleted, ...record } = row
+    await saveLocalFlock(record)
+    currentFlocks.add(row.id)
+    addedFlocks++
+  }
+  for (const value of snapshot.modelRuns || []) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('رکورد تحلیل در فایل پشتیبان معتبر نیست.')
+    const row = value as LocalModelRun
+    if (!row.id || !row.flock_id || !row.disease_code || !row.model_version || !row.model_family || !row.created_at) throw new Error('اطلاعات پایه تحلیل در فایل پشتیبان ناقص است.')
+    if (currentRuns.has(row.id)) continue
+    const { syncState: _syncState, deleted: _deleted, ...record } = row
+    await saveLocalModelRun(record)
+    currentRuns.add(row.id)
+    addedRuns++
+  }
+  return { flocks: addedFlocks, modelRuns: addedRuns }
+}
