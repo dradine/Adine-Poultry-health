@@ -1,4 +1,4 @@
-name: Build
+name: Build and test
 on:
   push:
     branches: [main, 'feature/**']
@@ -13,4 +13,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - run: npm run test
       - run: npm run build
+      - run: node --check public/sw.js
+      - run: node -e "JSON.parse(require('node:fs').readFileSync('public/manifest.webmanifest', 'utf8'))"
