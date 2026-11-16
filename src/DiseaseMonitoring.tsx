@@ -17,7 +17,7 @@ export default function DiseaseMonitoring(){
  const [unit,setUnit]=useState<'ELISA'|'HI-log2'|'VN'>('ELISA')
  const [aiv,setAiv]=useState({vaccinationStatus:'unknown' as 'vaccinated'|'unvaccinated'|'unknown',vaccinePlatform:'unknown' as 'inactivated'|'vector'|'other'|'unknown',subtype:'',antigenMatch:'uncertain' as 'documented'|'uncertain'|'not-assessed',serologyResult:'not-tested' as 'positive'|'negative'|'inconclusive'|'not-tested',divaValidated:false,rtPcrResult:'not-tested' as 'positive'|'negative'|'not-tested',clinicalSigns:false,mortalityIncrease:false,officialProgramConfirmed:false})
  const [out,setOut]=useState<unknown>(null),[err,setErr]=useState('')
- const nums=(s:string)=>s.split(/[،,;\s]+/).filter(Boolean).map(x=>Number(x.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d))))
+ const nums=(s:string)=>s.split(/[،,;\s]+/).filter(Boolean).map(x=>Number(x.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))))
  function run(){setErr('');setOut(null);try{
  if(mode==='ND'){const b=baseline.trim()?nums(baseline):undefined;setOut(monitorNdHi({baselineHiLog2:b,postHiLog2:nums(post),assayAntigen:assay,vaccineProduct:product,route,samplingDaysAfterDose:Number(days),responseThresholdLog2:threshold===''?undefined:Number(threshold)}))}
  if(mode==='IBV'){const observations=ibData.split(/\n/).filter(Boolean).map(line=>{const [day,value]=line.split(/[:;,]/);return {day:Number(day),value:Number(value)}});setOut(analyzeIbvTrend({observations,assay:ibAssay,unit}))}
@@ -36,6 +36,6 @@ export default function DiseaseMonitoring(){
  <label>سرولوژی<select value={aiv.serologyResult} onChange={e=>setAiv({...aiv,serologyResult:e.target.value as typeof aiv.serologyResult})}><option value="not-tested">انجام نشده</option><option value="positive">مثبت</option><option value="negative">منفی</option><option value="inconclusive">نامشخص</option></select></label>
  <label>RT-PCR<select value={aiv.rtPcrResult} onChange={e=>setAiv({...aiv,rtPcrResult:e.target.value as typeof aiv.rtPcrResult})}><option value="not-tested">انجام نشده</option><option value="positive">مثبت</option><option value="negative">منفی</option></select></label>
  <label><input type="checkbox" checked={aiv.clinicalSigns} onChange={e=>setAiv({...aiv,clinicalSigns:e.target.checked})}/> علائم بالینی</label><label><input type="checkbox" checked={aiv.mortalityIncrease} onChange={e=>setAiv({...aiv,mortalityIncrease:e.target.checked})}/> افزایش تلفات</label><label><input type="checkbox" checked={aiv.divaValidated} onChange={e=>setAiv({...aiv,divaValidated:e.target.checked})}/> روش DIVA معتبر شده</label><label><input type="checkbox" checked={aiv.officialProgramConfirmed} onChange={e=>setAiv({...aiv,officialProgramConfirmed:e.target.checked})}/> برنامه رسمی تأیید شده</label></div>}
- <button className="button" onClick={run}>اجرای موتور پایش</button>{err&&<p className="error">{err}</p>}{out&&<pre className="monitor-output">{JSON.stringify(out,null,2)}</pre>}
+ <button className="button" onClick={run}>اجرای موتور پایش</button>{err&&<p className="error">{err}</p>}{out !== null && <pre className="monitor-output">{JSON.stringify(out,null,2)}</pre>}
  </section>
 }
