@@ -12,6 +12,7 @@ This document prevents the Deventer estimator from being applied to unlike vacci
 ## Product-specific evidence examples — not universal constants
 
 ### Conventional live
+- UK-authorised Avishield IBD Plus label (Genera Inc.; Vm 43676/3000; revised June 2024) specifies an intermediate-plus G6 live strain, drinking-water route, use from 10 days depending on MDA, BTT ≤500 IDEXX ELISA units, onset of immunity 2 weeks and duration 5 weeks. The project catalog stores this as a **GB-only documented label example**, linked to IDEXX IBD Ab Test part 99-09260; it is not a claim of Iranian registration or stock.
 - Elanco AviPro IBD guidelines explain that BTT is vaccine-specific and can differ between ELISA kits. They describe field-pressure, MDA level and flock homogeneity as factors in programme selection.
 - The German authorised product information for AviPro IBD Xtreme reports BTT 636 on an ELISA scale, recommends at least 20 birds for serology in that product context, and includes a Deventer-formula description. The label also states the birds should be at least 7 days old at vaccination. This is a product-and-market-specific example, not a generic BTT.
 
@@ -36,7 +37,9 @@ This document prevents the Deventer estimator from being applied to unlike vacci
 - Elanco, AviPro IBD Xtreme German product information: https://assets.elanco.com/0cec44ed-3eaa-0009-2029-666567e7e4de/5260802d-5d27-4091-aa4b-a288160365b3/FI_DE_0415_AviPro_IBDXtreme.pdf
 - Ceva, Transmune booklet: https://poultry.ceva.com/app/uploads/sites/9/2023/01/TRANSMUNE-BOOKLET-2022.pdf
 - Boehringer Ingelheim, VAXXITEK HVT+IBD: https://animalhealth.boehringer-ingelheim.com/poultry/products/vaxxitek/vaxxitek-hvtibd-vaccine
-- UK VMD authorised product information (Deventer, BTT and kit conversion example): https://www.vmd.defra.gov.uk/productinformationdatabase/files/QRD_Documents/QRD-Auth_2715448.PDF
+- UK VMD authorised Avishield IBD Plus product information (BTT, assay scale, route and label timing): https://www.vmd.defra.gov.uk/productinformationdatabase/files/QRD_Documents/QRD-Auth_2715448.PDF
+- IDEXX IBD Ab Test part 99-09260: https://www.idexx.com/en/livestock/livestock-tests/poultry-tests/idexx-ibd-ab-test/
+- IDEXX IBD Ab Test package insert 06-01129-18: https://s3.amazonaws.com/idexx-ws-web-documents/org/lpd-web-insert/idexx%20ibd%20ab%20test-06-01129-18.pdf
 
 ## Interpretation cautions
 - Manufacturer brochures are product evidence, not independent comparative trials.
