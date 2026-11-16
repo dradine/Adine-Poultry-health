@@ -47,7 +47,12 @@ export function restoreLocalBackup(raw: unknown, storage: Storage = localStorage
   const merge = (current: unknown[], incoming: unknown[]) => {
     const idOf = (item: unknown) => item && typeof item === 'object' && 'id' in item ? String((item as {id:unknown}).id) : ''
     const ids = new Set(current.map(idOf).filter(Boolean))
-    return [...current, ...incoming.filter(item => !idOf(item) || !ids.has(idOf(item)))]
+    const additions: unknown[] = []
+    for (const item of incoming) {
+      const id = idOf(item)
+      if (!id || !ids.has(id)) { additions.push(item); if (id) ids.add(id) }
+    }
+    return [...current, ...additions]
   }
   const profiles = merge(currentProfiles, backup.profiles)
   const analyses = merge(currentAnalyses, backup.analyses).slice(0, 1000)
