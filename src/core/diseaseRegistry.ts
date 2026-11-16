@@ -1,5 +1,5 @@
 export type PoultryDiseaseId = 'IBD' | 'ND' | 'IB' | 'AIV'
-export type DiseaseModelStatus = 'experimental-available' | 'research-only' | 'not-implemented'
+export type DiseaseModelStatus = 'experimental-available' | 'monitor-available' | 'research-only' | 'not-implemented'
 export type DiseaseModelDescriptor = {
   id: PoultryDiseaseId
   nameFa: string
@@ -23,13 +23,13 @@ export const DISEASE_MODELS: readonly DiseaseModelDescriptor[] = [
   },
   {
     id: 'IB', nameFa: 'برونشیت عفونی', nameEn: 'Infectious bronchitis',
-    status: 'research-only', scope: 'سویه، واکسن، MDA، mucosal/cellular response و برنامه چندمرحله‌ای',
-    reason: 'یک آستانه ELISA یا فرمول Deventer برای همه سویه‌ها معتبر نیست؛ مدل اختصاصی لازم است.',
+    status: 'monitor-available', method: 'assay-specific serology trend', scope: 'روند مقادیر هم‌کیت/هم‌واحد در زمان؛ بدون protection/cross-protection',
+    reason: 'موتور روند سرولوژی مستقل اضافه شده؛ مدل حفاظت مخاطی یا cross-protection هنوز وجود ندارد.',
   },
   {
     id: 'AIV', nameFa: 'آنفلوانزای پرندگان', nameEn: 'Avian influenza',
-    status: 'not-implemented', scope: 'مدل وابسته به سیاست رسمی، نوع واکسن، پایش و مقررات منطقه',
-    reason: 'هیچ محاسبه واکسیناسیون/زمان‌بندی در این برنامه ارائه نمی‌شود.',
+    status: 'monitor-available', method: 'surveillance evidence gate', scope: 'دسته‌بندی سیگنال‌ها و ارجاع؛ نه تشخیص، DIVA خودکار یا حفاظت',
+    reason: 'ماژول evidence gate برای اولویت پیگیری اضافه شده؛ تشخیص و برنامه رسمی در اختیار دامپزشک/مرجع است.',
   },
 ] as const
 export function getDiseaseModel(id: PoultryDiseaseId): DiseaseModelDescriptor {
