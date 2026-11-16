@@ -6,9 +6,12 @@ describe('disease model registry', () => {
     expect(DISEASE_MODELS.filter(m => m.status === 'experimental-available').map(m => m.id)).toEqual(['IBD'])
   })
   it('separates monitoring from vaccine timing/protection calculators', () => {
-    expect(getDiseaseModel('ND').status).toBe('monitor-available')\n    expect(getDiseaseModel('ND').method).toContain('monitor')
-    expect(getDiseaseModel('IB').status).toBe('monitor-available')\n    expect(getDiseaseModel('IB').scope).toContain('بدون protection')
-    expect(getDiseaseModel('AIV').status).toBe('monitor-available')\n    expect(getDiseaseModel('AIV').scope).toContain('نه تشخیص')
+    expect(getDiseaseModel('ND').status).toBe('monitor-available')
+    expect(getDiseaseModel('ND').method).toContain('monitor')
+    expect(getDiseaseModel('IB').status).toBe('monitor-available')
+    expect(getDiseaseModel('IB').scope).toContain('بدون protection')
+    expect(getDiseaseModel('AIV').status).toBe('monitor-available')
+    expect(getDiseaseModel('AIV').scope).toContain('نه تشخیص')
   })
   it('states the scope and limitation of IBD', () => {
     const ibd = getDiseaseModel('IBD')
