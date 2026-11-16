@@ -48,7 +48,7 @@ export default function App() {
   const [halfLife, setHalfLife] = useState('')
   const [correctionDays, setCorrectionDays] = useState('0')
   const [minimumSampleCount, setMinimumSampleCount] = useState('23')
-  const [susceptiblePercent, setSusceptiblePercent] = useState('75')
+  const [susceptiblePercent, setSusceptiblePercent] = useState('5')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
@@ -188,8 +188,9 @@ export default function App() {
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
           </label>
-          <label>درصد هدف پرندگان زیر آستانه (٪)
+          <label>درصد هدف پرندگان پاسخ‌پذیر در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
+            <small>پیش‌فرض ۵٪ بر اساس راهنمای Elanco؛ مقدار جهانی و ثابت نیست. با توجه به نوع واکسن، بستر، انتشار افقی، یکنواختی MDA و ریسک فارم تعیین شود.</small>
           </label>
         </div>
         <label className="wide-label">تیترهای انفرادی ELISA
@@ -212,7 +213,8 @@ export default function App() {
               <span>روزگی تخمینی</span>
             </div>
             <div className="result-details">
-              <div><small>صدک تیتر انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
+              <div><small>تیتر صدک انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
+              <div><small>رتبه نمونه انتخابی</small><b>{toPersianDigits(result.percentileRank)}</b></div>
               <div><small>مقدار log₂ صدک</small><b>{toPersianDigits(result.log2PercentileTiter.toFixed(2))}</b></div>
               <div><small>تعداد نمونه</small><b>{toPersianDigits(result.sampleCount)}</b></div>
               <div><small>CV توصیفی</small><b>{toPersianDigits(result.coefficientOfVariationPercent.toFixed(1))}٪</b></div>
