@@ -87,3 +87,8 @@ A numerical estimate is blocked until the operator confirms: (1) the plate/run p
 - WOAH Terrestrial Manual 2024, IBD chapter 3.3.8: https://www.woah.org/fileadmin/Home/fr/Health_standards/tahm/3.03.08_IBD.pdf
 - IDEXX IBD Ab Test 99-09260: https://www.idexx.com/en/livestock/livestock-tests/poultry-tests/idexx-ibd-ab-test/
 - IDEXX package insert 06-01129-18: https://s3.amazonaws.com/idexx-ws-web-documents/org/lpd-web-insert/idexx%20ibd%20ab%20test-06-01129-18.pdf
+
+
+## No false future date when the BTT threshold is already reached
+
+If the raw Deventer calculation is at or before the sampling age, the engine now sets the estimated vaccination age to null and raises a warning. It does not clamp the result to the sampling age, because that would display a misleading numeric vaccination date. The user is prompted to interpret the flock as potentially already beyond the calculated threshold and reassess promptly with the veterinarian.
