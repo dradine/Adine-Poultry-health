@@ -15,5 +15,6 @@ jobs:
       - run: npm install --no-audit --no-fund
       - run: npm run test
       - run: npm run build
+      - run: npm run smoke:supabase
       - run: node --check public/sw.js
       - run: node -e "JSON.parse(require('node:fs').readFileSync('public/manifest.webmanifest', 'utf8'))"
