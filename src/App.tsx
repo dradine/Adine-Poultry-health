@@ -348,7 +348,7 @@ export default function App() {
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
-      assayKitId: selectedAssayId || undefined,
+      assayKitId: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(selectedAssayId) ? selectedAssayId : undefined,
       vaccineProductId: selectedVaccineProductId || undefined,
       vaccineMarketCode: selectedVaccineProduct?.market_code,
       vaccineLabelVersion: selectedVaccineProduct?.label_version,
