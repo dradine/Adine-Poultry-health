@@ -5,9 +5,10 @@ export type AssayCatalogEntry = {
  method:'ELISA'|'HI'|'VN'|'AGID'|'PCR';
  status:'documented'|'catalog-only'|'local-validation-required';
  source:string; note:string;
+ minimumSampleCount?:number; minimumSampleCountSource?:string;
 };
 export const ASSAY_CATALOG:AssayCatalogEntry[]=[
-{id:'biochek-ck113-ibd',disease:'IBD',manufacturer:'BioChek',name:'FlockChek IBD ELISA',catalog:'CK113',method:'ELISA',status:'documented',source:'https://www.biochek.com/products/infectious-bursal-disease-virus-antibody-test-kit/',note:'IFU/RevB 2025; assay-specific scale/equation.'},
+{id:'biochek-ck113-ibd',disease:'IBD',manufacturer:'BioChek',name:'FlockChek IBD ELISA',catalog:'CK113',method:'ELISA',status:'documented',source:'https://www.biochek.com/products/infectious-bursal-disease-virus-antibody-test-kit/',note:'IFU/RevB 2025; assay-specific scale/equation.',minimumSampleCount:23,minimumSampleCountSource:'BioChek Poultry ELISA Interpretation Manual RevB 2025: 23 samples for baseline/profile and vaccination-date prediction; 15 may be used for trend monitoring after baselines exist.'},
 {id:'avivac-ibd',disease:'IBD',manufacturer:'AVIVAC',name:'ELISA-IBD',method:'ELISA',country:'Russia; Iran availability/registration to verify',status:'catalog-only',source:'AVIVAC official catalogue',note:'Exact IFU, conversion algorithm and BTT compatibility pending.'},
 {id:'idexx-ibd-9909260',disease:'IBD',manufacturer:'IDEXX',name:'IDEXX IBD Ab Test',catalog:'99-09260',method:'ELISA',status:'documented',source:'https://www.idexx.com/en/livestock/livestock-tests/poultry-tests/idexx-ibd-ab-test/',note:'Insert 06-01129-18; approximate titre conversion only.'},
 {id:'biochek-nd-ck116',disease:'ND',manufacturer:'BioChek',name:'Newcastle Disease Virus Antibody ELISA',catalog:'CK116',method:'ELISA',status:'documented',source:'BioChek poultry portfolio / accredited assay listing',note:'Exact IFU and BTT/model pairing still required.'},
