@@ -3,9 +3,9 @@ import { calculateIbdWindow, parseTiters } from './ibd'
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
-    const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:50,titers:sample23,correctionDays:2})
+    const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:50,titers:sample23,correctionDays:2})
     expect(r.sampleCount).toBe(23); expect(r.percentileTiter).toBe(400)
-    expect(r.estimatedVaccinationAgeDays).toBeGreaterThan(10); expect(r.coefficientOfVariationPercent).toBeGreaterThan(0)
+    expect(r.estimatedVaccinationAgeDays).toBeGreaterThan(2); expect(r.coefficientOfVariationPercent).toBeGreaterThan(0)
   })
   it('uses the 5 percent nearest-rank and warns about an unstable lower tail', () => {
     const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:5,titers:sample23})
