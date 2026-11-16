@@ -175,12 +175,12 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
     if (error) throw error
     await removeLocalRecord(item.entity, item.recordId)
   } else {
-    const payload = { ...(item.payload || {}), owner_id: userId }
+    const payload: Record<string, unknown> = { ...(item.payload || {}), owner_id: userId }
     if (item.entity === 'flocks') {
       const { data: remote, error: readError } = await supabase
         .from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
       if (readError) throw readError
-      const localTime = Date.parse(String(payload.updated_at || ''))
+      const localTime = Date.parse(String(payload['updated_at'] || ''))
       const remoteTime = remote?.updated_at ? Date.parse(remote.updated_at) : 0
       if (remoteTime && localTime && remoteTime > localTime + 1000) {
         throw new Error('تعارض ویرایش گله: نسخه ابری جدیدتر از نسخه این دستگاه است. تغییر محلی در صف باقی ماند و برای جلوگیری از بازنویسی اطلاعات دستگاه دیگر، ارسال متوقف شد.')
