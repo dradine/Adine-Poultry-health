@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import {
-  countPendingChanges, listLocalFlocks, listLocalModelRuns, listOutbox,
+  countPendingChanges, importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listOutbox,
   markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun,
   upsertLocalFromCloud,
 } from './localFirstDb'
@@ -65,5 +65,26 @@ describe('IndexedDB local-first persistence', () => {
     const row = (await listLocalFlocks()).find(item => item.id === id)
     expect(row?.syncState).toBe('synced')
     expect(await countPendingChanges()).toBeGreaterThan(0)
+  })
+})
+
+describe('local-first backup restore', () => {
+  it('imports unique flocks and model runs into the outbox for safe re-sync', async () => {
+    const flockId = crypto.randomUUID()
+    const runId = crypto.randomUUID()
+    const result = await importLocalFirstBackup({
+      flocks: [makeFlock(flockId)],
+      modelRuns: [{
+        id: runId, flock_id: flockId, disease_code: 'ND',
+        model_version: 'nd-monitor-0.1.0', model_family: 'nd-hi-serology-response-monitor',
+        input_snapshot: { postHiLog2: [3, 4] }, output_snapshot: { n: 2 },
+        confidence_level: 'low', decision_status: 'review_required',
+        limitations: ['monitor only'], created_at: '2026-11-16T10:00:00.000Z',
+      }],
+    })
+    expect(result).toEqual({ flocks: 1, modelRuns: 1 })
+    expect((await listLocalFlocks()).some(row => row.id === flockId)).toBe(true)
+    expect((await listLocalModelRuns()).some(row => row.id === runId)).toBe(true)
+    expect((await listOutbox()).filter(item => item.recordId === runId)).toHaveLength(1)
   })
 })
