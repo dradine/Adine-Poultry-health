@@ -456,6 +456,8 @@ export type Database = {
           btt_definition: string | null
           btt_reference_url: string | null
           created_at: string
+          deventer_minimum_sample_count: number | null
+          deventer_sample_size_basis: string | null
           disease_code: string
           duration_of_immunity_weeks: number | null
           id: string
@@ -486,6 +488,8 @@ export type Database = {
           btt_definition?: string | null
           btt_reference_url?: string | null
           created_at?: string
+          deventer_minimum_sample_count?: number | null
+          deventer_sample_size_basis?: string | null
           disease_code: string
           duration_of_immunity_weeks?: number | null
           id?: string
@@ -516,6 +520,8 @@ export type Database = {
           btt_definition?: string | null
           btt_reference_url?: string | null
           created_at?: string
+          deventer_minimum_sample_count?: number | null
+          deventer_sample_size_basis?: string | null
           disease_code?: string
           duration_of_immunity_weeks?: number | null
           id?: string
