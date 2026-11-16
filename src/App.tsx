@@ -27,7 +27,7 @@ type SavedAnalysis = {
   minimumSampleCount: string
   susceptiblePercent: string
   titersText: string
-  estimatedVaccinationAgeDays: number
+  estimatedVaccinationAgeDays: number | null
   percentileTiter: number
   percentileRank: number
   sampleCount: number
@@ -349,8 +349,8 @@ export default function App() {
               <span className="tag warning">نیازمند بازبینی دامپزشک</span>
             </div>
             <div className="result-number">
-              <strong>{toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1))}</strong>
-              <span>روزگی تخمینی</span>
+              <strong>{result.estimatedVaccinationAgeDays === null ? '—' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1))}</strong>
+              <span>{result.estimatedVaccinationAgeDays === null ? 'زمان قابل‌برآورد نیست؛ آستانه در سن نمونه‌گیری یا قبل از آن رسیده است' : 'روزگی تخمینی'}</span>
             </div>
             <div className="result-details">
               <div><small>تیتر صدک انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
@@ -367,7 +367,7 @@ export default function App() {
               <b>تحلیل حساسیت درصد پاسخ‌پذیری</b>
               <p>تغییر سهم پرندگانی که باید مستقیماً به واکسن پاسخ‌پذیر باشند، می‌تواند زمان برآوردی را جابه‌جا کند. ۵٪ سناریوی پیش‌فرض راهنمای میدانی Elanco است؛ ۷۵٪ در برخی مطالعات میدانی استفاده شده است.</p>
               <div className="sensitivity-grid">
-                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{toPersianDigits(point.vaccinationAgeDays.toFixed(1))} روز</strong><small>تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
+                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{point.vaccinationAgeDays === null ? 'قبلاً رسیده/غیرقابل‌برآورد' : `${toPersianDigits(point.vaccinationAgeDays.toFixed(1))} روز`}</strong><small>تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
               </div>
             </div>
             {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
@@ -389,7 +389,7 @@ export default function App() {
             {analyses.slice(0, 10).map((item) => (
               <div className="saved-row analysis-row" key={item.id}>
                 <span>{item.flockName} · {item.vaccineName}</span>
-                <small>{toPersianDigits(formatJalaliDate(item.placementDate))} · {toPersianDigits(item.estimatedVaccinationAgeDays.toFixed(1))} روز · {toPersianDigits(item.sampleCount)} نمونه</small>
+                <small>{toPersianDigits(formatJalaliDate(item.placementDate))} · {item.estimatedVaccinationAgeDays === null ? 'غیرقابل‌برآورد' : `${toPersianDigits(item.estimatedVaccinationAgeDays.toFixed(1))} روز`} · {toPersianDigits(item.sampleCount)} نمونه</small>
                 <button className="link-button" onClick={() => restoreAnalysis(item)}>بارگذاری</button>
                 <button className="link-button" onClick={() => removeAnalysis(item.id)}>حذف</button>
               </div>
