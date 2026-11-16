@@ -18,6 +18,9 @@ type SavedAnalysis = {
   samplingAge: string
   kitName: string
   vaccineName: string
+  bttSource: string
+  halfLifeSource: string
+  correctionSource: string
   btt: string
   halfLife: string
   correctionDays: string
@@ -77,6 +80,9 @@ export default function App() {
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
+  const [bttSource, setBttSource] = useState('')
+  const [halfLifeSource, setHalfLifeSource] = useState('')
+  const [correctionSource, setCorrectionSource] = useState('')
   const [plateQcAccepted, setPlateQcAccepted] = useState(false)
   const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
   const [pairingVerified, setPairingVerified] = useState(false)
@@ -86,7 +92,7 @@ export default function App() {
 
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
-    if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
+    if (!kitName.trim() || !vaccineName.trim() || !bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     const gateErrors = validateIbdRunGate({ plateControlsAccepted: plateQcAccepted, representativeRandomSampling: randomSamplingConfirmed, assayVaccinePairingVerified: pairingVerified })
     if (gateErrors.length) return { result: null, error: gateErrors.join(' ') }
     try {
@@ -105,7 +111,7 @@ export default function App() {
     } catch (cause) {
       return { result: null, error: cause instanceof Error ? cause.message : 'ورودی‌ها معتبر نیستند.' }
     }
-  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
+  }, [samplingAge, btt, halfLife, susceptiblePercent, correctionDays, minimumSampleCount, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource, plateQcAccepted, randomSamplingConfirmed, pairingVerified])
   const result = calculation.result
   const calculationError = calculation.error
   const sensitivity = useMemo(() => {
@@ -156,6 +162,9 @@ export default function App() {
       samplingAge,
       kitName: kitName.trim(),
       vaccineName: vaccineName.trim(),
+      bttSource: bttSource.trim(),
+      halfLifeSource: halfLifeSource.trim(),
+      correctionSource: correctionSource.trim(),
       btt,
       halfLife,
       correctionDays,
@@ -182,6 +191,9 @@ export default function App() {
     setSamplingAge(item.samplingAge)
     setKitName(item.kitName)
     setVaccineName(item.vaccineName)
+    setBttSource(item.bttSource || '')
+    setHalfLifeSource(item.halfLifeSource || '')
+    setCorrectionSource(item.correctionSource || '')
     setBtt(item.btt)
     setHalfLife(item.halfLife)
     setCorrectionDays(item.correctionDays)
@@ -289,8 +301,17 @@ export default function App() {
           <label>BTT محصول (تیتر)
             <input inputMode="decimal" value={btt} onChange={(e) => setBtt(e.target.value)} placeholder="فقط از بروشور همان محصول" />
           </label>
+          <label>منبع دقیق BTT (بروشور/نسخه/صفحه/واحد)
+            <input value={bttSource} onChange={(e) => setBttSource(e.target.value)} placeholder="نام محصول، نسخه برچسب، صفحه و مقیاس ELISA" />
+          </label>
           <label>نیمه‌عمر آنتی‌بادی (روز)
             <input inputMode="decimal" value={halfLife} onChange={(e) => setHalfLife(e.target.value)} placeholder="بر اساس داده معتبر همین گله/جمعیت" />
+          </label>
+          <label>منبع نیمه‌عمر (مطالعه/گله/نوع پرنده)
+            <input value={halfLifeSource} onChange={(e) => setHalfLifeSource(e.target.value)} placeholder="مرجع دقیق و جمعیت مورد مطالعه" />
+          </label>
+          <label>منبع اصلاح ۰ تا ۴ روز
+            <input value={correctionSource} onChange={(e) => setCorrectionSource(e.target.value)} placeholder="برچسب محصول یا پروتکل اعتبارسنجی‌شده؛ اگر اصلاح صفر است علت را بنویسید" />
           </label>
           <label>حداقل تعداد نمونه در این تحلیل
             <input inputMode="numeric" value={minimumSampleCount} onChange={(e) => setMinimumSampleCount(e.target.value)} />
@@ -298,7 +319,7 @@ export default function App() {
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
           </label>
-          <label>درصد هدف پرندگان پاسخ‌پذیر در زمان واکسیناسیون (٪)
+          <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
             <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
           </label>
@@ -353,7 +374,7 @@ export default function App() {
             <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
           </div>
         ) : (
-          <div className="empty-result">{calculationError || 'برای محاسبه، تیترهای انفرادی، BTT و نیمه‌عمر معتبر را وارد کنید.'}</div>
+          <div className="empty-result">{calculationError || 'برای محاسبه، تیترهای انفرادی، BTT، نیمه‌عمر و منبع مستند هر پارامتر را وارد و کنترل‌های کیفیت را تأیید کنید.'}</div>
         )}
         {result && (
           <div className="save-analysis-row">
