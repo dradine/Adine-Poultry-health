@@ -4,7 +4,7 @@ import persian from 'react-date-object/calendars/persian'
 import persian_fa from 'react-date-object/locales/persian_fa'
 import DateObject from 'react-date-object'
 import { ASSAY_CATALOG, type AssayCatalogEntry } from './core/assayRegistry'
-import { fetchPublicReferenceCatalog, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
+import { fetchPublicReferenceCatalog, findBttAssayForProduct, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
@@ -195,7 +195,7 @@ export default function App() {
     setKitName('')
     setMinimumSampleCount(String(product.deventer_minimum_sample_count || 23))
     setMinimumSampleCountSource(product.deventer_sample_size_basis || '')
-    const linkedAssay = assayCatalog.find(item => item.id === product.btt_assay_kit_id)
+    const linkedAssay = findBttAssayForProduct(product, assayCatalog)
     if (!linkedAssay) {
       setError('کیت مرجع متصل به BTT این محصول در بانک کیت‌ها پیدا نشد؛ محاسبه را با تطبیق دستی انجام ندهید.')
       return
