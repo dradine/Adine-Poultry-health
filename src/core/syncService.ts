@@ -15,7 +15,7 @@ type LegacyAnalysis = {
   correctionSource: string; btt: string; halfLife: string; correctionDays: string
   minimumSampleCount: string; minimumSampleCountSource?: string; susceptiblePercent: string; titersText: string
   estimatedVaccinationAgeDays: number | null; percentileTiter: number; percentileRank: number
-  sampleCount: number; plateQcAccepted: boolean; randomSamplingConfirmed: boolean
+  sampleCount: number; warnings?: string[]; plateQcAccepted: boolean; randomSamplingConfirmed: boolean
   pairingVerified: boolean
   assayKitId?: string; assaySource?: string; assayStatus?: string; assayNote?: string
   vaccineProductId?: string; vaccineMarketCode?: string | null
@@ -49,6 +49,7 @@ function modelRunFromLegacy(item: LegacyAnalysis, flockId: string): Omit<LocalMo
       estimatedVaccinationAgeDays: item.estimatedVaccinationAgeDays,
       percentileTiter: item.percentileTiter, percentileRank: item.percentileRank,
       sampleCount: item.sampleCount,
+      warnings: item.warnings || [],
     },
     confidence_level: 'low', decision_status: 'review_required',
     limitations: [
