@@ -3,7 +3,7 @@ import {estimateMaternalAntibodyDecay} from '../core/maternalAntibody'
 import type {StrainDisease} from '../core/strainRegistry'
 type Props={sampleAgeDays:number;disease:StrainDisease}
 type Run=ReturnType<typeof estimateMaternalAntibodyDecay>
-type SavedMda={id:string;createdAt:string;disease:string;sampleAge:number;sampleTiters:number[];halfLife:number;threshold:number;meanHatch:number;medianHatch:number;geometricHatch:number;medianCrossing:number|null;belowCount:number}
+type SavedMda={id:string;createdAt:string;disease:string;sampleAge:number;sampleTiters:number[];halfLife:number;threshold:number;meanHatch:number;medianHatch:number;geometricHatch:number;medianCrossing:number|null;belowCount:number;strainSelections?:Record<string,string>}
 const digits=(v:string)=>v.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/٫/g,'.')
 const fa=(n:number)=>n.toLocaleString('fa-IR',{maximumFractionDigits:1})
 function median(v:number[]){const s=[...v].sort((a,b)=>a-b);return s.length%2?s[(s.length-1)/2]:(s[s.length/2-1]+s[s.length/2])/2}
@@ -22,7 +22,7 @@ export default function MaternalAntibodyPanel({sampleAgeDays,disease}:Props){
  const maxTiter=Math.max(1,...avgCurve.map(p=>p.titer))
  const chartPoints=avgCurve.map(p=>(30+p.day*8)+','+(150-Math.min(120,p.titer/maxTiter*120))).join(' ')
  function run(){setError('');setResults(null);try{if(!parsedTiters.length||parsedTiters.some(t=>!Number.isFinite(t)||t<=0))throw Error('فهرست تیترها باید شامل اعداد مثبت معتبر باشد.');const r=parsedTiters.map(sampleTiter=>estimateMaternalAntibodyDecay({sampleAgeDays:Number(digits(age)),sampleTiter,halfLifeDays:Number(digits(halfLife)),thresholdTiter:Number(digits(threshold))}));setResults(r)}catch(e){setError(e instanceof Error?e.message:'ورودی نامعتبر')}}
- function save(){if(!results)return;const record:SavedMda={id:crypto.randomUUID(),createdAt:new Date().toISOString(),disease,sampleAge:Number(digits(age)),sampleTiters:parsedTiters,halfLife:Number(digits(halfLife)),threshold:Number(digits(threshold)),meanHatch,medianHatch,geometricHatch,medianCrossing,belowCount};const next=[record,...history].slice(0,30);try{localStorage.setItem('adine-mda-history-v1',JSON.stringify(next));setHistory(next);setError('')}catch{setError('ذخیره سوابق MDA در مرورگر انجام نشد.')}}
+ function save(){if(!results)return;const record:SavedMda={id:crypto.randomUUID(),createdAt:new Date().toISOString(),disease,sampleAge:Number(digits(age)),sampleTiters:parsedTiters,halfLife:Number(digits(halfLife)),threshold:Number(digits(threshold)),meanHatch,medianHatch,geometricHatch,medianCrossing,belowCount,strainSelections:(()=>{try{return JSON.parse(localStorage.getItem('adine-strain-selections-v1-'+disease)||'{}')}catch{return {}}})()};const next=[record,...history].slice(0,30);try{localStorage.setItem('adine-mda-history-v1',JSON.stringify(next));setHistory(next);setError('')}catch{setError('ذخیره سوابق MDA در مرورگر انجام نشد.')}}
  return <section className="panel mda-panel"><div className="panel-heading"><div><span className="step">MDA</span><h3>برآورد آنتی‌بادی مادری در جوجه‌های روز صفر تا ۴</h3></div><span className="tag">مدل اکتشافی افت آنتی‌بادی</span></div>
  <p className="muted">برای ارزیابی آنتی‌بادی منتقل‌شده از مادر. سن نمونه‌گیری ۰، ۱، ۲، ۳ یا ۴ روز مجاز است؛ روز هچ با روز نمونه‌گیری یکی فرض نمی‌شود. تیتر چند جوجه را وارد کنید؛ این بخش مستقل از موتور زمان‌بندی واکسن IBD است.</p>
  <details className="custom-kit-accordion"><summary>＋ پارامترها و منبع آزمون</summary><div className="form-grid">
