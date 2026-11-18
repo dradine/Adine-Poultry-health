@@ -29,5 +29,7 @@ describe('disease-specific clinical interpretation',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,demo:true,qcStatus:'demo'}))
   expect(x.confidence).toContain('غیرقابل')
   expect(x.observations.some(o=>o.level==='risk'&&o.title==='داده نمایشی')).toBe(true)
+  expect(x.scenarios).toHaveLength(0)
+  expect(x.actions).toHaveLength(0)
  })
 })
