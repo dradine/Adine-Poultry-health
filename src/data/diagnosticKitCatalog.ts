@@ -165,6 +165,79 @@ export const diagnosticKitCatalog: DiagnosticKit[] = [
     evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
     notes: 'Code documented in manufacturer SDS; confirm current product page/IFU and antigen target before use.'
   }
+
+  {
+    id: 'avivac-ibd-elisa', disease: 'IBD', brand: 'AVIVAC', catalog: 'Catalog code verify',
+    assay: 'IBD antibody', format: 'ELISA', sample: 'Chicken serum',
+    intendedUse: 'Antibody monitoring; product-specific quantitative interpretation',
+    documentedSource: 'AVIVAC product family in assay registry; IFU not independently verified',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Catalog-only entry. Verify exact product code, IFU, titer equation, BTT compatibility and local distribution before calculations.'
+  },
+  {
+    id: 'avivac-ibv-elisa', disease: 'IBV', brand: 'AVIVAC', catalog: 'Catalog code verify',
+    assay: 'IBV antibody', format: 'ELISA', sample: 'Chicken serum',
+    intendedUse: 'IBV antibody monitoring',
+    documentedSource: 'AVIVAC product family in assay registry; IFU not independently verified',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Catalog-only entry; assay antigen/strains, unit, conversion and current IFU require verification.'
+  },
+  {
+    id: 'avivac-nd-elisa', disease: 'ND', brand: 'AVIVAC', catalog: 'Catalog code verify',
+    assay: 'NDV antibody', format: 'ELISA', sample: 'Chicken serum',
+    intendedUse: 'Newcastle antibody monitoring',
+    documentedSource: 'AVIVAC product family in assay registry; IFU not independently verified',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'ELISA entry is not suitable for the HI-log2 Newcastle engine. Kit-specific units and software must be verified.'
+  },
+  {
+    id: 'avivac-aiv-elisa', disease: 'AIV', brand: 'AVIVAC', catalog: 'Catalog code verify',
+    assay: 'Influenza antibody', format: 'ELISA', sample: 'Avian serum',
+    intendedUse: 'Influenza antibody surveillance',
+    documentedSource: 'AVIVAC product family in assay registry; IFU not independently verified',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Specify target antigen, subtype, DIVA use and exact IFU before interpretation.'
+  },
+  {
+    id: 'pasouk-nd-hi', disease: 'ND', brand: 'Pasouk', catalog: 'HI antigen/reagent; code verify',
+    assay: 'Newcastle HI antigen/reagent', format: 'HI', sample: 'Serum plus antigen/RBC per validated SOP',
+    intendedUse: 'HI assay for Newcastle antibody endpoint',
+    documentedSource: 'Internal assay registry; supplier source and current IFU require verification',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'This is a reagent/antigen listing, not a complete kit. Record strain, HAU, RBC species/percentage, SOP and endpoint.'
+  },
+  {
+    id: 'pasouk-aiv-hi', disease: 'AIV', brand: 'Pasouk', catalog: 'HI antigen/reagent; code verify',
+    assay: 'Avian influenza HI antigen/reagent', format: 'HI', sample: 'Serum plus antigen/RBC per validated SOP',
+    intendedUse: 'Subtype/strain-specific HI serology',
+    documentedSource: 'Internal assay registry; supplier source and current IFU require verification',
+    sourceUrl: '',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Do not treat HI results as a universal cross-subtype measure. Subtype, antigen, HAU, RBC and SOP are mandatory.'
+  },
+  {
+    id: 'idexx-ndv-060109617', disease: 'ND', brand: 'IDEXX', catalog: '06-01096-17',
+    assay: 'NDV antibody', format: 'ELISA', sample: 'Chicken serum',
+    intendedUse: 'NDV antibody testing by ELISA',
+    documentedSource: 'Accredited laboratory scope listing manufacturer method',
+    sourceUrl: 'https://accreditation.jsm.gov.my/public/documents/3006308',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Part number found in a public accredited-lab scope; current IDEXX IFU/region and exact software interpretation still require manufacturer verification. Not an HI test.'
+  },
+  {
+    id: 'idvet-fluh9s', disease: 'AIV', brand: 'IDvet / ID Screen', catalog: 'FLUH9S ver 1221 EN',
+    assay: 'Influenza H9 antibody', format: 'ELISA', sample: 'Chicken serum',
+    intendedUse: 'H9 antibody monitoring',
+    documentedSource: 'Accredited laboratory scope listing IDvet method',
+    sourceUrl: 'https://accreditation.jsm.gov.my/public/documents/3006308',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Public lab scope documents the assay version; verify current manufacturer IFU, cut-off, validation and distribution before interpretation.'
+  }
 ]
 
 export const diseaseCatalogMeta = {
