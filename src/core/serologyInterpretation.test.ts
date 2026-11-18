@@ -16,9 +16,17 @@ describe('conservative serology interpretation',()=>{
   const withoutCutoff=interpretSerologyRound('ND',{...valid,assayId:'manual',seropositivityCutoff:32,cutoffSource:''})
   expect(withoutCutoff.items.some(i=>i.title.includes('طبقه‌بندی مثبت'))).toBe(false)
  })
- it('blocks interpretation when raw plate QC is not accepted',()=>{
+ it('keeps raw results descriptively reportable while flagging failed plate QC',()=>{
   const x=interpretSerologyRound('ND',{...valid,qcStatus:'pass',readerImportMeta:{qcStatus:'fail'}})
-  expect(x.items.some(i=>i.level==='block'&&i.title.includes('اعتبار پلیت'))).toBe(true)
+  expect(x.items.some(i=>i.level==='warning'&&i.title.includes('QC پلیت'))).toBe(true)
+  expect(x.items.some(i=>i.title==='خلاصه توزیع نمونه‌ها')).toBe(true)
+  expect(x.items.some(i=>i.level==='block')).toBe(false)
+ })
+ it('creates an initial descriptive report with only disease, method and numeric values',()=>{
+  const x=interpretSerologyRound('ND',{titers:[16,32,16,64],method:'HI',scale:'hi-reciprocal',assayId:'manual',qcStatus:'pending'})
+  expect(x.items.some(i=>i.title==='خلاصه توزیع نمونه‌ها')).toBe(true)
+  expect(x.items.some(i=>i.title==='توزیع تیتر در مقیاس لگاریتمی')).toBe(true)
+  expect(x.items.some(i=>i.level==='block')).toBe(false)
  })
  it('flags disagreement between entered age and hatch/sampling dates',()=>{
   const x=interpretSerologyRound('IBD',{...valid,hatchDate:'2026-10-01',samplingDate:'2026-10-20',samplingAgeDays:12})
