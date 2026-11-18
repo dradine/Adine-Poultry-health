@@ -18,6 +18,7 @@ describe('advanced serology inference',()=>{
   expect(analyzePairedRounds([1,2],['A','A'],[2,4],['A','B'],'titre')).toBeNull()
   expect(analyzePairedRounds([1,2],[],[2,4],['A','B'],'titre')).toBeNull()
  })
+ it('allows zero OD values in paired continuous analysis',()=>{expect(analyzePairedRounds([0,.2],['A','B'],[.1,.3],['A','B'],'continuous')?.meanDifference).toBeCloseTo(.1)})
  it('does not call a 4-fold response for continuous ELISA scales',()=>{
   const x=analyzePairedRounds([.1,.2],['A','B'],[.2,.4],['A','B'],'continuous')
   expect(x?.meanDifference).toBeCloseTo(.15);expect(x?.fourFoldOrGreater).toBeNull()
