@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { evaluatePlateControls, mapReaderRows, parseDelimitedTable, type PlateControlGroup, type ReaderTable } from '../core/readerImport'
+import { evaluatePlateControls, mapReaderRows, parseDelimitedTable, validateReaderScale, type PlateControlGroup, type ReaderTable } from '../core/readerImport'
 type Meta={fileName:string;delimiter:string;headers:string[];mapping:{resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string};controlRows:Record<string,string>[];controlCriteria:{positiveRole:string;negativeRole:string;referenceRole:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin:number|null;referenceMax:number|null;maxReplicateCvPercent:number|null;source:string};qcStatus:'pass'|'fail'|'pending';qcEvidence:string;controlSummary:PlateControlGroup[]}
 const numOrNull=(v:string):number|null=>{if(!v.trim())return null;const x=v.replace(/[۰-۹٠-٩]/g,c=>{const i='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(i>=0?i:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}).replace(/\u066B/g,'.').replace(/[٬،]/g,'');const n=Number(x);return Number.isFinite(n)?n:null}
-export default function SerologyReaderImport({method,onApply}:{method:'ELISA'|'HI';onApply:(values:string,ids:string,meta:Meta)=>void}){
+export default function SerologyReaderImport({method,scale,onApply}:{method:'ELISA'|'HI';scale:string;onApply:(values:string,ids:string,meta:Meta)=>void}){
  const [table,setTable]=useState<ReaderTable|null>(null),[fileName,setFileName]=useState(''),[result,setResult]=useState(-1),[sampleId,setSampleId]=useState(-1),[role,setRole]=useState(-1),[sampleRoleValue,setSampleRoleValue]=useState('Sample'),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const [positiveRole,setPositiveRole]=useState(''),[negativeRole,setNegativeRole]=useState(''),[referenceRole,setReferenceRole]=useState(''),[positiveMin,setPositiveMin]=useState(''),[positiveMax,setPositiveMax]=useState(''),[negativeMax,setNegativeMax]=useState(''),[referenceMin,setReferenceMin]=useState(''),[referenceMax,setReferenceMax]=useState(''),[maxControlCv,setMaxControlCv]=useState(''),[qcSource,setQcSource]=useState('')
  async function read(file?:File){
@@ -20,6 +20,8 @@ export default function SerologyReaderImport({method,onApply}:{method:'ELISA'|'H
   if(!table)return
   try{
    if(role>=0&&[positiveRole,negativeRole,referenceRole].filter(Boolean).some(x=>x.trim().toLocaleLowerCase()===sampleRoleValue.trim().toLocaleLowerCase()))throw new Error('مقدار ردیف نمونه نباید با نوع کنترل مثبت، منفی یا مرجع یکسان باشد.')
+   if(result<0)throw new Error('ستون نتیجه را انتخاب کنید.')
+   validateReaderScale(table.headers[result],method,scale)
    const mapped=mapReaderRows(table,{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},method)
    const qc=evaluatePlateControls(table,{roleColumn:role<0?null:role,resultColumn:result,positiveRole,negativeRole,referenceRole,positiveMin:numOrNull(positiveMin),positiveMax:numOrNull(positiveMax),negativeMax:numOrNull(negativeMax),referenceMin:numOrNull(referenceMin),referenceMax:numOrNull(referenceMax),maxReplicateCvPercent:numOrNull(maxControlCv),source:qcSource},method)
    const meta:Meta={fileName,delimiter:table.delimiter,headers:table.headers,mapping:{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},controlRows:mapped.controlRows,controlCriteria:{positiveRole,negativeRole,referenceRole,positiveMin:numOrNull(positiveMin),positiveMax:numOrNull(positiveMax),negativeMax:numOrNull(negativeMax),referenceMin:numOrNull(referenceMin),referenceMax:numOrNull(referenceMax),maxReplicateCvPercent:numOrNull(maxControlCv),source:qcSource},qcStatus:qc.status,qcEvidence:qc.evidence,controlSummary:qc.groups}
