@@ -177,7 +177,12 @@ export default function App() {
     const selectedKit = [...diagnosticKitCatalog, ...customKits].find(kit => kit.id === selectedDiagnosticKitId)
     if (!selectedKit) return
     const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
-    const match = assayCatalog.find(assay => assay.disease === 'IBD' && ((Boolean(selectedKit.catalog && assay.catalog) && normalize(assay.catalog || '') === normalize(selectedKit.catalog || '')) || normalize(assay.manufacturer) === normalize(selectedKit.brand))))
+    const match = assayCatalog.find(assay => {
+      if (assay.disease !== 'IBD') return false
+      const catalogMatch = Boolean(selectedKit.catalog && assay.catalog && normalize(assay.catalog) === normalize(selectedKit.catalog))
+      const brandMatch = normalize(assay.manufacturer) === normalize(selectedKit.brand)
+      return catalogMatch || brandMatch
+    })
     if (match) {
       setSelectedAssayId(match.id)
       setKitName(match.manufacturer + ' — ' + match.name + (match.catalog ? ' (' + match.catalog + ')' : ''))
