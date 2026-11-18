@@ -139,7 +139,9 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
     setErr('')
     setSavedMessage('')
     try {
-      await saveMonitorRunToLocal({ flock, diseaseCode: mode, input: lastInput, output: out })
+      let strainSelections: Record<string,string> = {}
+      try { strainSelections = JSON.parse(localStorage.getItem('adine-strain-selections-v1-'+mode) || '{}') as Record<string,string> } catch { strainSelections = {} }
+      await saveMonitorRunToLocal({ flock, diseaseCode: mode, input: { ...lastInput, strainSelections }, output: out })
       setSavedMessage('نتیجه در سوابق همین گله ذخیره شد؛ در صورت ورود به حساب، برای همگام‌سازی در صف قرار گرفت.')
       notifyLocalDataChanged()
       const runs = await listLocalModelRuns()
