@@ -1,8 +1,8 @@
 export type VaccinationEvent={
- id:string;disease:string;ageDays:number|null;date:string|null;product:string;strain:string;platform:string;route:string;dose:string;coveragePercent:number|null;notes:string
+ id:string;disease:string;ageDays:number|null;date:string|null;product:string;strain:string;platform:string;route:string;dose:string;coveragePercent:number|null;administrationQuality?:string;batch?:string;notes:string
 }
 export type ClinicalContext={
- signs:string;mortalityPercent:string;waterIntake:string;feedIntake:string;productionChange:string;necropsy:string;directTests:string;exposureRisks:string;clinicalCourse:string
+ signs:string;mortalityPercent:string;waterIntake:string;feedIntake:string;productionChange:string;necropsy:string;directTests:string;exposureRisks:string;clinicalCourse:string;status?:string;onsetDate?:string;morbidityPercent?:string;mortalityTrend?:string;houseNotes?:string
 }
 const digits=(v:string)=>v.replace(/[۰-۹٠-٩]/g,c=>{const a='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(a>=0?a:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))})
 const clean=(v:string)=>digits(v||'').trim()
@@ -27,8 +27,9 @@ export function parseVaccinationTimeline(raw:string,hatchDate=''):VaccinationEve
 export function formatVaccinationTimeline(events:VaccinationEvent[]):string{
  return events.map(e=>[e.ageDays??'',e.date??'',e.disease,e.product,e.platform,e.route,e.coveragePercent??'',e.dose,e.strain,e.notes].join(' | ')).join('\n')
 }
-export const emptyClinicalContext=():ClinicalContext=>({signs:'',mortalityPercent:'',waterIntake:'',feedIntake:'',productionChange:'',necropsy:'',directTests:'',exposureRisks:'',clinicalCourse:''})
+export const emptyClinicalContext=():ClinicalContext=>({signs:'',mortalityPercent:'',waterIntake:'',feedIntake:'',productionChange:'',necropsy:'',directTests:'',exposureRisks:'',clinicalCourse:'',status:'unknown',onsetDate:'',morbidityPercent:'',mortalityTrend:'',houseNotes:''})
 export function validateClinicalContext(c:ClinicalContext):string|null{
+ if(c.morbidityPercent?.trim()){const n=Number(clean(c.morbidityPercent));if(!Number.isFinite(n)||n<0||n>100)return 'درصد ابتلا باید عددی بین صفر تا ۱۰۰ باشد.'}
  if(c.mortalityPercent.trim()){const n=Number(clean(c.mortalityPercent));if(!Number.isFinite(n)||n<0||n>100)return 'درصد تلفات باید عددی بین صفر تا ۱۰۰ باشد.'}
  return null
 }
