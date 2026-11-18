@@ -5,10 +5,10 @@ const str=(o:Record<string,unknown>,k:string)=>typeof o[k]==='string'?String(o[k
 export default function SerologyControlTracking({run,runs}:{run:LocalModelRun;runs:LocalModelRun[]}){
  const i=run.input_snapshot as Record<string,unknown>,meta=i.readerImportMeta as Record<string,unknown>|undefined
  if(i.rawFileImported!==true||!meta||!Array.isArray(meta.controlSummary))return <section className="srs-chart-card"><h4>روند کنترل‌ها در طول زمان</h4><p className="srs-note">برای ردیابی کنترل‌ها، خروجی خام هر پلیت باید وارد شده باشد. QC اظهاری برای ساخت نمودار کنترل کافی نیست.</p></section>
- const keys=['method','assayId','kit','catalog','assayVersion','sampleMatrix','antigen','unit','scale','kitLot','laboratory','readerModel','protocolVersion']
+ const keys=['method','assayId','kit','catalog','assayVersion','sampleMatrix','antigen','unit','scale','kitLot','laboratory','readerModel','protocolVersion',...(i.method==='HI'?['hiHAU','antigenPretreatment','serumPretreatment','dilutionFactor','rbcSource','rbcLot','rbcConcentration']:[])]
  const compatible=(x:LocalModelRun)=>{
   const a=x.input_snapshot as Record<string,unknown>,m=a.readerImportMeta as Record<string,unknown>|undefined
-  return x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&a.rawFileImported===true&&keys.every(k=>String(a[k]??'')===String(i[k]??''))&&str(m||{},'qcSource')===str(meta,'qcSource')
+  return x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&a.rawFileImported===true&&keys.every(k=>String(a[k]??'')===String(i[k]??''))&&str(m||{},'qcSource')===str(meta,'qcSource')&&JSON.stringify(m?.controlCriteria??null)===JSON.stringify(meta.controlCriteria??null)
  }
  const series=runs.filter(compatible).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const groupLabels=['positive','negative','reference']
