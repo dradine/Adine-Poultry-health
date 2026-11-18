@@ -13,6 +13,7 @@ import StrainSelector from './components/StrainSelector'
 import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
 import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCatalog'
 import CloudSyncPanel from './components/CloudSyncPanel'
+import BaselineLibrary from './components/BaselineLibrary'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
 
@@ -509,6 +510,7 @@ export default function App() {
       </header>
 
       <CloudSyncPanel />
+      <BaselineLibrary />
 
       <section className="intro">
         <div>
