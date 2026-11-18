@@ -14,7 +14,7 @@ describe('source-traceable baseline registry', () => {
   })
 
   it('does not invent IDvet numeric values when the listed source PDF has not been parsed', () => {
-    const idvet = UNPARSED_REFERENCE_DOCUMENTS.find(x => x.id === 'idvet-poultry-general-baselines-2026')
+    const idvet = UNPARSED_REFERENCE_DOCUMENTS.find(x => x.id === 'idvet-poultry-general-baselines-june2025')
     expect(idvet?.status).toContain('NOT been transcribed')
     expect(idvet).not.toHaveProperty('numericRange')
   })
