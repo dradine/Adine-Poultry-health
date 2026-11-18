@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages-test-deploy
+  group: pages-test-deploy-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
