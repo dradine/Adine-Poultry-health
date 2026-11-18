@@ -197,3 +197,39 @@ A successful CI run is software quality evidence, not biological/diagnostic vali
 - Thermo SampleManager LIMS: https://www.thermofisher.com/us/en/home/digital-solutions/lab-informatics/lab-information-management-systems-lims/solutions/samplemanager.html
 - WOAH Terrestrial Manual 1.1.6: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/1.01.06_VALIDATION.pdf
 - UF/IFAS poultry serology monitoring: https://ask.ifas.ufl.edu/publication/VM102
+
+
+## 10) تکمیل بررسی اختصاصی کیت‌های ND و IBV در IDvet (منابع رسمی محصول)
+این بررسی تکمیلی نشان داد تفکیک پلتفرم واکسن در ND و IBV نیز باید صریح‌تر از یک فیلد عمومی vaccine strain باشد.
+
+### ND
+IDvet حداقل چهار مسیر متفاوت معرفی می‌کند:
+- NDVS-CV: پایش واکسن‌های conventional زنده/غیرفعال.
+- NDVS: پایش rHVT-F-ND؛ محصول برای پایش پاسخ علیه آنتی‌ژن F معرفی شده است.
+- NDVNP: آنتی‌بادی علیه nucleoprotein؛ در کنار NDVS می‌تواند در راهبرد DIVA مشخص برای پرندگان دریافت‌کننده rHVT-F به‌کار رود.
+- NDVC: competitive ELISA برای anti-NDV در طیور اهلی و وحشی؛ کاربرد ویژه پایش در مناطقی که واکسیناسیون انجام نمی‌شود.
+منابع: https://www.innovative-diagnostics.com/produit/id-screen-newcastle-disease-indirect/ ; https://www.innovative-diagnostics.com/produit/id-screen-newcastle-disease-indirect-conventional-vaccines/ ; https://www.innovative-diagnostics.com/produit/id-screen-newcastle-disease-nucleoprotein-indirect/ ; https://www.innovative-diagnostics.com/produit/id-screen-newcastle-disease-competition/
+**قانون موتور:** conventional ND ELISA و rHVT-F specific ELISA و NDV-NP ELISA نباید یک assay واحد تلقی شوند. DIVA فقط برای همان واکسن و ترکیب assay ذکرشده قابل نمایش است؛ هر نوع واکسن زنده/کشته یا HVT دیگر، DIVA خودکار را فعال نمی‌کند.
+
+### IBV
+ID Screen Infectious Bronchitis Indirect 2.0 از یک recombinant protein محافظت‌شده استفاده می‌کند و سازنده تشخیص آنتی‌بادی علیه طیف وسیعی از variantها، از جمله QX و 793B و 4/91 را ادعا می‌کند. این موضوع به معنای تشخیص اختصاصی سویه QX یا 793B با سرولوژی نیست؛ بلکه طبق سازنده، assay برای پوشش broad antibody detection طراحی شده است.
+منبع: https://www.innovative-diagnostics.com/produit/id-screen-infectious-bronchitis-indirect-2-0/
+IDvet همچنین ID Gene IBV Duplex RT-qPCR را با target تشخیصی و exogenous internal control و positive amplification control معرفی می‌کند؛ دامنه تشخیص اعلام‌شده شامل variantهای IBV متعدد از جمله QX، 4/91، Arkansas و Mass است.
+منبع: https://www.innovative-diagnostics.com/produit/id-gene-infectious-bronchitis-duplex/
+**قانون موتور:** serology broad-reactive IBV را برای genotype/variant identification استفاده نکنیم؛ برای شناسایی سویه میدانی به PCR و در موارد لازم sequencing نیاز است. آنتی‌بادی مثبت یا بالا، به‌تنهایی تعیین نمی‌کند کدام variant عامل بوده یا cross-protection برقرار است.
+
+### AIV / DIVA
+IDvet دو هدف مجزا معرفی می‌کند:
+- NP indirect یا NP competitive برای anti-influenza A NP؛
+- H5 indirect برای anti-H5 HA.
+سازنده در شرایط مشخص rHVT-H5 alone، ترکیب NP + H5 را برای DIVA معرفی می‌کند. این را نباید به واکسن‌های inactivated H5 یا ترکیب‌های چندگانه تعمیم داد. H5 antibody assay پوشش وسیع‌تر H5 را بیان می‌کند، اما clade identification یا protection prediction نیست.
+منابع: https://www.innovative-diagnostics.com/produit/id-screen-influenza-a-nucleoprotein-indirect/ ; https://www.innovative-diagnostics.com/produit/id-screen-influenza-a-antibody-competition-multi-species/ ; https://www.innovative-diagnostics.com/produit/id-screen-influenza-h5-indirect/
+
+### نکته بسیار مهم برای بانک سویه و مدل
+Registry باید به جای یک strain field دارای نقش‌های مجزا باشد:
+- vaccine vector backbone (مثلاً HVT)
+- expressed vaccine antigen (مثلاً NDV-F، IBDV-VP2، AIV-H5)
+- kit coated antigen / assay target (مثلاً NDV purified antigen، NDV-NP، IBV conserved recombinant protein، influenza NP، H5-HA)
+- field isolate/genotype/sequence
+- reference/challenge strain
+و rule-engine تنها با تطابق دقیق platform × antigen × assay × intended purpose اجازه DIVA یا vaccine-specific interpretation دهد.
