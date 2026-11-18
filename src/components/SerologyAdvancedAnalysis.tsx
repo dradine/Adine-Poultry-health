@@ -1,6 +1,6 @@
-import type { LocalModelRun } from './localFirstDb'
-import { areComparableSerologyRounds } from './serologyStats'
-import { analyzePairedRounds, calculateSeropositivity, geometricMeanConfidenceInterval, meanConfidenceInterval } from './serologyAdvancedStats'
+import type { LocalModelRun } from '../core/localFirstDb'
+import { areComparableSerologyRounds } from '../core/serologyStats'
+import { analyzePairedRounds, calculateSeropositivity, geometricMeanConfidenceInterval, meanConfidenceInterval } from '../core/serologyAdvancedStats'
 type O=Record<string,unknown>
 const str=(o:O,k:string)=>typeof o[k]==='string'?String(o[k]):''
 const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number'&&Number.isFinite(x))?v as number[]:[]
@@ -9,7 +9,7 @@ const fa=(v:number,d=2)=>v.toLocaleString('fa-IR',{maximumFractionDigits:d})
 const pct=(v:number)=>fa(v)+'٪'
 function Metric({label,value,detail}:{label:string;value:string;detail?:string}){return <div className="srs-metric"><small>{label}</small><b>{value}</b>{detail&&<span>{detail}</span>}</div>}
 export default function SerologyAdvancedAnalysis({run,runs}:{run:LocalModelRun;runs:LocalModelRun[]}){
- const input=run.input_snapshot,values=nums(input.titers),method=str(input,'method'),scale=str(input,'scale')
+ const input=run.input_snapshot,values=nums(input.titers),scale=str(input,'scale')
  const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
  const ci=isTitre?geometricMeanConfidenceInterval(values):meanConfidenceInterval(values)
  const comparable=runs.filter(x=>x.id!==run.id&&x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&x.model_family==='serology-longitudinal-round'&&areComparableSerologyRounds({flockId:x.flock_id,diseaseCode:x.disease_code,input:x.input_snapshot},{flockId:run.flock_id,diseaseCode:run.disease_code,input})&&String(x.input_snapshot.samplingDate||'')<String(input.samplingDate||'')).sort((a,b)=>String(b.input_snapshot.samplingDate||'').localeCompare(String(a.input_snapshot.samplingDate||'')))
