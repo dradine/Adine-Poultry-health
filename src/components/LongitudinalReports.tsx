@@ -19,7 +19,7 @@ const fa=(n:number)=>Number.isFinite(n)?n.toLocaleString('fa-IR',{maximumFractio
 const str=(o:Record<string,unknown>,k:string)=>typeof o[k]==='string'?String(o[k]):''
 const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number')?v as number[]:[]
 const strings=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='string')?v as string[]:[]
-const localToday=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+const localToday=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=(k:string)=>parts.find(x=>x.type===k)?.value||'';return get('year')+'-'+get('month')+'-'+get('day')}
 const purposeFa=(v:string)=>({mda:'آنتی‌بادی مادری / هچری','pre-vaccination':'قبل از واکسیناسیون','post-vaccination':'پس از واکسیناسیون',routine:'پایش دوره‌ای',outbreak:'بررسی در شرایط مشکوک به چالش'} as Record<string,string>)[v]||v
 const qcFa=(v:string)=>({pending:'بررسی نشده',pass:'کنترل‌ها طبق IFU قابل قبول (اظهاری)',review:'نیازمند بازبینی',fail:'رد شده'} as Record<string,string>)[v]||v
 const matrixFa=(v:string)=>v==='serum'?'سرم':v==='egg-yolk'?'زرده تخم‌مرغ':v==='unknown'?'نامشخص':v
