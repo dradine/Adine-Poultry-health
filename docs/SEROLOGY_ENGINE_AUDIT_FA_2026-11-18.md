@@ -102,6 +102,6 @@ https://dampezeshkan.com/archive/7870/pasoucastle/
 ## 6) فایل‌های کد
 - \`src/components/LongitudinalReports.tsx\`: رابط ثبت نوبت، پرونده‌های بیماری و گزارش/روند.
 - \`src/core/serologyStats.ts\`: parser سخت‌گیر، آمار scale-aware، paired trend و BioChek VI.
-- \`src/core/serologyRunService.ts\`: ذخیره محلی/صف همگام‌سازی، قفل حساب برای ایمیل موردنظر.
+- \`src/core/serologyRunService.ts\`: ذخیره محلی/صف همگام‌سازی و قفل اتصال به همان حساب Supabase واردشده؛ ایمیل شخصی در کد عمومی hardcode نشده و در رابط از نشست جاری نمایش داده می‌شود.
 - \`src/core/assayRegistry.ts\`: کاتالوگ آزمون‌ها و وضعیت شواهد.
 - \`src/data/referenceBaselines.ts\`: مرجع‌های عددی سازنده با وضعیت reference-only.
