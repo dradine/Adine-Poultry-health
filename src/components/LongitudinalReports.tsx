@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
-import { saveMonitorRunToLocal } from '../core/syncService'
+import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { REFERENCE_BASELINES, UNPARSED_REFERENCE_DOCUMENTS } from '../data/referenceBaselines'
 
@@ -48,7 +48,7 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
   setBusy(true)
   try{
    const s=summarize(v,method),p=profiles.find(x=>x.id===flockId)
-   await saveMonitorRunToLocal({flock:{id:f.id,flockName:f.name,placementDate:f.placement,hatchDate:p?.hatchDate,flockType:p?.flockType,flockSize:p?.flockSize,houseName:p?.houseName,hatchery:p?.hatchery,vaccinationHistory:p?.vaccinationHistory},diseaseCode:disease,input:{recordType:'serology-longitudinal-round',roundLabel:round.trim()||'نوبت نمونه‌گیری',samplingDate:date,samplingAgeDays:age?Number(age):null,method,kit:kit.trim(),catalog:catalog.trim(),antigen:antigen.trim(),unit:unit.trim(),vaccine:vaccine.trim(),vaccineDate:vaccineDate||null,vaccineStrain:strain.trim(),sampleCount:n,titers:v,qcStatus:qc,laboratory:lab.trim(),source:source.trim(),notes:notes.trim(),comparisonRule:'same flock + disease + method + kit/catalog + antigen + unit; unpaired group-level summaries only'},output:{...s,interpretation:'خلاصه آماری توصیفی؛ بدون استنباط حفاظت یا تشخیص',qcStatus:qc,comparisonEligible:false,limitations:['مقایسه روند فقط با روش، کیت/نسخه، آنتی‌ژن و واحد یکسان انجام می‌شود.','بدون شناسه پرنده، مقایسه گروهی است و paired response محسوب نمی‌شود.','OD، S/P، تیتر ELISA، HI reciprocal و HI log₂ با هم ادغام یا تبدیل نمی‌شوند.','هیچ حدی به‌تنهایی اثبات‌کننده حفاظت، عفونت یا موفقیت واکسن نیست.']}})
+   await saveSerologyRound({flock:{id:f.id,flockName:f.name,placementDate:f.placement,hatchDate:p?.hatchDate,flockType:p?.flockType,flockSize:p?.flockSize,houseName:p?.houseName,hatchery:p?.hatchery,vaccinationHistory:p?.vaccinationHistory},diseaseCode:disease,input:{recordType:'serology-longitudinal-round',roundLabel:round.trim()||'نوبت نمونه‌گیری',samplingDate:date,samplingAgeDays:age?Number(age):null,method,kit:kit.trim(),catalog:catalog.trim(),antigen:antigen.trim(),unit:unit.trim(),vaccine:vaccine.trim(),vaccineDate:vaccineDate||null,vaccineStrain:strain.trim(),sampleCount:n,titers:v,qcStatus:qc,laboratory:lab.trim(),source:source.trim(),notes:notes.trim(),comparisonRule:'same flock + disease + method + kit/catalog + antigen + unit; unpaired group-level summaries only'},output:{...s,interpretation:'خلاصه آماری توصیفی؛ بدون استنباط حفاظت یا تشخیص',qcStatus:qc,comparisonEligible:false,limitations:['مقایسه روند فقط با روش، کیت/نسخه، آنتی‌ژن و واحد یکسان انجام می‌شود.','بدون شناسه پرنده، مقایسه گروهی است و paired response محسوب نمی‌شود.','OD، S/P، تیتر ELISA، HI reciprocal و HI log₂ با هم ادغام یا تبدیل نمی‌شوند.','هیچ حدی به‌تنهایی اثبات‌کننده حفاظت، عفونت یا موفقیت واکسن نیست.']}})
    await refresh();setForm(false);setValues('');setMessage('نوبت ذخیره شد؛ در صورت ورود به حساب و اتصال اینترنت، در صف همگام‌سازی ابری قرار می‌گیرد.')
   }catch(err){setMessage(err instanceof Error?err.message:'ذخیره انجام نشد.')}finally{setBusy(false)}
  }
