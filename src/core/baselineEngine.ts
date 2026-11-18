@@ -41,9 +41,9 @@ function assess(disease:BaselineDisease,context:BaselineContext):BaselineAssessm
  explanationFa:'Baseline این بیماری در کتابخانه وجود دارد، اما تطابق دقیق سازنده، آزمون، روش، مقیاس، جمعیت، سن و برنامه واکسن احراز نشد. مقایسه عددی مسدود است.',
  reasonsFa:['هیچ مرجعی تمام مشخصات این نمونه را صریح و کامل پوشش نمی‌دهد.','شباهت نام کیت یا بیماری برای تطبیق کافی نیست.'],
  source:null,sourceVersion:null,numericRange:null}
- if(exact.numericComparisonEligible !== true)return {status:'reference-only',usableForNumericComparison:false,baselineId:exact.id,
+ if(exact.numericComparisonEligible !== true || !exact.numericRange || !present(exact.numericRange.unit))return {status:'reference-only',usableForNumericComparison:false,baselineId:exact.id,
  explanationFa:'مشخصات مرجع با ورودی منطبق است، اما سند فقط یک مثال/راهنمای مرجع است و اجازه مقایسه عددی فعال را نمی‌دهد؛ عددها صرفاً برای مطالعه نمایش داده می‌شوند.',
- reasonsFa:['پرچم numericComparisonEligible برای این مرجع فعال نشده است.','مثال سازنده را نمی‌توان بدون تأیید کیت، کالیبراسیون و کاربرد به مقایسه عددی تبدیل کرد.'],
+ reasonsFa:['پرچم numericComparisonEligible فعال نیست یا محدوده عددی/واحد قابل استناد برای این مرجع ثبت نشده است.','مثال سازنده را نمی‌توان بدون تأیید کیت، کالیبراسیون و کاربرد به مقایسه عددی تبدیل کرد.'],
  source:exact.sourceTitle,sourceVersion:exact.sourceVersion,numericRange:null}
  return {status:'exact-match',usableForNumericComparison:true,baselineId:exact.id,
  explanationFa:'تطابق مشخصات با مرجع ثبت‌شده برقرار است. این مقایسه فقط توصیفی و در محدوده کاربرد سند است؛ Baseline به‌تنهایی معیار حفاظت یا تشخیص نیست.',
