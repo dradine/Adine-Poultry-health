@@ -172,3 +172,70 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 @media(max-width:680px){.monitor-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.monitor-dashboard{padding:11px}.monitor-metric b{font-size:13px}}
 
 .strain-kit-context{margin:10px 0;padding:12px;border:1px solid #d8e5dd;border-radius:10px;background:#fff;font-size:12px;line-height:1.8}.strain-kit-context p{margin:3px 0}.strain-kit-context small{color:#74837a}
+
+
+/* Focused professional workspace navigation */
+.workspace-home{display:grid;gap:18px}
+.workspace-welcome{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:22px 24px;border-radius:18px;background:#123b32;color:#fff}
+.workspace-welcome h2{margin:6px 0;font-size:22px}
+.workspace-welcome p{margin:0;color:#d5e6df;font-size:13px;line-height:1.9}
+.workspace-mark{display:grid;place-items:center;width:68px;height:68px;flex:0 0 68px;border:1px solid #719889;border-radius:18px;color:#e0eee7;font-size:19px;font-weight:800}
+.workspace-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.workspace-action{display:grid;gap:8px;align-content:start;text-align:right;padding:17px 15px;border:1px solid #e1e9e4;border-radius:14px;background:#fff;color:#233d30;cursor:pointer;min-height:128px;transition:border-color .15s,transform .15s}
+.workspace-action:hover{border-color:#83ac94;transform:translateY(-1px)}
+.workspace-action>span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#eaf3ed;color:#205b47;font-weight:800}
+.workspace-action b{font-size:14px}
+.workspace-action small{font-size:11px;color:#7b8981;line-height:1.7}
+.workspace-flocks{padding:18px 20px;border:1px solid #e5ece7;border-radius:16px;background:#fff}
+.workspace-section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.workspace-section-heading h3{margin:0;font-size:15px}
+.workspace-section-heading .link-button{font-weight:700;color:#286349}
+.workspace-flock-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 0;border-top:1px solid #edf1ee}
+.workspace-flock-row>div:first-child{display:grid;gap:5px;min-width:0}
+.workspace-flock-row b{font-size:13px;color:#284735}
+.workspace-flock-row small{font-size:11px;color:#7d8982}
+.workspace-flock-actions{display:flex;gap:7px;flex-wrap:wrap}
+.workspace-flock-actions .button{margin:0;padding:8px 11px;font-size:11px;white-space:nowrap}
+.workspace-tools{border:1px solid #e2e9e4;border-radius:14px;background:#f9fbf9;padding:0 15px}
+.workspace-tools>summary{cursor:pointer;padding:14px 0;font-size:12px;font-weight:700;color:#355d46}
+.workspace-tools .cloud-panel{margin:8px 0}
+.workspace-tools details{padding:8px 0}
+.workspace-tools details>summary{cursor:pointer;font-size:12px;color:#54705e}
+.workflow-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:10px 0 14px;padding:15px 18px;border:1px solid #e3ebe5;border-radius:14px;background:#fff}
+.workflow-heading h2{font-size:18px;margin:7px 0 0;color:#244634}
+.workflow-heading .wizard-nav{margin:0}
+.workflow-heading .button{margin:0}
+.workflow-bottom{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+.workflow-bottom .button{margin:0}
+.home-return{margin:0;padding:7px 12px;font-size:11px}
+.advanced-analysis{margin-top:16px}
+.advanced-analysis>summary{cursor:pointer;font-size:13px;font-weight:700;color:#315f46;padding:3px 0;list-style:none}
+.advanced-analysis>summary::-webkit-details-marker{display:none}
+.serology-workspace{margin-top:14px}
+.serology-workspace.entry-only{padding:18px}
+.serology-workspace.reports-only{padding:18px}
+.serology-entry-form{border:0;background:#fbfdfb;padding:0;margin-top:12px}
+.report-list .saved-row{width:100%;text-align:right;cursor:pointer;background:#fff}
+.report-list .saved-row:hover{background:#f5faf6}
+.report-page{margin-top:14px}
+.srs{margin-top:0}
+.srs-brand,.srs-meta,.srs-footnote{display:none!important}
+.srs .panel-heading{margin-bottom:12px}
+.srs-tabs{position:sticky;top:0;z-index:2;background:#fff}
+@media(max-width:700px){
+ .workspace-home{gap:12px}
+ .workspace-welcome{padding:18px}
+ .workspace-welcome h2{font-size:18px}
+ .workspace-mark{width:52px;height:52px;flex-basis:52px;font-size:15px}
+ .workspace-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .workspace-action{min-height:112px;padding:13px}
+ .workspace-flocks{padding:14px}
+ .workspace-flock-row{align-items:flex-start;flex-direction:column}
+ .workspace-flock-actions{width:100%}
+ .workspace-flock-actions .button{flex:1}
+ .workflow-heading{align-items:flex-start;padding:13px}
+ .workflow-heading .wizard-nav{width:100%}
+ .workflow-heading .wizard-nav .button{flex:1}
+ .workflow-bottom{flex-direction:column}
+ .workflow-bottom .button{width:100%}
+}
