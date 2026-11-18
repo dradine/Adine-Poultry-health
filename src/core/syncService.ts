@@ -239,6 +239,44 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
   }
   await removeOutboxItem(item)
 }
+export type MdaRunDraft = {
+  flock: { id: string; flockName: string; placementDate: string; savedAt?: string }
+  diseaseCode: 'IBD' | 'IBV' | 'ND' | 'AIV'
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+}
+export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
+  await bindLocalDataToSession(true)
+  const existingFlock = (await listLocalFlocks(true)).find(row => row.id === draft.flock.id)
+  if (!existingFlock) {
+    await saveProfileToLocal({
+      id: draft.flock.id,
+      flockName: draft.flock.flockName,
+      placementDate: draft.flock.placementDate,
+      savedAt: draft.flock.savedAt || new Date().toISOString(),
+    })
+  }
+  const id = crypto.randomUUID()
+  await saveLocalModelRun({
+    id, flock_id: draft.flock.id, disease_code: draft.diseaseCode,
+    model_version: 'mda-decay-exploratory-0.1.0',
+    model_family: 'maternal-antibody-decay-exploratory',
+    input_snapshot: draft.input, output_snapshot: draft.output,
+    confidence_level: 'low', decision_status: 'review_required',
+    limitations: [
+      'Exploratory exponential decay reconstruction only; not a validated vaccine-interference or protection model.',
+      'Half-life and threshold must be assay-, antigen-, population- and purpose-specific with source provenance.',
+      'Observed sample titre and reconstructed hatch titre are distinct; reconstructed values include model uncertainty.',
+    ],
+    qc_summary: { enteredByUser: true, rawLabFileImported: false, assayQcIndependentlyVerified: false },
+    model_assumptions: { decayModel: 'T(t)=T0*2^(-t/halfLife)', noProtectionInference: true },
+    source_references: [{ kind: 'user-entered-parameter-source', citation: draft.input.source || null }],
+    input_schema_version: 'mda-monitor-input-v1',
+    created_at: new Date().toISOString(),
+  })
+  return id
+}
+
 export type SyncResult = { pushed: number; pulledFlocks: number; pulledRuns: number; pending: number; lastSyncAt: string }
 export async function syncLocalData(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) throw new Error('اتصال اینترنت برقرار نیست؛ اطلاعات همچنان روی همین دستگاه ذخیره می‌شوند.')
