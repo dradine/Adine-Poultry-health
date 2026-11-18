@@ -43,7 +43,8 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  if(demo)limitations.push('رکورد نمایشی است؛ تحلیل بالینی غیرفعال محسوب می‌شود.')
  if(demo)return {headline:'رکورد نمایشی؛ تفسیر بالینی صادر نمی‌شود',confidence:'غیرقابل استفاده بالینی',observations,scenarios:[],outlook:[],actions:[],limitations,sources:[]}
  if(disease==='ND'){
-  source('WOAH – Newcastle disease, Terrestrial Code','https://www.woah.org/fileadmin/Home/eng/Health_standards/tahc/current/en_chapitre_nd.pdf')
+  source('WOAH – Newcastle disease, Terrestrial Code','https://www.woah.org/fileadmin/Home/eng/Health_standards/tahc/2024/en_chapitre_nd.pdf')
+  source('WOAH – Newcastle disease, Terrestrial Manual, Chapter 3.3.10','https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.10_NEWCASTLE_DIS.pdf')
   source('Merck Veterinary Manual – Newcastle disease','https://www.merckvetmanual.com/poultry/newcastle-disease-and-other-avian-paramyxovirus-infections/newcastle-disease-in-poultry')
   add(observations,'محدودیت اختصاصی نیوکاسل','در گله واکسینه، آنتی‌بادی HI یا ELISA نمی‌تواند به‌تنهایی پاسخ واکسن را از مواجهه با APMV-1 میدانی جدا کند. تیتر مثبت به معنی ویروس بیماری‌زای در گردش نیست.','caution')
   const hiFourHau=method==='HI'&&Number(str(i,'hiHAU'))===4
@@ -75,6 +76,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
   add(outlook,'چشم‌انداز','تیتر ممکن است پس از واکسن افزایش یابد و سپس افت کند؛ برای تشخیص افزایش غیرمنتظره، نوبت‌های هم‌روش و هم‌کیت لازم است. بروز بیماری تنفسی در آینده را نمی‌توان از یک مقدار ELISA پیش‌بینی کرد.','caution')
   actions.push({priority:'۱ – تحلیل روند',task:'نتیجه را با خط پایه و نمونه جفتی هم‌کیت/هم‌روش مقایسه کنید.',reason:'روند تغییر از تیتر منفرد ارزش تفسیری بیشتری دارد.'},{priority:'۲ – اگر علائم وجود دارد',task:'RT-PCR از سواب نای/دهانی‌حلقی یا نمونه مناسب را پیگیری کنید و در صورت مثبت‌شدن سویه‌یابی انجام دهید.',reason:'تشخیص قطعی و تعیین ژنوتیپ با سرولوژی عمومی ممکن نیست.'},{priority:'۳ – بازنگری واکسن',task:'سویه‌های زنده مصرفی، فاصله و روش تجویز، واکسن‌های همزمان و شرایط فارم را مرور کنید.',reason:'پاسخ همورال تنها یکی از اجزای ایمنی IBV است.'})
  }else if(disease==='IBD'){
+  source('WOAH – Infectious bursal disease, Terrestrial Manual, Chapter 3.3.12','https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.12_IBD.pdf')
   source('Merck Veterinary Manual – Infectious bursal disease','https://www.merckvetmanual.com/poultry/infectious-bursal-disease/infectious-bursal-disease-in-poultry')
   source('Field study – timing of IBD vaccination and MDA','https://www.tandfonline.com/doi/full/10.1080/03079450701589175')
   const mda=purpose==='mda'||(Number.isFinite(Number(i.samplingAgeDays))&&Number(i.samplingAgeDays)<=14)
