@@ -22,7 +22,7 @@ const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number')?v as n
 const strings=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='string')?v as string[]:[]
 const localToday=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=(k:string)=>parts.find(x=>x.type===k)?.value||'';return get('year')+'-'+get('month')+'-'+get('day')}
 const purposeFa=(v:string)=>({mda:'آنتی‌بادی مادری / هچری','pre-vaccination':'قبل از واکسیناسیون','post-vaccination':'پس از واکسیناسیون',routine:'پایش دوره‌ای',outbreak:'بررسی در شرایط مشکوک به چالش'} as Record<string,string>)[v]||v
-const qcFa=(v:string)=>({pending:'بررسی نشده',pass:'کنترل‌ها طبق IFU قابل قبول (اظهاری)',review:'نیازمند بازبینی',fail:'رد شده'} as Record<string,string>)[v]||v
+const qcFa=(v:string)=>({pending:'بررسی نشده',demo:'QC واقعی اجرا نشده؛ صرفاً نمونه نمایشی',pass:'کنترل‌ها طبق IFU قابل قبول (اظهاری)',review:'نیازمند بازبینی',fail:'رد شده'} as Record<string,string>)[v]||v
 const matrixFa=(v:string)=>v==='serum'?'سرم':v==='egg-yolk'?'زرده تخم‌مرغ':v==='unknown'?'نامشخص':v
 function roundIdentity(r:LocalModelRun){return {flockId:r.flock_id,diseaseCode:r.disease_code,input:r.input_snapshot}}
 function hasComparisonMetadata(r:LocalModelRun){return hasCompleteSerologyComparisonMetadata(roundIdentity(r))}
