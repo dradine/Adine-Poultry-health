@@ -26,8 +26,9 @@ describe('disease-specific clinical interpretation',()=>{
   expect(x.actions.some(a=>a.task.includes('BTT'))).toBe(true)
  })
  it('uses dated Newcastle vaccination events and clinical signs in interpretation',()=>{
-  const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{date:'2026-11-10',ageDays:21,disease:'ND',product:'LaSota',strain:'LaSota',platform:'live-conventional',route:'drinking-water',coveragePercent:90}],clinicalContext:{signs:'سرفه و رال تنفسی',mortalityPercent:'2.1',waterIntake:'کاهش ۱۰ درصد',feedIntake:'طبیعی',productionChange:'افت وزن روزانه',necropsy:'تراشه پرخون',directTests:'PCR در انتظار',exposureRisks:'تردد خودرو مشترک',clinicalCourse:'شروع علائم روز ۲۸'}}))
+  const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{date:'2026-10-27',ageDays:7,disease:'ND',product:'LaSota',strain:'LaSota',platform:'live-conventional',route:'drinking-water',coveragePercent:90},{date:'2026-11-10',ageDays:21,disease:'ND',product:'LaSota',strain:'LaSota',platform:'live-conventional',route:'drinking-water',coveragePercent:90}],clinicalContext:{signs:'سرفه و رال تنفسی',mortalityPercent:'2.1',waterIntake:'کاهش ۱۰ درصد',feedIntake:'طبیعی',productionChange:'افت وزن روزانه',necropsy:'تراشه پرخون',directTests:'PCR در انتظار',exposureRisks:'تردد خودرو مشترک',clinicalCourse:'شروع علائم روز ۲۸'}}))
   expect(x.observations.some(o=>o.title==='خط زمانی واکسیناسیون')).toBe(true)
+  expect(x.observations.some(o=>o.title.includes('فواصل نوبت‌های واکسن')&&o.body.includes('14'))).toBe(true)
   expect(x.observations.some(o=>o.title==='وضعیت بالینی ثبت‌شده')).toBe(true)
   expect(x.observations.some(o=>o.title.includes('تلفات تجمعی'))).toBe(true)
   expect(x.scenarios.some(s=>s.name.includes('اثر نوبت اخیر واکسن'))).toBe(true)
