@@ -1,0 +1,52 @@
+# تکمیل بانک سویه و پایش MDA — بازبینی ۱۸ نوامبر ۲۰۲۶
+
+## تغییرات افزوده‌شده
+- `src/core/strainRegistry.ts`: بانک سویه/ژنوتیپ/پلتفرم بر اساس بیماری، با roleهای جداگانه vaccine، assay-antigen و field-reference.
+- `src/components/StrainSelector.tsx`: پنل مرحله ۳؛ انتخاب از پیشنهادهای بیماری و ورود نام دستی برای هر نقش. ذخیره محلی جداگانه بر اساس بیماری.
+- `src/core/maternalAntibody.ts`: مدل ریاضی افت نمایی؛ نمونه روز ۰ تا ۴ را می‌پذیرد، تیتر روز هچ را برآورد می‌کند و منحنی/سن عبور از threshold می‌دهد.
+- `src/components/MaternalAntibodyPanel.tsx`: پنل stage 4 با گراف، مقادیر روزهای منتخب و ورودی دستی سن/تیتر/نیمه‌عمر/threshold/منبع.
+- تست‌های واحد برای ورودی day 0، day 1–4، سن خارج از دامنه، threshold و strain registry.
+
+## منطق MDA
+`T(0)=T(sample) × 2^(sampleAge / halfLife)` و `T(t)=T(0) × 2^(-t/halfLife)`. سن تخمینی رسیدن به threshold در صورتی که تیتر روز هچ بالاتر باشد: `t=halfLife × log2(T(0)/threshold)`.
+
+این مدل فقط ریاضی افت نمایی است و half-life و threshold را خودکار از مقاله/کیت استخراج نمی‌کند. کاربر باید آن‌ها را با منبع و مقیاس همان assay وارد کند. استفاده از OD، S/P یا مقیاس تیتر غیرهمسان و تعمیم threshold ممنوع است. آنتی‌بادی علیه آنتی‌ژن هدف و ضد وکتور با هم یکی نیستند. برای واکسن HVT-VP2 یا immune-complex، این محاسبه به‌تنهایی مدل زمان واکسیناسیون معتبر نیست.
+
+## فهرست سویه‌ها و احتیاط
+نام‌های ثبت‌شده برای شروع انتخاب‌اند، نه تأیید عرضه در ایران یا یکسانی آنتی‌ژنی. نام isolate، ژنوتیپ، lineage، clade، سال، منبع و target آنتی‌ژن باید در قسمت اطلاعات تکمیلی درج شود. سویه vaccine، antigen assay و field isolate مستقل ثبت می‌شوند.
+
+### منابع علمی/مرجع برای بانک اولیه
+- IBV vaccine strain overview/recombination review: https://doi.org/10.3390/ani10112058
+- USDA APHIS chicken product summaries (ND vaccine products and strain composition): https://www.aphis.usda.gov/product-summaries-animal-species-chicken
+- Malaysian DVS approved-vaccine list 2025 (product-specific strain compositions; not Iranian registration): https://www.dvs.gov.my/dvs/resources/user_1/2025/BKAV/COMBINE.pdf
+- IBDV vaccine review, including conventional live, immune-complex, vector platforms and variant products: https://www.mdpi.com/2076-2607/13/12/2801
+
+## محدودیت‌های باقی‌مانده
+1. سویه‌های منتخب در این پنل فعلاً به محاسبات موتور متصل نیستند؛ صرفاً به‌عنوان metadata ثبت می‌شوند و هیچ cross-protection یا protection score تولید نمی‌کنند.
+2. مدل MDA جدید یک برآورد اکتشافی مستقل است؛ فعلاً در سوابق پایش/analysis-run ذخیره یا sync نمی‌شود.
+3. منحنی فقط بر اساس یک half-life ثابت کاربر است؛ مدل عدم‌قطعیت، confidence interval، تخمین half-life از چند زمان نمونه، clustering سالن، ELISA calibration و validation با داده میدانی هنوز وجود ندارد.
+4. گزارش تحلیلی کامل مانند BioChek/IDEXX، import خودکار Excel/CSV دستگاه، QC parser و داشبورد چندگله هنوز تکمیل نشده‌اند.
+5. بانک سویه برای نام‌های variant و subtype، رکورد دقیق isolate را لازم دارد؛ H5/H9 یا QX-like به‌تنهایی designation کامل نیست.
+
+## گام‌های بعدی که نیاز به ادامه توسعه دارند
+- اتصال metadata سویه‌ها به snapshot نتایج و history
+- توسعه موتور MDA برای multiple samples / log-linear regression با confidence intervals و شروط کیفیت
+- گزارش تحلیلی شامل histograms، scatter/trend charts، percentile/GMT/CV، paired response، QC gates و تحلیل تفکیک سالن
+- import ساختاریافته فایل خروجی BioChek II و IDEXX xChekPlus پس از دریافت نمونه واقعی export
+- پروفایل vaccine platform و مدل‌های disease-specific مستقل؛ در مرحله فعلی هیچ مدل پیش‌بینی حفاظت برای ND/IBV/AIV ایجاد نشده است.
+
+### IBDV genogroups — ثبت با احتیاط نام‌گذاری
+- G1 classical، G2 variant، G3 vvIBDV، G4 distinct، G5 Mexican/recombinant، G6 Italian، G7 Australian در بانک اولیه به‌عنوان reference molecular group پیشنهاد شده‌اند.
+- این گروه‌بندی بر اساس hvVP2 و scheme تاریخی G1–G7 است؛ طبقه‌بندی‌های جدیدتر، segment A/B، sub-lineage و genogroupهای تازه ممکن است تفاوت داشته باشند. G2/G7 نام سویه اختصاصی نیستند. برای isolate واقعی، sequence accession، segment، lineage، تاریخ/کشور و source لازم است.
+- Reference: Michel & Jackwood 2017, *Classification of infectious bursal disease virus into genogroups*, https://doi.org/10.1007/s00705-017-3500-4 . Review of updated nomenclature: https://pmc.ncbi.nlm.nih.gov/articles/PMC13386920/ .
+
+### IBV: 4/91 و 793B
+- 4/91 و 793B و CR88 معمولاً نام‌های مرتبط/مترادف برای GI-13 (793B-type) lineage هستند؛ بنابراین در فهرست به یک پیشنهاد واحد تبدیل شدند تا به‌صورت سویه‌های مستقل و متفاوت نمایش داده نشوند.
+- QX-like (GI-19) یک field lineage/reference است؛ QXL87 به‌صورت جداگانه و product-specific vaccine reference ثبت شده است و نباید با تمام QX field isolates یکسان فرض شود.
+- References: https://pmc.ncbi.nlm.nih.gov/articles/PMC10221305/ ; https://doi.org/10.1080/03079457.2023.2177140
+
+### سویه‌های تکمیلی ثبت‌شده در بانک
+- IBDV: G1 classic، G2 variant، G3 vvIBDV، G4 distinct، G5 recombinant/Mexican، G6 Italian، G7 Australian؛ نام‌گذاری تاریخی G1–G7 است و با سیستم‌های جدیدتر A/B segment یا genogroupهای بازنگری‌شده ممکن است تفاوت داشته باشد.
+- IBV: Q1، Taiwan-I/GI-7، CR88121، 1212B و B48 نیز افزوده شدند. GI-13/793B-type (4/91/CR88) و GI-19/QX-type جداگانه ثبت شده‌اند؛ QX-like field lineage با QXL87 vaccine reference یکسان فرض نمی‌شود.
+- ND: سویه‌های رایج واکسنی مانند LaSota، B1، Clone 30، VG/GA و Ulster 2C، همراه با field genotypes، ثبت شده‌اند. ژنوتیپ VII vaccine reference تنها با برچسب دقیق محصول قابل انتخاب است.
+- منبع IBV lineage review: https://pmc.ncbi.nlm.nih.gov/articles/PMC10221305/ ; https://doi.org/10.1080/03079457.2023.2177140 ; review vaccine strains: https://doi.org/10.3390/ani10112058

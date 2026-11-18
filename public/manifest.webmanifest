@@ -1,0 +1,13 @@
+{
+  "name": "تصمیم‌یار واکسیناسیون طیور آدینه",
+  "short_name": "واکسیناسیون آدینه",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f6f3",
+  "theme_color": "#123b32",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
