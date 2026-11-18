@@ -121,7 +121,7 @@ export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
 export function areComparableAssayRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
  if(a.flockId!==b.flockId||a.diseaseCode!==b.diseaseCode)return false
  const x=a.input,y=b.input
- if(x.demo===true||y.demo===true||x.qcStatus!=='pass'||y.qcStatus!=='pass')return false
+ if(x.demo===true||y.demo===true||x.qcStatus==='fail'||y.qcStatus==='fail')return false
  const rawQc=(i:Record<string,unknown>)=>i.rawFileImported!==true||(i.readerImportMeta&&typeof i.readerImportMeta==='object'&&(i.readerImportMeta as Record<string,unknown>).qcStatus==='pass')
  if(!rawQc(x)||!rawQc(y))return false
  const fields=[...commonComparisonFields,...(x.method==='HI'||y.method==='HI'?hiComparisonFields:[])]
