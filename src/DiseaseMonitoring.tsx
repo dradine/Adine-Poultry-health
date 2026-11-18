@@ -27,6 +27,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
   const [mode, setMode] = useState<Mode>(initialMode || 'ND')
   const [flockId, setFlockId] = useState('')
   const [baseline, setBaseline] = useState('')
+  const [pairedData, setPairedData] = useState('')
   const [post, setPost] = useState('')
   const [threshold, setThreshold] = useState('')
   const [assay, setAssay] = useState('')
@@ -196,10 +197,11 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
 
       <details className="custom-kit-accordion disease-data-accordion"><summary>＋ ورود داده‌ها و جزئیات آزمون ​</summary>
       {mode === 'ND' && <>
-        <p>ورودی HI بر حسب log2 endpoint (رقت ۱:۲ = ۱، ۱:۴ = ۲ و ...). فقط تحلیل پاسخ سرولوژیک، نه protection. اگر نمونه‌های baseline و post متعلق به همان پرندگان و همان ترتیب نیستند، baseline را وارد نکنید.</p>
+        <p>ورودی HI بر حسب log2 endpoint (رقت ۱:۲ = ۱، ۱:۴ = ۲ و ...). فقط تحلیل پاسخ سرولوژیک، نه protection. Baseline جداگانه فقط برای خلاصه است؛ برای paired واقعی، هر خط را با شناسه پرنده وارد کنید (شناسه:قبل:بعد).</p>
         <div className="form-grid">
-          <label>Baseline paired (همان پرندگان و همان ترتیب؛ اختیاری)<input value={baseline} onChange={event => setBaseline(event.target.value)} /></label>
-          <label>HI پس از واکسن<input value={post} onChange={event => setPost(event.target.value)} /></label>
+          <label>Baseline غیرpaired (فقط خلاصه؛ اختیاری)<input value={baseline} onChange={event => setBaseline(event.target.value)} /></label>
+          <label>HI پس از واکسن (مجموع نمونه‌ها)<input value={post} onChange={event => setPost(event.target.value)} /></label>
+          <label className="wide-label">داده paired با شناسه واقعی پرنده (اختیاری؛ هر خط شناسه:قبل:بعد)<textarea rows={4} value={pairedData} onChange={event => setPairedData(event.target.value)} placeholder="B001:2:5\nB002:3:6" /></label>
           <label>آنتی‌ژن/سویه آزمون<input value={assay} onChange={event => setAssay(event.target.value)} /></label>
           <label>محصول واکسن<input value={product} onChange={event => setProduct(event.target.value)} /></label>
           <label>مسیر تجویز<input value={route} onChange={event => setRoute(event.target.value)} /></label>
