@@ -175,3 +175,17 @@ Release must remain Draft until CI is green, manual device tests and scientific 
 
 ## Current implementation truth
 As of the audit, current branch contains the four-step wizard, local strain metadata selector, day 0–4 exploratory MDA model, ND-HI descriptive monitor, IBV trend monitor and AIV evidence triage. The model is not a validated commercial or clinical serology system. Vendor-specific raw imports, QC tracking reports, robust uncertainty, true matched paired analyses and full exportable scientific reports are not complete.
+
+
+## Addendum: competitor and laboratory-software research (18 Nov 2026)
+A detailed comparison has been added in `docs/COMPETITIVE_SOFTWARE_AND_ASSAY_RESEARCH_FA_2026-11-18.md`.
+Key new requirements:
+- ID Soft-inspired import: reader → OD/Excel/manual, export CSV/XLSX/XML; preserve raw OD and calculated result separately.
+- IBD engine eligibility must distinguish conventional IBDS/Deventer from recombinant VP2-specific assay/model; do not run conventional Deventer on IBDVP2.
+- Influenza NP and H5-HA targets must be separate. DIVA logic is only enabled for the exact vaccine/assay combination supported by the manufacturer (e.g. IDvet's stated NP + H5 strategy in rHVT-H5-alone context), not generalized.
+- Add barcode/QR sample accession, chain-of-custody, reviewer/release roles, audit trail, raw-file hash and result lineage.
+- Add run-level QC with per-kit control ranges, control charts, lot bridging and proficiency testing records based on WOAH validation/quality principles. No generic Westgard rules or generic limits without validation.
+- Add multi-lab result consolidation inspired by xChek Vet, but do not harmonize titres across assays/lots until an explicit comparability study supports it.
+- Biogal ImmunoComb demonstrates POCT / image-assisted reading concepts; no poultry flock-trend software evidence found in reviewed official product pages, so do not port companion-animal performance claims to poultry.
+- Thermo SampleManager is a LIMS architecture reference, not a poultry serology engine.
+- IDvet General Baselines March 2026 is listed in distributor portal but full content has not been retrieved/validated; do not import any numeric baselines until the source PDF is reviewed.
