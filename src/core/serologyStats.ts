@@ -87,7 +87,9 @@ function comparisonFieldsForRound(r:SerologyRoundIdentity):string[]{
 export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):boolean{
   const i=r.input
   if(i.method!=='ELISA'&&i.method!=='HI') return false
-  if(i.qcStatus!=='pass'||typeof i.qcEvidence!=='string'||!i.qcEvidence.trim()) return false
+  const demoQc=i.demo===true&&i.qcStatus==='demo'
+  const realQc=i.demo!==true&&i.qcStatus==='pass'
+  if((!demoQc&&!realQc)||typeof i.qcEvidence!=='string'||!i.qcEvidence.trim()) return false
   return comparisonFieldsForRound(r).every(k=>{
     const v=i[k]
     return typeof v==='string'&&v.trim().length>0&&!['unknown','نامشخص','نامعلوم','not provided','n/a','na'].includes(v.trim().toLowerCase())
