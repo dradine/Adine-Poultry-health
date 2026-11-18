@@ -88,8 +88,7 @@ export const diagnosticKitCatalog: DiagnosticKit[] = [
     sourceUrl: 'https://www.id-vet.com/',
     evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
     notes: 'Exact product number, IFU, cut-off and distribution must be verified before this entry is selectable for calculations.'
-  }
-
+  },
   {
     id: 'idexx-ibv-9909262', disease: 'IBV', brand: 'IDEXX', catalog: '99-09262',
     assay: 'IBV antibody', format: 'Indirect ELISA', sample: 'Chicken serum',
