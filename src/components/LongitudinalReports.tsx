@@ -4,6 +4,7 @@ import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { REFERENCE_BASELINES, UNPARSED_REFERENCE_DOCUMENTS } from '../data/referenceBaselines'
 import { normalizeDigits } from '../core/ibd'
+import { supabase } from '../core/supabase'
 import { areComparableSerologyRounds, calculateBioChekVI, comparePairedSerology, hasCompleteSerologyComparisonMetadata, parseSampleIds, parseSerologyValues, serologyComparisonKey, summarizeSerology, type SerologyScale } from '../core/serologyStats'
 
 type Profile={id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
@@ -27,7 +28,7 @@ function roundIdentity(r:LocalModelRun){return {flockId:r.flock_id,diseaseCode:r
 function hasComparisonMetadata(r:LocalModelRun){return hasCompleteSerologyComparisonMetadata(roundIdentity(r))}
 function compatible(a:LocalModelRun,b:LocalModelRun){return areComparableSerologyRounds(roundIdentity(a),roundIdentity(b))}
 export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
- const [flocks,setFlocks]=useState<LocalFlock[]>([]),[runs,setRuns]=useState<LocalModelRun[]>([]),[chartGroupKey,setChartGroupKey]=useState('')
+ const [flocks,setFlocks]=useState<LocalFlock[]>([]),[runs,setRuns]=useState<LocalModelRun[]>([]),[chartGroupKey,setChartGroupKey]=useState(''),[accountEmail,setAccountEmail]=useState('')
  const [disease,setDisease]=useState<Disease>('ND'),[flockId,setFlockId]=useState(''),[population,setPopulation]=useState('unknown')
  const [form,setForm]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[openId,setOpenId]=useState('')
  const [method,setMethod]=useState<'ELISA'|'HI'>('ELISA'),[date,setDate]=useState(localToday()),[age,setAge]=useState('')
@@ -39,6 +40,7 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const [qc,setQc]=useState('pending'),[qcEvidence,setQcEvidence]=useState(''),[lab,setLab]=useState(''),[source,setSource]=useState(''),[notes,setNotes]=useState('')
  async function refresh(){const x=await Promise.all([listLocalFlocks(),listLocalModelRuns()]);setFlocks(x[0]);setRuns(x[1])}
  useEffect(()=>{void refresh();const fn=()=>void refresh();window.addEventListener('adine-cloud-data-updated',fn);window.addEventListener('adine-local-data-changed',fn);return()=>{window.removeEventListener('adine-cloud-data-updated',fn);window.removeEventListener('adine-local-data-changed',fn)}},[])
+ useEffect(()=>{let active=true;void supabase.auth.getSession().then(({data})=>{if(active)setAccountEmail(data.session?.user.email||'')});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>setAccountEmail(session?.user.email||''));return()=>{active=false;subscription.unsubscribe()}},[])
  useEffect(()=>{if(!flockId&&profiles[0])setFlockId(profiles[0].id)},[profiles,flockId])
  useEffect(()=>{const p=profiles.find(x=>x.id===flockId);const v=String(p?.flockType||'').toLowerCase();if(v.includes('broil'))setPopulation('broiler');else if(v.includes('layer'))setPopulation('layer');else if(v.includes('breed'))setPopulation('breeder')},[flockId,profiles])
  useEffect(()=>{setMethod(diseases.find(x=>x.code===disease)?.methods[0]||'ELISA');setAssayId('');setKit('');setCatalog('');setAssayVersion('');setAntigen('');setUnit('');setScale('unspecified');setSampleMatrix('serum');setKitLot('');setReaderModel('');setProtocolVersion('');setQc('pending');setQcEvidence('');setVaccine('');setVaccineDate('');setStrain('');setVaccinePlatform('unknown');setVaccineProgram('');setHau('');setRbcSource('');setRbcLot('');setRbcConcentration('');setAntigenPretreatment('');setSerumPretreatment('');setDilutionFactor('')},[disease])
@@ -88,7 +90,7 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const title=diseases.find(x=>x.code===disease)?.title||disease
  return <section className="panel" aria-label="پرونده‌های پایش سرولوژیک">
   <div className="panel-heading"><div><span className="step">۵</span><h3>پرونده‌های پایش و گزارش‌های دوره‌ای</h3></div><span className="tag">ذخیره حساب + آفلاین</span></div>
-  <p className="muted">هر نوبت گزارش مستقل دارد. سوابق فقط پس از همگام‌سازی موفق به حساب dradinehvand@gmail.com منتقل می‌شوند. برای جلوگیری از ثبت در حساب اشتباه، ورود با همین ایمیل الزامی است. فرم، داده خام و مشخصات آزمون را حفظ می‌کند.</p>
+  <p className="muted">هر نوبت گزارش مستقل دارد. سوابق پس از همگام‌سازی به همان حساب Supabase منتقل می‌شوند که اکنون وارد آن شده‌اید. پیش از ثبت، ایمیل حساب را کنترل کنید؛ اگر می‌خواهید گزارش‌ها در حساب موردنظر شما دیده شوند، باید با همان ایمیل وارد شوید. حساب فعلی: {accountEmail||'وارد نشده'}.</p>
   <div className="disease-grid">{diseases.map(x=><button type="button" key={x.code} className={disease===x.code?'disease active':'disease'} onClick={()=>{setDisease(x.code);setOpenId('')}}><b>{x.title}</b><small>{runs.filter(r=>r.disease_code===x.code&&r.model_family==='serology-longitudinal-round').length.toLocaleString('fa-IR')} نوبت</small></button>)}</div>
   <div className="form-grid"><label>گله<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه گله‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select></label><label>پرونده فعال<input value={title} readOnly/></label></div>
   <div className="wizard-nav"><button type="button" className="button primary" onClick={()=>setForm(!form)}>{form?'بستن فرم':'＋ ثبت نوبت جدید'}</button><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی</button></div>
