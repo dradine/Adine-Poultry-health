@@ -12,8 +12,8 @@ const pct=(v:number)=>fa(v)+'٪'
 function Metric({label,value,detail}:{label:string;value:string;detail?:string}){return <div className="srs-metric"><small>{label}</small><b>{value}</b>{detail&&<span>{detail}</span>}</div>}
 export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalModelRun;runs:LocalModelRun[];flocks:LocalFlock[]}){
  const input=run.input_snapshot,values=nums(input.titers),scale=str(input,'scale')
- const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
- const ci=isTitre?geometricMeanConfidenceInterval(values):meanConfidenceInterval(values)
+ const isTitre=scale==='kit-titer'||scale==='hi-reciprocal',hasPositiveTitre=isTitre&&values.every(v=>v>0)
+ const ci=hasPositiveTitre?geometricMeanConfidenceInterval(values):meanConfidenceInterval(values)
  const comparable=runs.filter(x=>x.id!==run.id&&x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&x.model_family==='serology-longitudinal-round'&&areComparableSerologyRounds({flockId:x.flock_id,diseaseCode:x.disease_code,input:x.input_snapshot},{flockId:run.flock_id,diseaseCode:run.disease_code,input})&&String(x.input_snapshot.samplingDate||'')<String(input.samplingDate||'')).sort((a,b)=>String(b.input_snapshot.samplingDate||'').localeCompare(String(a.input_snapshot.samplingDate||'')))
  const previous=comparable[0],old=previous?.input_snapshot
  const paired=previous?analyzePairedRounds(nums(old?.titers),ids(old?.sampleIds),values,ids(input.sampleIds),isTitre?'titre':'continuous'):null
@@ -34,7 +34,7 @@ export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalMod
 
   <p className="srs-note">فاصله اطمینان ۹۵٪ برای توصیف عدم‌قطعیت برآورد میانگین همین نمونه‌هاست؛ محدوده حفاظت یا حد تشخیص بیماری نیست.</p>
   <div className="srs-metrics">
-   <Metric label="فاصله اطمینان ۹۵٪" value={ci?fa(ci.lower)+' تا '+fa(ci.upper):'قابل محاسبه نیست'} detail={isTitre?'GMT؛ برآورد در مقیاس log₂ و بازتبدیل‌شده':'میانگین حسابی در مقیاس ثبت‌شده'}/>
+   <Metric label="فاصله اطمینان ۹۵٪" value={ci?fa(ci.lower)+' تا '+fa(ci.upper):'قابل محاسبه نیست'} detail={hasPositiveTitre?'GMT؛ برآورد در مقیاس log₂ و بازتبدیل‌شده':isTitre?'GMT محاسبه نشده؛ CI میانگین حسابی به‌علت وجود تیتر صفر':'میانگین حسابی در مقیاس ثبت‌شده'}/>
    <Metric label="حجم نمونه" value={fa(values.length,0)} detail={values.length<2?'برای CI حداقل دو نتیجه لازم است':'نتایج معتبر واردشده'}/>
    <Metric label="مثبت سرولوژیک" value={positivity?pct(positivity.percent):'تعریف نشده'} detail={positivity?fa(positivity.positive,0)+' از '+fa(positivity.total,0)+'؛ CI ویلسون ۹۵٪':'فقط با cutoff و منبع معتبر همان IFU'}/>
    {positivity&&<Metric label="CI درصد مثبت‌ها" value={pct(positivity.interval.lower)+' تا '+pct(positivity.interval.upper)} detail="Wilson score interval"/>}
