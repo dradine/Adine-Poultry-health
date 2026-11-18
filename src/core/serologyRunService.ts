@@ -45,7 +45,7 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
   input_snapshot:draft.input,output_snapshot:draft.output,
   confidence_level:'insufficient',
   decision_status:'review_required',limitations,
-  qc_summary:{enteredByUser:true,rawLabFileImported:false,qcStatus:draft.input.qcStatus||'pending',independentlyVerified:false},
+  qc_summary:{enteredByUser:true,rawLabFileImported:draft.input.rawFileImported===true,qcStatus:draft.input.qcStatus||'pending',rawControlRows:Array.isArray((draft.input.readerImportMeta as Record<string,unknown>|undefined)?.controlRows)?((draft.input.readerImportMeta as Record<string,unknown>).controlRows as unknown[]).length:0,independentlyVerified:false},
   model_assumptions:{interpretation:'descriptive-only',noProtectionInference:true,unpairedGroupTrend:true},
   source_references:sourceReferences,
   input_schema_version:'serology-longitudinal-v2',created_at:now
