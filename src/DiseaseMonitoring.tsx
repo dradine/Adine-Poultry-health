@@ -10,7 +10,7 @@ import type { DiagnosticKit } from './data/diagnosticKitCatalog'
 import MonitorDashboard from './components/MonitorDashboard'
 
 type Mode = 'ND' | 'IBV' | 'AIV'
-type FlockOption = { id: string; flockName: string; placementDate: string; savedAt?: string }
+type FlockOption = { id: string; flockName: string; placementDate: string; savedAt?: string; hatchDate?: string; flockType?: string; flockSize?: string; houseName?: string; hatchery?: string; sampleDate?: string; vaccinationHistory?: string }
 type AivInput = {
   divaAssay?: string
   divaProtocolSource?: string
