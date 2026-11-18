@@ -40,6 +40,12 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(areComparableSerologyRounds(a,round({...base,population:'layer'}))).toBe(false)
   expect(areComparableSerologyRounds(a,round({...base,qcStatus:'pending'}))).toBe(false)
  })
+ it('blocks longitudinal comparison when sampling purpose or vaccine context changes',()=>{
+  const a=round({...base})
+  expect(areComparableSerologyRounds(a,round({...base,samplingPurpose:'routine'}))).toBe(false)
+  expect(areComparableSerologyRounds(a,round({...base,vaccineDate:'2026-10-03'}))).toBe(false)
+  expect(areComparableSerologyRounds(a,round({...base,randomSamplingConfirmed:false}))).toBe(false)
+ })
  it('blocks raw-import rounds when computed plate QC is not pass, even if outer QC is pass',()=>{
   const failed=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'fail'}})
   const pending=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'pending'}})
