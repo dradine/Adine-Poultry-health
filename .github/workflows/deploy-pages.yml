@@ -1,6 +1,8 @@
 name: Deploy test app to GitHub Pages
 
 on:
+  push:
+    branches: [feature/ibd-first-mvp]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +24,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
       - name: Build for GitHub Pages project path
         run: npm run build -- --base=/Adine-Poultry-health/
         env:
