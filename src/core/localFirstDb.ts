@@ -223,6 +223,28 @@ export async function upsertLocalFromCloud(entity: 'flocks' | 'model_runs', valu
   }
   await done
 }
+/** Remove only previously-synced local rows that are absent from the complete cloud snapshot. Pending/conflicted local edits are never discarded. */
+export async function reconcileLocalWithCloud(entity: 'flocks' | 'model_runs', remoteIds: string[]): Promise<number> {
+  const db = await openDb()
+  const storeName = entity === 'flocks' ? 'flocks' : 'modelRuns'
+  const tx = db.transaction(storeName, 'readwrite')
+  const done = transactionDone(tx)
+  const store = tx.objectStore(storeName)
+  const request = store.getAll()
+  let removed = 0
+  request.onsuccess = () => {
+    const ids = new Set(remoteIds)
+    for (const row of request.result as Array<LocalFlock | LocalModelRun>) {
+      if (row.syncState === 'synced' && !row.deleted && !ids.has(row.id)) {
+        store.delete(row.id)
+        removed++
+      }
+    }
+  }
+  await done
+  return removed
+}
+
 export async function countPendingChanges(): Promise<number> {
   return (await listOutbox()).length
 }
