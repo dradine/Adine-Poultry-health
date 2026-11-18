@@ -22,6 +22,11 @@ describe('strain registry',()=>{
  it('provides user-added/custom placeholders for each disease',()=>{
   for(const disease of ['IBD','ND','IBV','AIV'] as const)expect(strainsForDisease(disease).some(s=>s.evidence==='user-added')).toBe(true)
  })
+ it('records 4/91 and 793B as linked lineage aliases instead of independent entries',()=>{
+  const related=STRAIN_BANK.filter(s=>s.disease==='IBV'&&/4\/91|793B|CR88/i.test(s.name))
+  expect(related).toHaveLength(1)
+  expect(related[0].name).toContain('793B')
+ })
  it('does not use subtype names as confirmed isolates',()=>{
   expect(STRAIN_BANK.find(s=>s.id==='aiv-h5')?.caution).toContain('clade')
   expect(STRAIN_BANK.find(s=>s.id==='ibv-qx')?.caution).toContain('not')
