@@ -704,7 +704,7 @@ export default function App() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
       {wizardStep===4 && selectedDisease!=='IBD' && <DiseaseMonitoring profiles={profiles} initialMode={selectedDisease} hideDiseaseSelector selectedKit={selectedDiagnosticKit} />}
 
