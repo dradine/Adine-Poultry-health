@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {areComparableSerologyRounds,calculateBioChekVI,comparePairedSerology,hasCompleteSerologyComparisonMetadata,parseSampleIds,parseSerologyValues,serologyComparisonKey,summarizeSerology} from './serologyStats'
+import {areComparableFlockRounds,areComparableSerologyRounds,calculateBioChekVI,comparePairedSerology,hasCompleteSerologyComparisonMetadata,parseSampleIds,parseSerologyValues,serologyComparisonKey,summarizeSerology} from './serologyStats'
 describe('serology raw input validation',()=>{
  it('normalizes Persian and Arabic digits and parses HI reciprocal notation',()=>expect(parseSerologyValues('۱:۱۶، ۳۲; ٦٤','HI')).toEqual([16,32,64]))
  it('does not silently discard malformed or zero observations',()=>{expect(()=>parseSerologyValues('16, bad, 32','HI')).toThrow(/شماره 2/);expect(()=>parseSerologyValues('16, 0, 32','HI')).toThrow(/مثبت/ )})
@@ -65,3 +65,24 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(hasCompleteSerologyComparisonMetadata(roundDemo({...demoBase,demo:true,qcStatus:'pass'}))).toBe(false)
   expect(hasCompleteSerologyComparisonMetadata({...roundDemo({...demoBase,qcStatus:'demo'}),flockId:'FLOCK-REAL'})).toBe(false)
  })
+
+
+describe('strict cross-flock comparison gate',()=>{
+ const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive and negative controls checked',samplingAgeDays:21,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccine:'Vaccine A',vaccineStrain:'D78',vaccineProgram:'day 14 drinking water',vaccineDate:'2026-10-01',samplingDate:'2026-10-22'}
+ const round=(input:Record<string,unknown>,flockId:string)=>({flockId,diseaseCode:'IBD',input})
+ it('allows only same assay, population, age and vaccine timing context',()=>{
+  expect(areComparableFlockRounds(round({...base},'F1'),round({...base,samplingAgeDays:22,samplingDate:'2026-10-23'},'F2'))).toBe(true)
+ })
+ it('blocks lot, age, vaccine or post-vaccination timing mismatch',()=>{
+  const a=round({...base},'F1')
+  expect(areComparableFlockRounds(a,round({...base,kitLot:'LOT-002'},'F2'))).toBe(false)
+  expect(areComparableFlockRounds(a,round({...base,samplingAgeDays:25},'F2'))).toBe(false)
+  expect(areComparableFlockRounds(a,round({...base,vaccineStrain:'228E'},'F2'))).toBe(false)
+  expect(areComparableFlockRounds(a,round({...base,samplingDate:'2026-11-01'},'F2'))).toBe(false)
+ })
+ it('blocks missing QC, demo data and unknown vaccine context',()=>{
+  expect(areComparableFlockRounds(round({...base,qcStatus:'pending'},'F1'),round({...base},'F2'))).toBe(false)
+  expect(areComparableFlockRounds(round({...base,demo:true},'F1'),round({...base},'F2'))).toBe(false)
+  expect(areComparableFlockRounds(round({...base,vaccinePlatform:'unknown'},'F1'),round({...base,vaccinePlatform:'unknown'},'F2'))).toBe(false)
+ })
+})
