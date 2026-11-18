@@ -6,7 +6,7 @@ import { normalizeDigits } from '../core/ibd'
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
 import SerologyReaderImport from './SerologyReaderImport'
-import ClinicalContextEditor, { emptyClinicalContext, type ClinicalContext, type VaccinationEvent } from './ClinicalContextEditor'
+import ClinicalContextEditor from './ClinicalContextEditor'
 import { calculateBioChekVI, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
 
 type Profile={id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
@@ -48,7 +48,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const rows=runs.filter(x=>(mode==='reports'||x.disease_code===disease)&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
  const previousFlockRun=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0]
- function copyFlockHistory(){if(!previousFlockRun){setMessage('گزارش قبلی برای این گله پیدا نشد.');return}const i=previousFlockRun.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext,...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext);setMessage('تاریخچه واکسن و اطلاعات بالینی از آخرین گزارش گله کپی شد؛ وضعیت بالینی و رویدادهای جدید را به‌روزرسانی کنید.')}
+ function copyFlockHistory(){if(!previousFlockRun){setMessage('گزارش قبلی برای این گله پیدا نشد.');return}const i=previousFlockRun.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext());setMessage('تاریخچه واکسن و اطلاعات بالینی از آخرین گزارش گله کپی شد؛ وضعیت بالینی و رویدادهای جدید را به‌روزرسانی کنید.')}
  const previousAssayRun=runs.filter(x=>x.model_family==='serology-longitudinal-round'&&x.flock_id===flockId&&x.disease_code===disease&&x.input_snapshot.method===method).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at))).at(-1)
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
  const selectedAssay=ASSAY_CATALOG.find(x=>x.id===assayId)
@@ -64,8 +64,6 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   if(vaccineDate&&vaccineDate>date){setMessage('تاریخ واکسیناسیون نمی‌تواند بعد از تاریخ نمونه‌گیری ثبت شود.');return}
   if(age.trim()&&(!Number.isFinite(Number(normalizeDigits(age)))||Number(normalizeDigits(age))<0)){setMessage('سن گله باید عددی و صفر یا بیشتر باشد.');return}
   if(!f||!date||v.length<2||(count.trim()&&(!Number.isInteger(n)||n!==v.length))){setMessage('برای ثبت اولیه، انتخاب گله و تاریخ و حداقل دو تیتر معتبر کافی است. اگر تعداد نمونه را وارد می‌کنید باید با تعداد تیترها برابر باشد.');return}
-  if(clinicalContext.mortalityPercent.trim()&&(!Number.isFinite(Number(normalizeDigits(clinicalContext.mortalityPercent)))||Number(normalizeDigits(clinicalContext.mortalityPercent))<0||Number(normalizeDigits(clinicalContext.mortalityPercent))>100)){setMessage('درصد تلفات باید عددی بین صفر تا ۱۰۰ باشد.');return}
-  if(clinicalContext.morbidityPercent.trim()&&(!Number.isFinite(Number(normalizeDigits(clinicalContext.morbidityPercent)))||Number(normalizeDigits(clinicalContext.morbidityPercent))<0||Number(normalizeDigits(clinicalContext.morbidityPercent))>100)){setMessage('درصد ابتلا باید عددی بین صفر تا ۱۰۰ باشد.');return}
   const vaccinationEventsForRun=[...vaccinationEvents]
   if(vaccinationEventsForRun.some(e=>e.date&&!/^\d{4}-\d{2}-\d{2}$/.test(e.date))){setMessage('تاریخ واکسیناسیون معتبر نیست.');return}
   if(vaccinationEventsForRun.some(e=>e.date&&e.date>date)){setMessage('تاریخ هیچ نوبت واکسن نباید بعد از تاریخ نمونه‌گیری باشد.');return}
@@ -122,8 +120,8 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
    <label>پلتفرم واکسن<select value={vaccinePlatform} onChange={e=>setVaccinePlatform(e.target.value)}><option value="unknown">نامشخص / ثبت نشده</option><option value="live-conventional">زنده متعارف</option><option value="inactivated">غیرفعال / کشته</option><option value="immune-complex">Immune-complex</option><option value="recombinant-vector">وکتور نوترکیب (rHVT و غیره)</option><option value="other">سایر</option><option value="unvaccinated">بدون واکسیناسیون</option></select></label>
    <label className="wide-label">برنامه واکسیناسیون / نوبت و مسیر تجویز<input value={vaccineProgram} onChange={e=>setVaccineProgram(e.target.value)} placeholder="مثلاً روز ۱ و ۱۴، اسپری / آب آشامیدنی / تزریقی"/></label>
    </div></details>
-   <details className="wide-label"><summary>تاریخچه واکسیناسیون و اطلاعات بالینی گله (برای تفسیر دقیق‌تر)</summary><div className="context-editor-toolbar"><span>اطلاعات تکمیلی اختیاری هستند؛ هرچه کامل‌تر باشند تفسیر و روند دقیق‌تر می‌شود.</span><button type="button" className="button secondary" disabled={!previousFlockRun} onClick={copyFlockHistory}>کپی تاریخچه از آخرین گزارش گله</button></div><ClinicalContextEditor events={vaccinationEvents} onEventsChange={setVaccinationEvents} clinical={clinicalContext} onClinicalChange={setClinicalContext}/></details>
-   <details className="wide-label"><summary>تاریخچه واکسیناسیون و وضعیت بالینی گله (برای تفسیر و روند)</summary><ClinicalContextEditor events={vaccinationEventsState} onEventsChange={setVaccinationEvents} clinical={clinicalContext} onClinicalChange={setClinicalContext}/></details>
+   <details className="wide-label"><summary>تاریخچه واکسیناسیون و وضعیت بالینی گله (اختیاری)</summary><div className="context-editor-toolbar"><span>می‌توانید همه نوبت‌ها را ثبت کنید؛ اطلاعات هر گزارش در روند زمانی استفاده می‌شود.</span><button type="button" className="button secondary" disabled={!previousFlockRun} onClick={copyFlockHistory}>کپی تاریخچه از آخرین گزارش گله</button></div><ClinicalContextEditor events={vaccinationEvents} onEventsChange={setVaccinationEvents} clinical={clinicalContext} onClinicalChange={setClinicalContext}/></details>
+
    <details className="wide-label"><summary>ورود فایل آزمایشگاه و QC (اختیاری)</summary><div className="form-grid">
    <label>تعداد نمونه (اختیاری؛ در صورت خالی بودن خودکار محاسبه می‌شود)<input value={count} onChange={e=>setCount(e.target.value)} inputMode="numeric"/></label>
    <div className="wide-label"><SerologyReaderImport method={method} scale={scale} onApply={(v,ids,meta)=>{setValues(v);setSampleIds(ids);setCount(String(v.split(',').length));setQc(meta.qcStatus);setQcEvidence(meta.qcEvidence);setReaderImportMeta(meta as unknown as Record<string,unknown>)}}/></div>
