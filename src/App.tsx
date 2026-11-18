@@ -15,6 +15,7 @@ import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
 import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCatalog'
 import CloudSyncPanel from './components/CloudSyncPanel'
 import BaselineLibrary from './components/BaselineLibrary'
+import LongitudinalReports from './components/LongitudinalReports'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
 
@@ -765,6 +766,8 @@ export default function App() {
           <div className="disease"><b>برونشیت (IBV)</b><small>روند سرولوژی آزمایشی فعال · assay-specific</small></div>
           <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
         </div></details>}
+
+      <LongitudinalReports profiles={profiles} />
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
