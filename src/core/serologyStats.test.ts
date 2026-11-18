@@ -40,6 +40,13 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(areComparableSerologyRounds(a,round({...base,population:'layer'}))).toBe(false)
   expect(areComparableSerologyRounds(a,round({...base,qcStatus:'pending'}))).toBe(false)
  })
+ it('blocks raw-import rounds when computed plate QC is not pass, even if outer QC is pass',()=>{
+  const failed=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'fail'}})
+  const pending=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'pending'}})
+  expect(hasCompleteSerologyComparisonMetadata(failed)).toBe(false)
+  expect(hasCompleteSerologyComparisonMetadata(pending)).toBe(false)
+  expect(areComparableSerologyRounds(failed,round({...base}))).toBe(false)
+ })
  it('requires full HI-specific antigen, serum, dilution and RBC metadata',()=>{
   const hi={...base,method:'HI',scale:'hi-reciprocal',unit:'reciprocal HI titre',hiHAU:'4',antigenPretreatment:'none per SOP',serumPretreatment:'heat-inactivation',dilutionFactor:'twofold',rbcSource:'chicken RBC',rbcLot:'RBC-7',rbcConcentration:'1% v/v'}
   const a=round(hi,'F1','ND'),b=round({...hi},'F1','ND')
