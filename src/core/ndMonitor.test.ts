@@ -21,6 +21,7 @@ describe('ND HI monitor',()=>{
   expect(one.sdLog2).toBeNull()
   expect(one.cvReciprocalPercent).toBeNull()
  })
+ it('rejects an explicitly empty baseline rather than returning NaN',()=>{expect(()=>monitorNdHi({...base,baselineHiLog2:[],postHiLog2:[3,4]})).toThrow(/Baseline خالی/)})
  it('rejects fractional individual HI endpoints',()=>{
   expect(()=>monitorNdHi({...base,postHiLog2:[2,3.5]})).toThrow(/endpoint صحیح/)
  })
