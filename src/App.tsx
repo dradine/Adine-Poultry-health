@@ -708,15 +708,12 @@ export default function App() {
 
       {wizardStep===4 && selectedDisease!=='IBD' && <DiseaseMonitoring profiles={profiles} initialMode={selectedDisease} hideDiseaseSelector selectedKit={selectedDiagnosticKit} />}
 
-      {wizardStep===4 && <section className="panel roadmap">
-        <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
-        <div className="disease-grid">
-          <div className="disease active"><b>گامبورو (IBD)</b><small>نسخه اولیه در حال اعتبارسنجی</small></div>
+      {wizardStep===4 && <details className="panel roadmap-accordion"><summary>وضعیت موتورهای بیماری و محدودیت نسخه فعلی</summary><div className="disease-grid">
+          <div className="disease active"><b>گامبورو (IBD)</b><small>مدل زمان‌بندی آزمایشی؛ فقط کیت/واکسن سازگار و مستند</small></div>
           <div className="disease"><b>نیوکاسل (ND)</b><small>HI monitor آزمایشی فعال · بدون ادعای حفاظت</small></div>
           <div className="disease"><b>برونشیت (IBV)</b><small>روند سرولوژی آزمایشی فعال · assay-specific</small></div>
           <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
-        </div>
-      </section>}
+        </div></details>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
