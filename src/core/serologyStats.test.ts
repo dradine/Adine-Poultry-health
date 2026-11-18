@@ -13,7 +13,7 @@ describe('assay-scale-aware summaries',()=>{
   const r=summarizeSerology([16,32,64,32],'hi-reciprocal')
   expect(r.n).toBe(4);expect(r.geometricMean).toBeCloseTo(32);expect(r.log2Mean).toBeCloseTo(5);expect(r.p25).toBe(16);expect(r.p75).toBe(32)
  })
- it('refuses to calculate until the exact ELISA scale is selected',()=>expect(()=>summarizeSerology([1,2],'unspecified')).toThrow(/مقیاس/))
+ it('provides arithmetic descriptive statistics when ELISA scale is unknown, without GMT or log2 inference',()=>{const r=summarizeSerology([1,2,3],'unspecified');expect(r.arithmeticMean).toBeCloseTo(2);expect(r.geometricMean).toBeNull();expect(r.log2Mean).toBeNull();expect(r.trendScale).toBe('arithmetic')})
  it('uses arithmetic mean for OD and does not create an ELISA titre GMT',()=>{
   const r=summarizeSerology([.1,.2,.3],'od');expect(r.arithmeticMean).toBeCloseTo(.2);expect(r.geometricMean).toBeNull();expect(r.trendScale).toBe('arithmetic')
  })
