@@ -93,8 +93,8 @@ function hasComparableBiologicalContext(i:Record<string,unknown>):boolean{
  return ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'].every(k=>typeof i[k]==='string'&&String(i[k]).trim()!==''&&!['unknown','نامشخص','نامعلوم'].includes(String(i[k]).trim().toLowerCase()))
 }
 function vaccinationHistoryKey(i:Record<string,unknown>):string{
- const events=Array.isArray(i.vaccinationEvents)?i.vaccinationEvents.filter(x=>x&&typeof x==='object').map(x=>{const e=x as Record<string,unknown>;return {date:e.date??null,ageDays:e.ageDays??null,disease:e.disease??'',product:e.product??'',strain:e.strain??'',platform:e.platform??'',route:e.route??'',dose:e.dose??'',coveragePercent:e.coveragePercent??null}}):[]
- return JSON.stringify(events)
+ const events=Array.isArray(i.vaccinationEvents)?i.vaccinationEvents.filter(x=>x&&typeof x==='object').map(x=>{const e=x as Record<string,unknown>;return {date:e.date??null,ageDays:e.ageDays??null,disease:e.disease??'',product:e.product??'',strain:e.strain??'',platform:e.platform??'',route:e.route??'',dose:e.dose??'',coveragePercent:e.coveragePercent??null,batch:e.batch??'',administrationQuality:e.administrationQuality??'',notes:e.notes??''}}):[]
+ return JSON.stringify(events.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.disease).localeCompare(String(b.disease))))
 }
 function comparisonFieldsForRound(r:SerologyRoundIdentity):string[]{
   return r.input.method==='HI'?[...commonComparisonFields,...hiComparisonFields]:commonComparisonFields
