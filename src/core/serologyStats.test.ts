@@ -56,10 +56,12 @@ describe('strict longitudinal assay compatibility',()=>{
 })
 
  it('allows explicitly labelled synthetic demo rounds for UI-only trend demonstration without claiming real QC',()=>{
-  const demo={...base,demo:true,qcStatus:'demo',qcEvidence:'fictional demo only'}
-  const a=round(demo,'DEMO-FLOCK','ND'),b=round({...demo},'DEMO-FLOCK','ND')
+  const demoBase={population:'broiler',method:'ELISA',assayId:'manual',kit:'Demo kit',catalog:'DEMO',assayVersion:'SIM-1',antigen:'demo antigen',unit:'synthetic titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Demo lab',readerModel:'Demo reader',protocolVersion:'Demo SOP',kitLot:'DEMO-LOT',qcEvidence:'fictional demo only'}
+  const demo={...demoBase,demo:true,qcStatus:'demo'}
+  const roundDemo=(input:Record<string,unknown>)=>({flockId:'DEMO-FLOCK',diseaseCode:'ND',input})
+  const a=roundDemo(demo),b=roundDemo({...demo})
   expect(hasCompleteSerologyComparisonMetadata(a)).toBe(true)
   expect(areComparableSerologyRounds(a,b)).toBe(true)
-  expect(hasCompleteSerologyComparisonMetadata(round({...base,demo:true,qcStatus:'pass'},'DEMO-FLOCK','ND'))).toBe(false)
-  expect(hasCompleteSerologyComparisonMetadata(round({...base,qcStatus:'demo'},'FLOCK-REAL','ND'))).toBe(false)
+  expect(hasCompleteSerologyComparisonMetadata(roundDemo({...demoBase,demo:true,qcStatus:'pass'}))).toBe(false)
+  expect(hasCompleteSerologyComparisonMetadata({...roundDemo({...demoBase,qcStatus:'demo'}),flockId:'FLOCK-REAL'})).toBe(false)
  })
