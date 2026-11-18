@@ -539,30 +539,6 @@ export default function App() {
       </section>}
       {view==='workflow'&&<>
       <div className="wizard-stepper" aria-label="مراحل تحلیل">
-
-      <section className="intro">
-        <div>
-          <span className="section-kicker">نسخه آزمایشی ۰.۳</span>
-          <h2>تصمیم علمی، بر اساس داده واقعی گله</h2>
-          <p>ثبت گله، انتخاب بیماری و کیت، ورود داده و تحلیل تخصصی سرولوژی و پایش بیماری‌های طیور.</p>
-        </div>
-        <div className="intro-symbol">IBD</div>
-        <div className="backup-actions">
-          <button className="button secondary" onClick={exportBackup}>خروجی پشتیبان JSON</button>
-          <label className="button secondary">بازیابی پشتیبان
-            <input type="file" accept="application/json,.json" hidden onChange={(e) => { void importBackup(e.target.files?.[0]); e.currentTarget.value = '' }} />
-          </label>
-        </div>
-      </section>
-
-      <div className="notice">
-        <strong>توجه علمی:</strong> موتور گامبورو در این نسخه اولیه و در مرحله اعتبارسنجی است.
-        خروجی فعلی صرفاً محاسبه مقدماتی Deventer-style است و تا زمان ثبت نسخه دقیق کیت،
-        واکسن، BTT و تأیید پروتکل، نباید به‌عنوان برنامه قطعی واکسیناسیون استفاده شود.
-      </div>
-
-      
-      <div className="wizard-stepper" aria-label="مراحل تحلیل">
         {[1,2,3,4].map((step) => <button type="button" key={step} className={wizardStep===step ? 'wizard-step active' : wizardStep>step ? 'wizard-step complete' : 'wizard-step'} onClick={() => goToStep(step as 1|2|3|4)}><b>{step}</b><span>{['اطلاعات گله','بیماری','کیت و روش','تحلیل'][step-1]}</span></button>)}
       </div>
       <section className="workflow-heading"><div><span className="tag">مرحله {toPersianDigits(wizardStep)} از ۴</span><h2>{['اطلاعات گله','انتخاب بیماری','انتخاب کیت و روش','ورود داده و تحلیل'][wizardStep-1]}</h2></div>{error&&<p className="error" role="alert">{error}</p>}<div className="wizard-nav"><button className="button secondary" disabled={wizardStep===1} onClick={()=>goToStep((wizardStep-1) as 1|2|3|4)}>مرحله قبل</button><button className="button primary" disabled={wizardStep===4} onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>مرحله بعد</button></div></section>
