@@ -17,7 +17,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const i=run.input_snapshot as O,values=nums(i.titers),n=values.length,m=mean(values),cv=m?sd(values)/m*100:null
  const titre=['kit-titer','hi-reciprocal'].includes(str(i,'scale')),positive=values.length>0&&values.every(x=>x>0)
  const log=positive&&titre?values.map(Math.log2):[],logMean=mean(log),logSd=sd(log)
- const gmt=log.length?2**logMean:null,age=Number(i.samplingAgeDays),disease=run.disease_code
+ const gmt=log.length?2**logMean:null,disease=run.disease_code
  const purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
  const qcMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{}
@@ -76,7 +76,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  }else if(disease==='IBD'){
   source('Merck Veterinary Manual – Infectious bursal disease','https://www.merckvetmanual.com/poultry/infectious-bursal-disease/infectious-bursal-disease-in-poultry')
   source('Field study – timing of IBD vaccination and MDA','https://www.tandfonline.com/doi/full/10.1080/03079450701589175')
- const purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
+  const mda=purpose==='mda'||(Number.isFinite(Number(i.samplingAgeDays))&&Number(i.samplingAgeDays)<=14)
   add(observations,'تفسیر وابسته به سن','در جوجه کم‌سن، آنتی‌بادی قابل‌اندازه‌گیری می‌تواند مادری باشد. در سن بالاتر، واکسن و مواجهه میدانی هم به زمینه تفسیر اضافه می‌شوند. بدون سن دقیق، تاریخ هچ و سابقه مادر، منشأ تیتر را تعیین نکنید.','caution')
   if(mda){
    scenarios.push({name:'غلبه آنتی‌بادی مادری (MDA)',likelihood:'در نمونه‌های هفته اول/دوم محتمل؛ باید با داده مادر تأیید شود',for:['سن پایین در زمان نمونه‌گیری','تیتر قابل توجه در روزهای اول زندگی','روند نزولی در نمونه‌های متوالی اولیه'],against:['واکسن زودهنگام یا مواجهه نیز می‌تواند بر روند اثر بگذارد','یک نمونه منفرد نیمه‌عمر را تعیین نمی‌کند'],meaning:'برای محاسبه زمان واکسن باید تیتر روز اول/نمونه نماینده، نیمه‌عمر متناسب با گله و کیت، BTT اختصاصی واکسن و درصد هدف گله مشخص باشد. فرمول Deventer بدون این ورودی‌ها نباید اجرا شود.'})
