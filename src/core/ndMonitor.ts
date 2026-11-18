@@ -23,6 +23,7 @@ const quantile=(values:number[],p:number)=>{const sorted=[...values].sort((a,b)=
 export function monitorNdHi(input:NdMonitorInput):NdMonitorOutput{
  const values=input.postHiLog2,baseline=input.baselineHiLog2,paired=input.pairedObservations||[]
  if(!values.length||values.some(x=>!Number.isInteger(x)||x<0||x>20))throw Error('هر نتیجه انفرادی HI باید endpoint صحیح و گسسته log2 بین ۰ تا ۲۰ باشد؛ میانگین گروهی را به‌عنوان تیتر انفرادی وارد نکنید.')
+ if(baseline&&baseline.length===0)throw Error('Baseline خالی وارد شده است؛ یا مقادیر معتبر وارد کنید یا فیلد Baseline را خالی بگذارید.')
  if(baseline&&baseline.some(x=>!Number.isInteger(x)||x<0||x>20))throw Error('هر نتیجه انفرادی Baseline باید endpoint صحیح و گسسته HI log2 بین ۰ تا ۲۰ باشد.')
  if(paired.some(p=>!p.birdId.trim()||!Number.isInteger(p.baselineHiLog2)||p.baselineHiLog2<0||p.baselineHiLog2>20||!Number.isInteger(p.postHiLog2)||p.postHiLog2<0||p.postHiLog2>20))throw Error('داده paired باید شناسه پرنده و دو تیتر معتبر HI log2 داشته باشد.')
  if(new Set(paired.map(p=>p.birdId.trim())).size!==paired.length)throw Error('شناسه پرنده در داده paired تکراری است؛ هر پرنده فقط یک بار ثبت شود.')
