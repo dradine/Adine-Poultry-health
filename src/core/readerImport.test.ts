@@ -21,6 +21,7 @@ describe('reader export import',()=>{
   const dup=parseDelimitedTable('ID,Result\nA1,100\nA1,200')
   expect(()=>mapReaderRows(dup,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/تکراری/)
  })
+ it('allows zero ELISA OD but rejects zero reciprocal HI titre',()=>{expect(normalizeReaderNumber('0','ELISA')).toBe(0);expect(()=>normalizeReaderNumber('0','HI')).toThrow()})
  it('normalizes Persian digits and HI 1:16 notation',()=>{
   expect(normalizeReaderNumber('۱:۱۶','HI')).toBe(16)
   expect(normalizeReaderNumber('۰٫۲۵','ELISA')).toBe(0.25)
