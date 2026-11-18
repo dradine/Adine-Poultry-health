@@ -72,3 +72,8 @@ export function comparePairedSerology(
     meanDifference:isTitre?null:pairs.reduce((s,x)=>s+x.next-x.old,0)/pairs.length,
   }
 }
+
+export function calculateBioChekVI(arithmeticMean:number,cvPercent:number):number|null {
+  if(!Number.isFinite(arithmeticMean)||!Number.isFinite(cvPercent)||arithmeticMean<=0||cvPercent<=0) return null
+  return arithmeticMean/cvPercent
+}
