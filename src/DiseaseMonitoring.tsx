@@ -46,6 +46,7 @@ export default function DiseaseMonitoring({ profiles }: Props) {
   const [savedMessage, setSavedMessage] = useState('')
   const [saving, setSaving] = useState(false)
   const [history, setHistory] = useState<LocalModelRun[]>([])
+  const [sampleCountOverride, setSampleCountOverride] = useState('')
 
   useEffect(() => {
     setFlockId(current => profiles.some(profile => profile.id === current) ? current : profiles[0]?.id || '')
@@ -133,6 +134,19 @@ export default function DiseaseMonitoring({ profiles }: Props) {
 
   const flockName = (id: string) => profiles.find(profile => profile.id === id)?.flockName || 'گله'
   const diseaseName = (code: string) => code === 'ND' ? 'نیوکاسل' : code === 'IBV' ? 'برونشیت' : 'آنفلوانزا'
+  const autoSampleCount = mode === 'ND' ? numbers(post).filter(Number.isFinite).length
+    : mode === 'IBV' ? ibData.split('\\n').map(line => line.trim()).filter(Boolean).length : 0
+  const reportedSampleCount = sampleCountOverride.trim() ? Number(sampleCountOverride) : autoSampleCount
+  const sampleCountWarning = reportedSampleCount > 0 && reportedSampleCount < 10
+    ? 'نمونه بسیار کم (کمتر از ۱۰): نتایج بسیار ناپایدارند؛ از تعمیم به کل گله یا تصمیم قطعی خودداری کنید.'
+    : reportedSampleCount >= 10 && reportedSampleCount < 20
+      ? 'حجم نمونه محدود (۱۰ تا ۱۹): این تعداد به‌تنهایی نمایندگی گله یا اعتبار نتیجه را تضمین نمی‌کند.'
+      : reportedSampleCount >= 20 && reportedSampleCount < 30
+        ? 'تعداد نمونه را با هدف پایش، پراکندگی سالن و طراحی نمونه‌گیری بررسی کنید؛ حداقل جهانی ثابتی وجود ندارد.'
+        : reportedSampleCount >= 30
+          ? 'تعداد نمونه به‌تنهایی کافی بودن نمونه‌گیری را ثابت نمی‌کند؛ نمایندگی و کیفیت آزمون نیز مهم است.'
+          : 'تعداد نمونه را وارد کنید یا داده‌های آزمون را تکمیل کنید.';
+
 
   return (
     <section className="panel">
@@ -141,6 +155,9 @@ export default function DiseaseMonitoring({ profiles }: Props) {
         <span className="tag">Research / Monitor</span>
       </div>
       <div className="form-grid">
+        <label>تعداد نمونه (برای AIV دستی؛ برای ND/IBV شمارش خودکار قابل اصلاح)
+          <input inputMode="numeric" value={sampleCountOverride} onChange={event => setSampleCountOverride(event.target.value)} placeholder={autoSampleCount ? String(autoSampleCount) + ' نمونه شمارش‌شده' : 'تعداد نمونه'} />
+        </label>
         <label>گله مربوط به این پایش
           <select value={flockId} onChange={event => setFlockId(event.target.value)}>
             <option value="">انتخاب گله ذخیره‌شده…</option>
@@ -215,6 +232,7 @@ export default function DiseaseMonitoring({ profiles }: Props) {
         <label><input type="checkbox" checked={aiv.officialProgramConfirmed} onChange={event => setAiv({ ...aiv, officialProgramConfirmed: event.target.checked })} /> برنامه رسمی تأیید شده</label>
       </div>}
 
+      <div className="sample-count-note" role="status"><strong>کنترل حجم نمونه · n = {reportedSampleCount || '—'}</strong><p>{sampleCountWarning}</p><small>این هشدار جایگزین تعیین حجم نمونه بر اساس هدف، شیوع مورد انتظار، دقت، سطح اطمینان، طراحی خوشه‌ای و دستورالعمل کیت نیست.</small></div>
       <button className="button primary" onClick={run}>اجرای موتور پایش</button>
       {err && <p className="error">{err}</p>}
       {savedMessage && <p className="cloud-message" role="status">{savedMessage}</p>}
