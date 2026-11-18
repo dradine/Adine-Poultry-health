@@ -9,7 +9,7 @@ export default function SerologyReaderImport({method,onApply}:{method:'ELISA'|'H
   try{
    const parsed=parseDelimitedTable(await file.text()),headers=parsed.headers
    const find=(re:RegExp)=>headers.findIndex(h=>re.test(h))
-   setTable(parsed);setFileName(file.name);setResult(Math.max(0,find(/result|titer|titre|od|s\/p|s\/n|value|نتیجه|تیتر|مقدار/i)))
+   setTable(parsed);setFileName(file.name);setResult(find(/result|titer|titre|od|s\/p|s\/n|value|نتیجه|تیتر|مقدار/i))
    setSampleId(find(/sample.?id|specimen|bird.?id|شناسه|کد نمونه/i));setRole(find(/type|role|well.?type|control|نوع ردیف/i))
    setNotice('فایل خوانده شد. ستون‌ها را کنترل و سپس پیش‌نمایش را بررسی کنید؛ هیچ داده‌ای هنوز ذخیره نشده است.')
   }catch(e){setError(e instanceof Error?e.message:'خواندن فایل ناموفق بود.')}
