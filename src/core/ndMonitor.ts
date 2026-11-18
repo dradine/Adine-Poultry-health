@@ -11,11 +11,11 @@ export type NdMonitorInput={
  responseThresholdLog2?:number
 }
 export type NdMonitorOutput={
- n:number;geometricMeanLog2:number;geometricMeanReciprocal:number;medianLog2:number
+ n:number;meanHiLog2:number;geometricMeanReciprocal:number;medianLog2:number
  minLog2:number;maxLog2:number;sdLog2:number;cvReciprocalPercent:number
  q1Log2:number;q3Log2:number;distribution:Array<{log2:number;count:number;percent:number}>
  responders:number|null;responderPercent:number|null;baselineN:number|null
- baselineGeometricMeanLog2:number|null;meanLog2Rise:number|null;fourfoldRisePercent:number|null
+ baselineMeanHiLog2:number|null;meanLog2Rise:number|null;fourfoldRisePercent:number|null
  pairedN:number;warnings:string[]
 }
 const median=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return sorted.length%2?sorted[(sorted.length-1)/2]:(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2}
@@ -34,18 +34,20 @@ export function monitorNdHi(input:NdMonitorInput):NdMonitorOutput{
  const threshold=input.responseThresholdLog2
  if(threshold!==undefined&&(!Number.isInteger(threshold)||threshold<0||threshold>20))throw Error('آستانه پاسخ HI باید endpoint صحیح ۰ تا ۲۰ log2 و مستند به پروتکل باشد.')
  const mean=values.reduce((s,v)=>s+v,0)/values.length,sd=Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/values.length)
- const reciprocal=values.map(v=>2**v),recMean=reciprocal.reduce((s,v)=>s+v,0)/values.length,recSd=Math.sqrt(reciprocal.reduce((s,v)=>s+(v-recMean)**2,0)/values.length)
+ const reciprocal=values.map(v=>2**v),recMean=reciprocal.reduce((s,v)=>s+v,0)/values.length,recSd=values.length>1?Math.sqrt(reciprocal.reduce((s,v)=>s+(v-recMean)**2,0)/(values.length-1)):null
  const distributionMap=new Map<number,number>();values.forEach(v=>distributionMap.set(v,(distributionMap.get(v)||0)+1))
  const distribution=[...distributionMap.entries()].sort((a,b)=>a[0]-b[0]).map(([log2,count])=>({log2,count,percent:count*100/values.length}))
  const responders=threshold===undefined?null:values.filter(v=>v>=threshold).length
  const rises=paired.map(p=>p.postHiLog2-p.baselineHiLog2)
  const pairedBaselineMean=paired.length?paired.reduce((s,p)=>s+p.baselineHiLog2,0)/paired.length:null
- return {n:values.length,geometricMeanLog2:mean,geometricMeanReciprocal:2**mean,medianLog2:median(values),minLog2:Math.min(...values),maxLog2:Math.max(...values),sdLog2:sd,cvReciprocalPercent:recMean?100*recSd/recMean:0,q1Log2:quantile(values,.25),q3Log2:quantile(values,.75),distribution,
+ return {n:values.length,meanHiLog2:mean,geometricMeanReciprocal:2**mean,medianLog2:median(values),minLog2:Math.min(...values),maxLog2:Math.max(...values),sdLog2:sd,cvReciprocalPercent:recSd!==null&&recMean?100*recSd/recMean:null,q1Log2:quantile(values,.25),q3Log2:quantile(values,.75),distribution,
  responders,responderPercent:responders===null?null:100*responders/values.length,baselineN:baseline?.length??(paired.length||null),
- baselineGeometricMeanLog2:baseline?baseline.reduce((s,v)=>s+v,0)/baseline.length:pairedBaselineMean,
+ baselineMeanHiLog2:baseline?baseline.reduce((s,v)=>s+v,0)/baseline.length:pairedBaselineMean,
  meanLog2Rise:rises.length?rises.reduce((s,v)=>s+v,0)/rises.length:null,
  fourfoldRisePercent:rises.length?100*rises.filter(v=>v>=2).length/rises.length:null,pairedN:paired.length,
  warnings:[
+ ...(values.length<10?['حجم نمونه کمتر از ۱۰ پرنده است؛ شاخص‌های توصیفی ناپایدارند و تعمیم به کل گله یا تصمیم قطعی مجاز نیست.']:[]),
+ ...(values.length===1?['با یک پرنده، SD و CV نمونه‌ای قابل برآورد نیستند و خالی گزارش می‌شوند.']:[]),
  'HI به‌صورت endpoint انفرادی گسسته log2 توصیف شده است؛ آنتی‌ژن، HAU، RBC، SOP و آزمایشگاه باید ثبت شوند. میانگین‌های اعشاری گروهی ورودی تیتر انفرادی نیستند.',
  'این خروجی پایش سرولوژیک است؛ HI به‌تنهایی حفاظت، جلوگیری از دفع یا انتقال ویروس را اثبات نمی‌کند.',
  ...(threshold===undefined?['آستانه responder تعریف نشده؛ تعداد و درصد responder محاسبه نشده‌اند.']:['آستانه responder صرفاً ورودی پروتکل شماست و cutoff حفاظتی عمومی نیست.']),
