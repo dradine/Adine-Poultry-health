@@ -39,5 +39,6 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
   source_references:draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[],
   input_schema_version:'serology-longitudinal-v1',created_at:now
  })
+ notifyLocalDataChanged()
  return id
 }
