@@ -66,7 +66,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
     let active = true
     const refresh = async () => {
       const runs = await listLocalModelRuns()
-      if (active) setHistory(runs.filter(run => run.disease_code !== 'IBD'))
+      if (active) setHistory(runs.filter(run => run.disease_code !== 'IBD' && run.model_family !== 'maternal-antibody-decay-exploratory'))
     }
     void refresh().catch(cause => { if (active) setErr(cause instanceof Error ? cause.message : 'خواندن سوابق پایش ناموفق بود.') })
     const onChanged = () => { void refresh().catch(() => undefined) }
@@ -148,7 +148,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
       setSavedMessage('نتیجه در سوابق همین گله ذخیره شد؛ در صورت ورود به حساب، برای همگام‌سازی در صف قرار گرفت.')
       notifyLocalDataChanged()
       const runs = await listLocalModelRuns()
-      setHistory(runs.filter(run => run.disease_code !== 'IBD'))
+      setHistory(runs.filter(run => run.disease_code !== 'IBD' && run.model_family !== 'maternal-antibody-decay-exploratory'))
     } catch (cause) {
       setErr(cause instanceof Error ? cause.message : 'ذخیره نتیجه پایش انجام نشد.')
     } finally {
