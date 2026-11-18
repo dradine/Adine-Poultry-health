@@ -14,3 +14,9 @@
 .srs-next-data{padding:12px;border-radius:10px;background:rgba(90,110,120,.07);line-height:1.8}
 .srs-next-data ul{margin:8px 0 0;padding-inline-start:22px}
 @media print{.srs-interpretation-item{break-inside:avoid}.srs-next-data{break-inside:avoid}}
+
+
+.srs-baseline-confirm{display:flex;align-items:flex-start;gap:9px;padding:12px;border:1px solid var(--border-color,rgba(120,130,140,.3));border-radius:10px;margin:12px 0;line-height:1.7}
+.srs-baseline-confirm input{margin-top:5px;flex:0 0 auto}
+.srs-raw-details{margin-top:12px}
+.srs-raw-details summary{cursor:pointer;font-weight:600;padding:10px}
