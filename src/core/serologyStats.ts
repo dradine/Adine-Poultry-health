@@ -104,7 +104,7 @@ export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRo
   return ka!==null&&ka===kb
 }
 function daysBetween(a:unknown,b:unknown):number|null{
-  if(typeof a!=='string'||typeof b!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(a)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(b))return null
+  if(typeof a!=='string'||typeof b!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(a)||!/^\d{4}-\d{2}-\d{2}$/.test(b))return null
   const x=Date.parse(a+'T00:00:00Z'),y=Date.parse(b+'T00:00:00Z')
   return Number.isFinite(x)&&Number.isFinite(y)?Math.round((x-y)/86400000):null
 }
