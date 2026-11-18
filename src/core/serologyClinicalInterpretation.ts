@@ -23,7 +23,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const vaccinationEvents=Array.isArray(i.vaccinationEvents)?(i.vaccinationEvents as O[]).filter(e=>e&&typeof e==='object'):[]
  const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
  const clinicalSigns=str(clinical,'signs'),clinicalStatus=str(clinical,'status'),mortalityTrend=str(clinical,'mortalityTrend')
- const numericClinical=(key:string)=>{const raw=str(clinical,key),match=raw.match(/-?\\d+(?:[.,]\\d+)?/);return match?Number(match[0].replace(',','.')):null}
+ const numericClinical=(key:string)=>{const raw=str(clinical,key),match=raw.match(/-?\d+(?:[.,]\d+)?/);return match?Number(match[0].replace(',','.')):null}
  const respiratorySigns=/تنفس|سرفه|عطسه|خرخر|ترشح بینی|ترشح چشم|کیسه هوایی/.test(clinicalSigns)
  const neurologicalSigns=/عصبی|پیچش گردن|فلجی|لرزش|آتاکسی/.test(clinicalSigns)
  const entericSigns=/اسهال|مدفوع آبکی|خون در مدفوع|روده/.test(clinicalSigns)
