@@ -4,13 +4,14 @@ type Props={disease:StrainDisease}
 type Choices={vaccine:string;assay:string;field:string;manualVaccine:string;manualAssay:string;manualField:string;isolateMeta:string}
 const storageKey=(d:StrainDisease)=>'adine-strain-selections-v1-'+d
 const defaults:Choices={vaccine:'',assay:'',field:'',manualVaccine:'',manualAssay:'',manualField:'',isolateMeta:''}
+function readChoices(d:StrainDisease):Choices{try{return {...defaults,...JSON.parse(localStorage.getItem(storageKey(d))||'{}')}}catch{return defaults}}
 const roleOptions:{key:'vaccine'|'assay'|'field';label:string;role:StrainRole;manualKey:'manualVaccine'|'manualAssay'|'manualField';hint:string}[]=[
  {key:'vaccine',label:'سویه / پلتفرم واکسن',role:'vaccine',manualKey:'manualVaccine',hint:'نام سویه، محصول یا پلتفرم واکسن'},
  {key:'assay',label:'آنتی‌ژن / سویه آزمون',role:'assay-antigen',manualKey:'manualAssay',hint:'آنتی‌ژن، سویه، کد کیت یا روش آزمایش'},
  {key:'field',label:'سویه میدانی / مرجع',role:'field-reference',manualKey:'manualField',hint:'سویه جداسازی‌شده، ژنوتیپ، lineage یا نمونه مرجع'}
 ]
 export default function StrainSelector({disease}:Props){
- const [choices,setChoices]=useState<Choices>(defaults)
+ const [choices,setChoices]=useState<Choices>(()=>readChoices(disease))
  const [loadedDisease,setLoadedDisease]=useState(disease)
  useEffect(()=>{if(loadedDisease!==disease){try{setChoices({...defaults,...JSON.parse(localStorage.getItem(storageKey(disease))||'{}')})}catch{setChoices(defaults)}setLoadedDisease(disease)}},[disease,loadedDisease])
  useEffect(()=>{if(loadedDisease===disease)try{localStorage.setItem(storageKey(disease),JSON.stringify(choices))}catch{}},[disease,choices,loadedDisease])
