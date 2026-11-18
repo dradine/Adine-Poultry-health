@@ -52,3 +52,40 @@ export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'EL
  if(mapping.sampleIdColumn!==null&&new Set(sampleIds).size!==sampleIds.length)throw new Error('شناسه نمونه تکراری وجود دارد؛ ورود متوقف شد.')
  return {values,sampleIds,sampleRows,controlRows,invalidRows,delimiter:table.delimiter}
 }
+
+
+export type PlateControlCriteria={roleColumn:number|null;resultColumn:number;positiveRole:string;negativeRole:string;referenceRole?:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin?:number|null;referenceMax?:number|null;maxReplicateCvPercent?:number|null;source:string}
+export type PlateControlGroup={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;withinLimits:boolean|null}
+export type PlateControlEvaluation={status:'pass'|'fail'|'pending';evidence:string;groups:PlateControlGroup[];failures:string[]}
+export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCriteria,method:'ELISA'|'HI'):PlateControlEvaluation{
+ const failures:string[]=[],groups:PlateControlGroup[]=[]
+ if(criteria.roleColumn===null||!criteria.positiveRole.trim()||!criteria.negativeRole.trim()||criteria.positiveRole===criteria.negativeRole||!criteria.source.trim()||criteria.positiveMin===null||criteria.positiveMax===null||criteria.negativeMax===null)return {status:'pending',evidence:'معیارهای کنترل و منبع IFU کامل نشده‌اند؛ QC خودکار اجرا نشد.',groups,failures}
+ if(criteria.positiveMin>criteria.positiveMax)return {status:'pending',evidence:'حد پایین و بالای کنترل مثبت با هم سازگار نیستند.',groups,failures}
+ const roleIndex=criteria.roleColumn
+ const selected=[{label:'positive',role:criteria.positiveRole,min:criteria.positiveMin,max:criteria.positiveMax},{label:'negative',role:criteria.negativeRole,min:null,max:criteria.negativeMax},...(criteria.referenceRole?.trim()?[{label:'reference',role:criteria.referenceRole,min:criteria.referenceMin??null,max:criteria.referenceMax??null}]:[])]
+ let incomplete=false
+ for(const spec of selected){
+  const vals:number[]=[]
+  table.rows.forEach((row,index)=>{
+   if((row[roleIndex]??'').trim().toLocaleLowerCase()!==spec.role.trim().toLocaleLowerCase())return
+   try{vals.push(normalizeReaderNumber(row[criteria.resultColumn]??'',method,table.delimiter===';'))}
+   catch{failures.push('ردیف '+(index+2)+' برای کنترل '+spec.label+' مقدار معتبر ندارد.')}
+  })
+  if(!vals.length){incomplete=true;failures.push('کنترل '+spec.label+' در فایل پیدا نشد.');continue}
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length,sd=vals.length>1?Math.sqrt(vals.reduce((a,v)=>a+(v-mean)**2,0)/(vals.length-1)):null,cvPercent=sd!==null&&mean?sd/mean*100:null
+  let withinLimits:boolean|null=null
+  if(spec.label==='positive')withinLimits=spec.min!==null&&spec.max!==null&&mean>=spec.min&&mean<=spec.max
+  else if(spec.label==='negative')withinLimits=spec.max!==null&&mean<=spec.max
+  else withinLimits=spec.min!==null&&spec.max!==null&&mean>=spec.min&&mean<=spec.max
+  if(withinLimits===false)failures.push('میانگین کنترل '+spec.label+' خارج از محدوده ثبت‌شده IFU است.')
+  if(criteria.maxReplicateCvPercent!==null&&criteria.maxReplicateCvPercent!==undefined){
+   if(vals.length<2||cvPercent===null)incomplete=true
+   else if(cvPercent>criteria.maxReplicateCvPercent){withinLimits=false;failures.push('CV تکرارهای کنترل '+spec.label+' از حد ثبت‌شده بیشتر است.')}
+  }
+  groups.push({label:spec.label,n:vals.length,mean,sd,cvPercent,minimum:Math.min(...vals),maximum:Math.max(...vals),withinLimits})
+ }
+ const status=failures.some(x=>x.includes('خارج از محدوده')||x.includes('از حد ثبت‌شده بیشتر')||x.includes('مقدار معتبر ندارد'))?'fail':incomplete||failures.length?'pending':'pass'
+ const fmt=(n:number)=>n.toLocaleString('en-US',{maximumFractionDigits:4})
+ const evidence=['IFU/source: '+criteria.source,...groups.map(g=>g.label+': n='+g.n+', mean='+fmt(g.mean)+', range='+fmt(g.minimum)+'–'+fmt(g.maximum)+', CV='+(g.cvPercent===null?'NA':fmt(g.cvPercent))+'%, limits='+(g.withinLimits===null?'pending':g.withinLimits?'pass':'fail')),...failures].join(' | ')
+ return {status,evidence,groups,failures}
+}
