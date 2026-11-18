@@ -25,6 +25,23 @@ export type IbdOutput = {
   coefficientOfVariationPercent: number
   warnings: string[]
 }
+export type IbdDeventerProductGateInput = {
+  diseaseCode: string
+  platform: string
+  modelFamily: string | null
+  validationStatus: string
+  bttAssayKitId: string | null
+  selectedAssayKitId: string
+}
+/** Only documented conventional-live IBD products paired to their exact BTT assay may enter this Deventer MVP. */
+export function validateIbdDeventerProductGate(input: IbdDeventerProductGateInput): string[] {
+  const errors: string[] = []
+  if (input.diseaseCode !== 'IBD') errors.push('محصول انتخاب‌شده برای بیماری IBD نیست.')
+  if (input.platform !== 'live' || input.modelFamily !== 'deventer_live') errors.push('مدل Deventer فقط برای واکسن زنده متعارف IBD با model_family=deventer_live قابل بررسی است؛ immune-complex و HVT-VP2 مجاز نیستند.')
+  if (input.validationStatus !== 'documented') errors.push('برچسب محصول در سطح مستند و تأییدشده ثبت نشده است.')
+  if (!input.bttAssayKitId || input.bttAssayKitId !== input.selectedAssayKitId) errors.push('کیت انتخاب‌شده با کیت دقیق تعریف BTT این محصول یکسان نیست.')
+  return errors
+}
 export type IbdRunGateInput = {
   plateControlsAccepted: boolean
   representativeRandomSampling: boolean
