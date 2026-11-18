@@ -15,6 +15,9 @@ describe('strain registry',()=>{
   expect(names.some(n=>n.includes('h9'))).toBe(true)
   expect(names.some(n=>n.includes('lasota'))).toBe(true)
   expect(names.some(n=>n.includes('d78'))).toBe(true)
+  expect(names.some(n=>n.includes('genogroup g2'))).toBe(true)
+  expect(names.some(n=>n.includes('genogroup g3'))).toBe(true)
+  expect(names.some(n=>n.includes('genogroup g7'))).toBe(true)
  })
  it('provides user-added/custom placeholders for each disease',()=>{
   for(const disease of ['IBD','ND','IBV','AIV'] as const)expect(strainsForDisease(disease).some(s=>s.evidence==='user-added')).toBe(true)
