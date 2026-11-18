@@ -27,7 +27,7 @@ export function geometricMeanConfidenceInterval(titres:number[]):MeanInterval|nu
   if(!ci)return null
   return {n:ci.n,mean:2**ci.mean,sd:ci.sd,lower:2**ci.lower,upper:2**ci.upper,confidenceLevel:ci.confidenceLevel}
 }
-export function analyzePairedRounds(previousValues:number[],previousIds:string[],currentValues:number[],currentIds:string[],scale:'titre'|'continuous'):PairedAnalysis|null {
+export function analyzePairedRounds(previousValues:number[],previousIds:string[],currentValues:number[],currentIds:string[],scale:'titre'|'continuous',fourFoldEnabled=true):PairedAnalysis|null {
   if(previousIds.length!==previousValues.length||currentIds.length!==currentValues.length||!previousIds.length||!currentIds.length) return null
   if(new Set(previousIds).size!==previousIds.length||new Set(currentIds).size!==currentIds.length) return null
   if(previousValues.some(v=>!Number.isFinite(v)||(scale==='titre'?v<=0:v<0))||currentValues.some(v=>!Number.isFinite(v)||(scale==='titre'?v<=0:v<0))) return null
@@ -40,7 +40,7 @@ export function analyzePairedRounds(previousValues:number[],previousIds:string[]
   const ci=meanConfidenceInterval(changes)
   const increased=pairs.filter(p=>p.next>p.old).length,decreased=pairs.filter(p=>p.next<p.old).length
   const base={n:pairs.length,unmatchedPrevious:previousIds.length-ids.length,unmatchedCurrent:currentIds.length-ids.length,meanDifference:scale==='continuous'?ci?.mean??null:null,differenceInterval:scale==='continuous'?ci:null,geometricMeanFoldChange:scale==='titre'&&ci?2**ci.mean:null,foldChangeInterval:scale==='titre'&&ci?{...ci,mean:2**ci.mean,lower:2**ci.lower,upper:2**ci.upper}:null,increased,decreased,unchanged:pairs.length-increased-decreased}
-  return scale==='titre'?{...base,fourFoldOrGreater:pairs.filter(p=>p.next/p.old>=4).length,quarterOrLess:pairs.filter(p=>p.next/p.old<=0.25).length}:{...base,fourFoldOrGreater:null,quarterOrLess:null}
+  return scale==='titre'?{...base,fourFoldOrGreater:fourFoldEnabled?pairs.filter(p=>p.next/p.old>=4).length:null,quarterOrLess:fourFoldEnabled?pairs.filter(p=>p.next/p.old<=0.25).length:null}:{...base,fourFoldOrGreater:null,quarterOrLess:null}
 }
 export function wilsonInterval(successes:number,total:number,z=1.96):{lower:number;upper:number}|null {
   if(!Number.isInteger(successes)||!Number.isInteger(total)||total<1||successes<0||successes>total)return null
