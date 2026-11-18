@@ -20,6 +20,10 @@ describe('conservative serology interpretation',()=>{
   const x=interpretSerologyRound('ND',{...valid,qcStatus:'pass',readerImportMeta:{qcStatus:'fail'}})
   expect(x.items.some(i=>i.level==='block'&&i.title.includes('اعتبار پلیت'))).toBe(true)
  })
+ it('does not treat a catalog-only assay as IFU-validated',()=>{
+  const x=interpretSerologyRound('AIV',{...valid,assayId:'idvet-aiv-flunps'})
+  expect(x.items.some(i=>i.title.includes('کاتالوگ محصول موجود است'))).toBe(true)
+ })
  it('keeps IBD VP2 and conventional assays distinct',()=>{
   const x=interpretSerologyRound('IBD',{...valid,assayId:'idvet-ibd-vp2',vaccinePlatform:'live-conventional'})
   expect(x.items.some(i=>i.title.includes('عدم تطابق')||i.title.includes('ابهام هدف'))).toBe(true)
