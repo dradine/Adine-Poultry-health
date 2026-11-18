@@ -5,6 +5,7 @@ describe('reader export import',()=>{
   const t=parseDelimitedTable('Sample ID,Result,Note\r\nA1,1200,"batch, one"\r\nA2,1500,"batch two"')
   expect(t.headers).toEqual(['Sample ID','Result','Note']);expect(t.rows[0][2]).toBe('batch, one')
  })
+ it('strips UTF-8 BOM from Excel CSV exports',()=>{expect(parseDelimitedTable('\uFEFFID,Result\\nA1,1.5').headers[0]).toBe('ID')})
  it('parses semicolon files with decimal commas',()=>{
   const t=parseDelimitedTable('Sample;OD\nA1;0,25\nA2;0,50')
   expect(mapReaderRows(t,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA').values).toEqual([.25,.5])
