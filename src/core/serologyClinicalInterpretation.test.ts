@@ -37,7 +37,7 @@ describe('disease-specific clinical interpretation',()=>{
  it('calculates vaccine interval from flock age when event calendar date is unavailable',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,samplingAgeDays:30,vaccinationEvents:[{date:null,ageDays:21,disease:'ND',product:'ND live',platform:'live-conventional',route:'water'}]}))
   expect(x.scenarios.some(s=>s.name.includes('اثر نوبت اخیر واکسن'))).toBe(true)
-  expect(x.scenarios.find(s=>s.name.includes('اثر نوبت اخیر واکسن'))?.for.some(v=>v.includes('۹ روز'))).toBe(true)
+  expect(x.scenarios.find(s=>s.name.includes('اثر نوبت اخیر واکسن'))?.for.some(v=>v.includes('9 روز'))).toBe(true)
  })
  it('incorporates vaccine execution and clinical status into observations',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{id:'v1',date:'2026-11-01',disease:'ND',product:'ND live',platform:'live-conventional',strain:'LaSota',route:'water',administrationQuality:'poor'}],clinicalContext:{status:'clinical',signs:'respiratory signs',mortalityTrend:'increasing',mortalityPercent:'2.1'}}))
