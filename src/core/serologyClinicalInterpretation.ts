@@ -37,14 +37,12 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const demo=i.demo===true||qc==='demo'
  const random=i.randomSamplingConfirmed===true
  const vaccineContext=[vaccine,platform,str(i,'vaccineStrain'),str(i,'vaccineProgram')].filter(Boolean).join(' / ')
- const vaccinationEvents=Array.isArray(i.vaccinationEvents)?i.vaccinationEvents.filter((x):x is O=>Boolean(x&&typeof x==='object')):[]
- const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
  const diseaseNames:Record<string,string>={ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو'}
  const relevantEvents=vaccinationEvents.filter(e=>{const d=str(e,'disease').toUpperCase();return d===disease||diseaseNames[disease]===d||diseaseNames[disease]?.includes(d)||d.includes(diseaseNames[disease]||'###')})
  const lastRelevant=relevantEvents.filter(e=>!str(e,'date')||str(e,'date')<=samplingDate).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).at(-1)
  const lastVaxDays=lastRelevant?dayDiff(samplingDate,str(lastRelevant,'date')):null
- const signs=str(clinical,'signs'),mortality=Number(str(clinical,'mortalityPercent')),hasClinical=Boolean(signs||str(clinical,'necropsy')||str(clinical,'directTests')||str(clinical,'clinicalCourse'))
- const highMortality=Number.isFinite(mortality)&&str(clinical,'mortalityPercent')!==''&&mortality>0
+ const signs=clinicalSigns,mortality=numericClinical('mortalityPercent')??NaN,hasClinical=Boolean(signs||str(clinical,'necropsy')||str(clinical,'directTests')||str(clinical,'clinicalCourse'))
+ const highMortality=Number.isFinite(mortality)&&mortality>0
  const observations:ClinicalCard[]=[],scenarios:ClinicalInterpretation['scenarios']=[],outlook:ClinicalCard[]=[],actions:ClinicalInterpretation['actions']=[],limitations:string[]=[]
  const sources:ClinicalInterpretation['sources']=[]
  const source=(label:string,url:string)=>{if(!sources.some(x=>x.url===url))sources.push({label,url})}
