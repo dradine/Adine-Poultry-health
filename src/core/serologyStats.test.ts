@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {areComparableFlockRounds,areComparableSerologyRounds,calculateBioChekVI,comparePairedSerology,hasCompleteSerologyComparisonMetadata,parseSampleIds,parseSerologyValues,serologyComparisonKey,summarizeSerology} from './serologyStats'
+import {areComparableAssayRounds,areComparableFlockRounds,areComparableSerologyRounds,calculateBioChekVI,comparePairedSerology,hasCompleteSerologyComparisonMetadata,parseSampleIds,parseSerologyValues,serologyComparisonKey,summarizeSerology} from './serologyStats'
 describe('serology raw input validation',()=>{
  it('normalizes Persian and Arabic digits and parses HI reciprocal notation',()=>expect(parseSerologyValues('۱:۱۶، ۳۲; ٦٤','HI')).toEqual([16,32,64]))
  it('does not silently discard malformed or zero observations',()=>{expect(()=>parseSerologyValues('16, bad, 32','HI')).toThrow(/شماره 2/);expect(()=>parseSerologyValues('16, 0, 32','HI')).toThrow(/مثبت/ )})
@@ -31,6 +31,17 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(hasCompleteSerologyComparisonMetadata(a)).toBe(true)
   expect(areComparableSerologyRounds(a,b)).toBe(true)
   expect(serologyComparisonKey(a)).not.toBeNull()
+ })
+ it('keeps descriptive trends technically comparable while vaccine and clinical history are annotated separately',()=>{
+  const a=round({...base,vaccinationEvents:[{date:'2026-10-01',disease:'IBD',product:'A'}],clinicalContext:{status:'normal'}})
+  const b=round({...base,vaccinationEvents:[{date:'2026-10-01',disease:'IBD',product:'A'},{date:'2026-10-15',disease:'IBD',product:'B'}],clinicalContext:{status:'clinical',signs:'diarrhea'}})
+  expect(areComparableAssayRounds(a,b)).toBe(true)
+  expect(areComparableSerologyRounds(a,b)).toBe(false)
+ })
+ it('blocks technical assay changes from descriptive trends',()=>{
+  const a=round({...base}),b=round({...base,kitLot:'LOT-002'})
+  expect(areComparableAssayRounds(a,b)).toBe(false)
+  expect(areComparableAssayRounds(a,round({...base,qcStatus:'pending'}))).toBe(false)
  })
  it('blocks a changed lot, sample matrix, kit, population or QC',()=>{
   const a=round({...base})
