@@ -3,7 +3,7 @@ import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRu
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { normalizeDigits } from '../core/ibd'
-import { emptyClinicalContext, validateClinicalContext, type ClinicalContext, type VaccinationEvent } from '../core/serologyClinicalContext'
+import { emptyClinicalContext, resolveVaccinationEvents, validateClinicalContext, type ClinicalContext, type VaccinationEvent } from '../core/serologyClinicalContext'
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
 import SerologyReaderImport from './SerologyReaderImport'
@@ -66,21 +66,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   if(age.trim()&&(!Number.isFinite(Number(normalizeDigits(age)))||Number(normalizeDigits(age))<0)){setMessage('سن گله باید عددی و صفر یا بیشتر باشد.');return}
   if(!f||!date||v.length<2||(count.trim()&&(!Number.isInteger(n)||n!==v.length))){setMessage('برای ثبت اولیه، انتخاب گله و تاریخ و حداقل دو تیتر معتبر کافی است. اگر تعداد نمونه را وارد می‌کنید باید با تعداد تیترها برابر باشد.');return}
   const clinicalError=validateClinicalContext(clinicalContext);if(clinicalError){setMessage(clinicalError);return}
-  const samplingAge=age.trim()?Number(normalizeDigits(age)):null
-  const vaccinationEventsForRun=vaccinationEvents.filter(event=>Boolean(event.date||event.ageDays!==null||event.product.trim()||event.strain.trim()||event.route.trim())).map(event=>{
-   const ageDays=event.ageDays===null?null:Number(event.ageDays)
-   const fromHatch=hatchDateForFlock&&ageDays!==null?new Date(Date.parse(hatchDateForFlock+'T00:00:00Z')+ageDays*86400000).toISOString().slice(0,10):null
-   const fromSample=ageDays!==null&&samplingAge!==null?new Date(Date.parse(date+'T00:00:00Z')+(ageDays-samplingAge)*86400000).toISOString().slice(0,10):null
-   const dateValue=event.date||fromHatch||fromSample||null
-   const computedAge=ageDays===null&&dateValue&&hatchDateForFlock?Math.round((Date.parse(dateValue+'T00:00:00Z')-Date.parse(hatchDateForFlock+'T00:00:00Z'))/86400000):ageDays
-   return {...event,ageDays:computedAge,date:dateValue}
-  })
-  if(vaccinationEventsForRun.some(e=>!e.date)){setMessage('برای هر نوبت واکسن، تاریخ را وارد کنید یا سن روز را همراه با تاریخ هچ/سن نمونه‌گیری ثبت کنید.');return}
-  if(vaccinationEventsForRun.some(e=>!e.product.trim()||!e.route.trim()||!e.disease||!e.platform)){setMessage('برای هر نوبت واکسن، بیماری، محصول، پلتفرم و مسیر تجویز را تکمیل کنید.');return}
-  if(vaccinationEventsForRun.some(e=>e.date&&!/^\d{4}-\d{2}-\d{2}$/.test(e.date))){setMessage('تاریخ واکسیناسیون معتبر نیست.');return}
-  if(vaccinationEventsForRun.some(e=>e.date&&e.date>date)){setMessage('تاریخ هیچ نوبت واکسن نباید بعد از تاریخ نمونه‌گیری باشد.');return}
-  if(vaccinationEventsForRun.some(e=>e.ageDays!==null&&(!Number.isInteger(e.ageDays)||e.ageDays<0||e.ageDays>500))){setMessage('سن هر نوبت واکسن باید عدد صحیح بین صفر تا ۵۰۰ روز باشد.');return}
-  if(vaccinationEventsForRun.some(e=>e.coveragePercent!==null&&(!Number.isFinite(e.coveragePercent)||e.coveragePercent<0||e.coveragePercent>100))){setMessage('درصد پوشش واکسیناسیون باید بین صفر تا ۱۰۰ باشد.');return}
+  let vaccinationEventsForRun:VaccinationEvent[];try{vaccinationEventsForRun=resolveVaccinationEvents(vaccinationEvents,hatchDateForFlock,date,age.trim()?Number(normalizeDigits(age)):null)}catch(err){setMessage(err instanceof Error?err.message:'تاریخچه واکسیناسیون معتبر نیست.');return}
   if(selectedAssay?.manufacturer==='IDvet'&&['idvet-nd-ndvc','idvet-nd-ndvs-cv','idvet-ibd-ibds-yolk','idvet-aiv-flunps-yolk'].includes(assayId)&&sampleMatrix!=='egg-yolk'){setMessage('این نسخه از آزمون IDvet طبق نام IFU برای زرده تخم‌مرغ است؛ نمونه سرم با آن قابل جایگزینی نیست.');return}
   if(selectedAssay?.manufacturer==='IDvet'&&sampleMatrix==='egg-yolk'&&!['idvet-nd-ndvc','idvet-nd-ndvs-cv','idvet-ibd-ibds-yolk'].includes(assayId)){setMessage('برای این کد IDvet نسخه egg-yolk در کاتالوگ انتخاب نشده است؛ ماتریس نمونه و IFU را تطبیق دهید.');return}
   if(selectedAssay&&['BioChek','IDEXX','AVIVAC','Pasouk'].includes(selectedAssay.manufacturer)&&sampleMatrix!=='serum'){setMessage('ماتریس نمونه این آزمون در کاتالوگ فعلی سرم است؛ برای زرده باید IFU جداگانه و کد آزمون مستقل انتخاب شود.');return}
