@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
 import { saveSerologyRound } from '../core/serologyRunService'
-import { ASSAY_CATALOG, type AssayCatalogEntry } from '../core/assayRegistry'
+import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { REFERENCE_BASELINES, UNPARSED_REFERENCE_DOCUMENTS } from '../data/referenceBaselines'
 import { normalizeDigits } from '../core/ibd'
 import { comparePairedSerology, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
