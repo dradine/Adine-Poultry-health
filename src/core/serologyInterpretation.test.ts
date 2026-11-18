@@ -1,7 +1,7 @@
 import {describe,it,expect} from 'vitest'
 import {interpretSerologyRound} from './serologyInterpretation'
 
-const valid={titers:[16,32,64,32],method:'ELISA',scale:'kit-titer',assayId:'biochek-ck113-ibd',assayVersion:'IFU 1',kitLot:'L1',readerModel:'R1',protocolVersion:'SOP1',randomSamplingConfirmed:true,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccineDate:'2026-10-01',antigen:'IBDV',sampleMatrix:'serum',qcStatus:'pass',rawFileImported:true,readerImportMeta:{qcStatus:'pass'}}
+const valid={titers:Array(23).fill(32),method:'ELISA',scale:'kit-titer',assayId:'biochek-ck113-ibd',assayVersion:'IFU 1',kitLot:'L1',readerModel:'R1',protocolVersion:'SOP1',randomSamplingConfirmed:true,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccineDate:'2026-10-01',antigen:'IBDV',sampleMatrix:'serum',qcStatus:'pass',rawFileImported:true,readerImportMeta:{qcStatus:'pass'}}
 
 describe('conservative serology interpretation',()=>{
  it('does not infer protection from a complete descriptive result',()=>{
