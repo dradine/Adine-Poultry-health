@@ -49,6 +49,12 @@ describe('plate control evaluation',()=>{
   const bad=parseDelimitedTable('Well,Type,ID,Result\nA1,Sample,S1,1200\nA2,Positive,PC1,0.5\nA3,Negative,NC1,0.1')
   expect(evaluatePlateControls(bad,criteria,'ELISA').status).toBe('fail')
  })
+ it('applies a separately configured replicate range-to-mean percentage limit',()=>{
+  const pass=evaluatePlateControls(table,{...criteria,maxReplicateCvPercent:null,maxReplicatePercentDifference:20},'ELISA')
+  expect(pass.status).toBe('pass');expect(pass.groups[0].percentDifference).toBeGreaterThan(0)
+  const wide=parseDelimitedTable('Well,Type,ID,Result\nA1,Sample,S1,1200\nA2,Positive,PC1,1.5\nA3,Positive,PC2,1.6\nA4,Negative,NC1,0.1\nA5,Negative,NC2,0.2')
+  expect(evaluatePlateControls(wide,{...criteria,maxReplicateCvPercent:null,maxReplicatePercentDifference:20},'ELISA').status).toBe('fail')
+ })
  it('does not claim QC pass when a reference control is selected without its limits',()=>{
   expect(evaluatePlateControls(table,{...criteria,referenceRole:'Reference'},'ELISA').status).toBe('pending')
  })
