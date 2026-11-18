@@ -60,7 +60,8 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
  const selectedAssay=ASSAY_CATALOG.find(x=>x.id===assayId)
  const sampleN=Number(normalizeDigits(count))
- const sampleWarning=(selectedAssay?.manufacturer==='BioChek'||kit.toLowerCase().includes('biochek'))?(sampleN<15?'کمتر از ۱۵ نمونه است؛ برای تحلیل کمی یا تشخیص روند قابل اتکا نیست.':sampleN<18?'۱۵ تا ۱۷ نمونه فقط برای مشاهده روند گروهی پس از ایجاد Baseline ممکن است کمک‌کننده باشد؛ برای تحلیل کمی کافی نیست و از حداقل ۱۸ نمونه چک‌لیست نیز پایین‌تر است.':sampleN<23?'۱۸ تا ۲۲ نمونه: حداقل چک‌لیست را دارد اما از مقدار توصیه‌شده ۲۳ نمونه برای تحلیل کمی/پروفایل کمتر است.':'') :''
+ const bioChekGuidance=(selectedAssay?.manufacturer==='BioChek'&&selectedAssay.status==='documented')||(!selectedAssay&&kit.toLowerCase().includes('biochek')&&['CK113','CK116','CK119','CK121','CK401'].includes(catalog.trim().toUpperCase()))
+ const sampleWarning=bioChekGuidance?(sampleN<15?'کمتر از ۱۵ نمونه است؛ برای تحلیل کمی یا تشخیص روند قابل اتکا نیست.':sampleN<18?'۱۵ تا ۱۷ نمونه فقط برای مشاهده روند گروهی پس از ایجاد Baseline ممکن است کمک‌کننده باشد؛ برای تحلیل کمی کافی نیست و از حداقل ۱۸ نمونه چک‌لیست نیز پایین‌تر است.':sampleN<23?'۱۸ تا ۲۲ نمونه: حداقل چک‌لیست را دارد اما از مقدار توصیه‌شده ۲۳ نمونه برای تحلیل کمی/پروفایل کمتر است.':'') :''
  async function submit(e:FormEvent){
   e.preventDefault();setMessage('')
   let v:number[],ids:string[]
