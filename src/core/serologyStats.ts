@@ -77,3 +77,27 @@ export function calculateBioChekVI(arithmeticMean:number,cvPercent:number):numbe
   if(!Number.isFinite(arithmeticMean)||!Number.isFinite(cvPercent)||arithmeticMean<=0||cvPercent<=0) return null
   return arithmeticMean/cvPercent
 }
+
+export type SerologyRoundIdentity={flockId:string;diseaseCode:string;input:Record<string,unknown>}
+const commonComparisonFields=['population','method','assayId','kit','catalog','assayVersion','antigen','unit','scale','sampleMatrix','laboratory','readerModel','protocolVersion','kitLot']
+const hiComparisonFields=['hiHAU','antigenPretreatment','serumPretreatment','dilutionFactor','rbcSource','rbcLot','rbcConcentration']
+function comparisonFieldsForRound(r:SerologyRoundIdentity):string[]{
+  return r.input.method==='HI'?[...commonComparisonFields,...hiComparisonFields]:commonComparisonFields
+}
+export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):boolean{
+  const i=r.input
+  if(i.method!=='ELISA'&&i.method!=='HI') return false
+  if(i.qcStatus!=='pass'||typeof i.qcEvidence!=='string'||!i.qcEvidence.trim()) return false
+  return comparisonFieldsForRound(r).every(k=>{
+    const v=i[k]
+    return typeof v==='string'&&v.trim().length>0&&!['unknown','نامشخص','نامعلوم','not provided','n/a','na'].includes(v.trim().toLowerCase())
+  })
+}
+export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
+  if(!hasCompleteSerologyComparisonMetadata(r)) return null
+  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k])])
+}
+export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
+  const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
+  return ka!==null&&ka===kb
+}
