@@ -86,20 +86,19 @@ export const REFERENCE_BASELINES: ReferenceBaseline[] = [
 
 export const UNPARSED_REFERENCE_DOCUMENTS = [
   {
-    id: 'idvet-poultry-general-baselines-june2025',
+    id: 'idvet-poultry-general-baselines-march2026',
     vendor: 'Innovative Diagnostics / IDvet',
     title: 'IDvet Poultry General Baselines',
-    version: 'June 2025, English (doc16346, 724 KB); Russian version (doc16347, 819 KB)',
-    status: 'The indexed official Pro Access page lists the June 2025 English PDF (doc16346, 724 KB) and Russian PDF (doc16347, 819 KB). The PDF payload could not be retrieved in this session; numeric tables have NOT been transcribed or activated. A March 2026 entry previously recorded in this project was not found in the currently indexed page and is not treated as verified.',
+    version: 'March 2026, English doc17201 (760 KB); Russian doc17202 (860 KB), listed in the official Pro Access portal',
+    status: 'The official portal search index lists the March 2026 English and Russian PDFs. The PDF payload was not retrievable for independent transcription in this review; numeric tables have NOT been transcribed or activated. This supersedes the stale June 2025 listing previously recorded in this project.',
     sourceUrl: 'https://www.innovative-diagnostics.com/pro-access-en/',
-    requiredNextStep: 'Obtain the official June 2025 PDF from IDvet/distributor and transcribe each row with disease, kit code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, region/population, and every footnote. Independent double-entry verification required.',
-  },
+    requiredNextStep: 'Obtain the March 2026 English PDF and transcribe every poultry row with disease, assay code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, population and footnotes. Independently double-enter and verify every numeric cell before enabling comparisons.'
   {
     id: 'idvet-avian-kit-matrices',
     vendor: 'Innovative Diagnostics / IDvet',
     title: 'Official avian Excel interpretation matrices',
     version: 'Portal-listed files; versions vary by assay',
-    status: 'Official portal lists separate matrices for IBDS, IBDVP2, IBVS, IBVC, NDVC, NDVS, NDVS-CV, FLUACA, FLUACH5, FLUACH9, FLUH9S and FLUNPS. Their existence is verified; numeric matrices were not imported into the application.',
+    status: 'Official portal lists separate English matrices: IBDS (ver0416), IBDVP2 (ver0916), IBVC (ver0217), IBVS (ver0416), IBVARSV2 (ver0223), NDVC (ver0417), NDVS (ver0416), NDVS-CV (ver0416), FLUACA (ver0917), FLUACH5 (ver0215), FLUACH9 (ver0616), FLUH9S (ver0620), and FLUNPS (ver0620). Their filenames and existence are verified; the spreadsheet payloads could not be downloaded/inspected in this session, so no numeric matrices or equations have been imported or activated.',
     sourceUrl: 'https://www.innovative-diagnostics.com/pro-access-en/',
     requiredNextStep: 'Acquire each applicable workbook, inspect hidden sheets/formulas/locked ranges and IFU pairing, then implement only exact version-specific calculation logic with test fixtures.',
   },
