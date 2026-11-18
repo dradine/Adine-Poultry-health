@@ -18,7 +18,7 @@
     "react-multi-date-picker": "4.5.2"
   },
   "overrides": {
-    "picomatch": "4.0.8"
+    "picomatch": "4.0.7"
   },
   "devDependencies": {
     "@types/react": "19.1.8",
