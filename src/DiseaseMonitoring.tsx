@@ -36,6 +36,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
   const [days, setDays] = useState('14')
   const [ibData, setIbData] = useState('')
   const [ibAssay, setIbAssay] = useState('')
+  const [ibScale, setIbScale] = useState('')
   const [unit, setUnit] = useState<'ELISA' | 'HI-log2' | 'VN'>('ELISA')
   const [aiv, setAiv] = useState<AivInput>({
     vaccinationStatus: 'unknown', vaccinePlatform: 'unknown', subtype: '',
@@ -116,7 +117,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
           const [day, value] = line.split(/[:;,]/)
           return { day: Number(day), value: Number(value) }
         })
-        const input = { observations, assay: ibAssay, unit, selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null }
+        const input = { observations, assay: ibAssay, measurementScale: unit === 'HI-log2' ? 'log2 endpoint' : ibScale, unit, selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null }
         const result = analyzeIbvTrend(input)
         setLastInput(input as unknown as Record<string, unknown>)
         setOut(result)
@@ -216,10 +217,11 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         <div className="form-grid">
           <label>نام آزمون/کیت<input value={ibAssay} onChange={event => setIbAssay(event.target.value)} /></label>
           <label>واحد
-            <select value={unit} onChange={event => setUnit(event.target.value as typeof unit)}>
+            <select value={unit} onChange={event => { const next = event.target.value as typeof unit; setUnit(next); setIbScale(next === 'HI-log2' ? 'log2 endpoint' : '') }}>
               <option value="ELISA">ELISA</option><option value="HI-log2">HI log2</option><option value="VN">VN</option>
             </select>
           </label>
+          {unit !== 'HI-log2' && <label>مقیاس دقیق نتیجه (مثلاً OD450، S/P یا kit-derived titre؛ برای VN رقت معکوس یا log2)<input value={ibScale} onChange={event => setIbScale(event.target.value)} placeholder="مقیاس خروجی دقیق کیت/روش" /></label>}
           <label>مشاهدات (day:value)<textarea rows={4} value={ibData} onChange={event => setIbData(event.target.value)} /></label>
         </div>
       </>}
