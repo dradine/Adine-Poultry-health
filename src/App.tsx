@@ -8,6 +8,7 @@ import { fetchPublicReferenceCatalog, findBttAssayForProduct, mapPublicAssayToEn
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
+import { calculateSamplingAgeFromHatch } from './core/samplingAge'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import StrainSelector from './components/StrainSelector'
 import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
@@ -145,9 +146,8 @@ export default function App() {
   useEffect(() => { try { localStorage.setItem('adine-custom-diagnostic-kits-v1', JSON.stringify(customKits)) } catch { setError('ذخیره کیت دستی در مرورگر ناموفق بود.') } }, [customKits])
   useEffect(() => {
     if (!hatchDate || !sampleDate) return
-    const days = Math.round((Date.parse(sampleDate + 'T12:00:00') - Date.parse(hatchDate + 'T12:00:00')) / 86400000)
-    if (Number.isFinite(days) && days >= 0) setSamplingAge(String(days))
-    else setError('تاریخ نمونه‌گیری نمی‌تواند قبل از تاریخ هچ باشد؛ تاریخ‌ها یا سن نمونه را بازبینی کنید.')
+    try { setSamplingAge(String(calculateSamplingAgeFromHatch(hatchDate, sampleDate))) }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'محاسبه سن نمونه‌گیری ناموفق بود.') }
   }, [hatchDate, sampleDate])
   function goToStep(next: 1|2|3|4) {
     setError('')
