@@ -53,5 +53,45 @@ Small samples such as 5–10 should not be blocked automatically. They may be us
 - BioChek interpretation manual RevB 2025: https://www.biochek.com/wp-content/uploads/2025/11/BioChek-Poultry-ELISA-Interpretation-Manual-RevB-2025.pdf
 - IDsoft brochure (catalog listing): https://chakmartin.net/wp-content/uploads/2024/10/IDvet-Product-list_SWINE_PCR-AND-ELISA_EN_09-AUG-24_Lr01.pdf
 
-## Next development gate
-Research seed catalog is not yet an integrated, user-editable catalog UI. The next implementation should create kit records through the application, persist custom kits, disease-filter catalog selection, attach IFU/lot/source and market status, and enforce kit-specific interpretation/calculation gates. The four-step wizard separation is also still a separate UI refactor and must not be marked complete until code changes and browser/mobile tests pass.
+## Research expansion and implementation update — 18 Nov 2026
+
+### Additional kit identifiers verified
+The BioChek manufacturer SDS (revision dated 16 April 2025) identifies these kit families/catalog numbers: CK108 ORT, CK109 Mm, CK110 REO, CK112 EDS, CK113 IBD, CK114 Mg, CK115 Ms, CK116 NDV, CK117 Salmonella Group D, CK118 Salmonella Group B, CK119 IBV, CK120 ART, CK121 AI, CK122 NDV-F, CK123 AE, CK124 ILT, CK125 REV, CK126 CAV, CK128 AI, CK129 AI/EDS, CK130 AI, CK131 BLS, CK132 FAdV, CK133 Chicken Astrovirus B, KIT6073 influenza NP antibody, CK215/230/231 combined Mg-Ms, CK218 Salmonella B/D, CK301 AI antigen, and CK401 multispecies influenza A. Codes in the SDS are catalogue identifiers; this does not by itself confirm active availability, current IFU, market status, validated use, or interpretation algorithm.
+
+The app catalog now contains 16 selectable records focused on IBD/ND/IBV/AIV. The new additions include IDEXX IBV 99-09262, BioChek NDV-F CK122, BioChek AI antigen CK301, multispecies influenza CK401, combined AI/EDS CK129, NP antibody KIT6073, and AI identifiers CK128/CK130. Several entries are intentionally marked manufacturer-catalog rather than full manufacturer-product IFU evidence; the user interface does not treat these as automatically calculation-ready.
+
+### Kit software comparison
+- **BioChek Monitoring Software**: farm/house flock database, ELISA/PCR data handling, trend and histogram reports, control tracking and standardized result/reporting. Useful inspiration for per-kit QC and repeat-run tracking.
+- **IDEXX xChekPlus**: assay-library/reporting and livestock data workflows; manufacturer supports software expansion and multilingual presentation. Useful inspiration for method-specific plugins, consistent reports and lab workflows.
+- **IDsoft (IDvet)**: product brochure lists titre/age/baseline analysis, reader/Excel/manual import and report customization; exact current version, kit support and access should be checked before relying on it.
+The Adine app should not claim it has reproduced the vendor-validated calculation logic unless the exact kit algorithm/IFU is reviewed and tested. These commercial software products are references for workflow design, not independent validation of our model.
+
+### Current UI/implementation status
+- A four-step wizard has been added: flock information → disease → kit/method → analysis.
+- Disease and kit catalog selection are separated from data entry.
+- Custom kits can be added and managed in a collapsed accordion, stored locally in the browser.
+- Kit provenance (brand/catalog/assay/format/sample/source/evidence status) is attached to ND/IBV/AIV saved monitoring inputs.
+- ND HI engine blocks ELISA/other kit selections as mismatched input; it expects HI endpoint log2 data.
+- IBV trend engine checks the selected kit/method against the chosen data unit.
+- IBD kit details and lab QC confirmations are now grouped in collapsible panels to reduce clutter.
+- IBD calculations with fewer than the selected sample guidance can run exploratorily when at least two valid titers are present; they carry explicit low-n warnings. The sample-size guidance remains kit-/goal-specific.
+
+### Remaining limitations (must be shown to testers)
+- The four-step wizard and custom-kit catalog are code-complete as an initial UI implementation, but no manual iOS/Android browser test has been completed.
+- Kit catalog selection for non-IBD diseases is metadata/provenance. It does not make an ELISA result into HI log2, nor does it independently validate an assay.
+- Custom kit records do not unlock clinical calculations by themselves.
+- IBD calculations still depend on selecting a documented compatible assay, entering exact vaccine/BTT/half-life provenance, and confirming QC/sample assumptions. The current model remains a mathematical Deventer-style estimator, not a validated vaccination prescription.
+- No current Iran inventory, importer, registration, or pricing claim is made without date-specific verification.
+
+### Sources for expanded catalogue
+- BioChek SDS Revision 05 (16 April 2025): https://www.biochek.com/wp-content/uploads/2025/05/BC-ELISA-SDS-rev05.pdf
+- BioChek poultry ELISA portfolio: https://www.biochek.com/poultry/poultry-elisa/
+- BioChek CK108 ORT product page: https://www.biochek.com/products/ornithobacterium-rhinotracheale-antibody-test-kit/
+- BioChek CK124 ILT product page: https://www.biochek.com/products/infectious-laryngotracheitis-antibody-test-kit/
+- BioChek CK126 CAV product page: https://www.biochek.com/products/chicken-anemia-virus-antibody-test-kit/
+- BioChek CK132 FAdV product page: https://www.biochek.com/products/fowl-adenovirus-group-1-antibody-test-kit/
+- BioChek CK301/CK401 catalogue and product family: https://www.biochek.com/poultry/poultry-elisa/
+- IDEXX IBV 99-09262: https://ca.idexx.com/en-ca/livestock/livestock-tests/poultry-tests/idexx-ibv-ab-test/
+
+## Final test gate
+The next release should be marked ready for user testing only after the latest CI run passes (tests, TypeScript build, Vite build, Pages base-path build, Supabase smoke, Service Worker and manifest checks) and the user performs a real browser/mobile walkthrough.
