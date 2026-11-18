@@ -62,7 +62,7 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
   const sortedLogs=[...logs].sort((a,b)=>a-b),gaps=sortedLogs.slice(1).map((v,i)=>({gap:v-sortedLogs[i],at:sortedLogs[i]})).sort((a,b)=>b.gap-a.gap)
   const low=values.filter(v=>v<=4).length,high=values.filter(v=>v>=16).length
   const pct=(x:number)=>Math.round(x/n*100)
-  const age=Number(input.samplingAgeDays),vDate=str(input,'vaccineDate'),sDate=str(input,'samplingDate')
+  const vDate=str(input,'vaccineDate'),sDate=str(input,'samplingDate')
   const days=vDate&&sDate?Math.round((Date.parse(sDate+'T00:00:00Z')-Date.parse(vDate+'T00:00:00Z'))/86400000):NaN
   const program=(str(input,'vaccineProgram')+' '+str(input,'vaccine')).toLowerCase()
   const platform=str(input,'vaccinePlatform').toLowerCase()
@@ -73,7 +73,7 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
    const spread=logSd>=1.5
    const clustered=gaps.length>0&&gaps[0].gap>=2
    if(spread||clustered){
-    items.push({level:'warning',title:'الگوی پاسخ نیوکاسل ناهمگون است',detail:'پراکندگی در مقیاس log₂ برابر '+logSd.toFixed(2)+' است؛ '+low+' از '+n+' نمونه ('+pct(low)+'٪) تیتر حداکثر ۱:۴ و '+high+' نمونه ('+pct(high)+'٪) تیتر حداقل ۱:۱۶ دارند. '+(clustered?'بین دو بخش توزیع، فاصله‌ای دست‌کم دو رقت دوبرابری دیده می‌شود. ':'')+'این الگو با پاسخ/دریافت غیریکنواخت واکسن، تفاوت آنتی‌بادی مادری یا وضعیت ایمنی پرندگان، نمونه‌گیری ناهمگون و نیز مواجهه‌های متفاوت با آنتی‌ژن سازگار است؛ هیچ‌کدام از این علت‌ها با یک نوبت HI اثبات نمی‌شود.'})
+    items.push({level:'warning',title:'الگوی پاسخ نیوکاسل ناهمگون است',detail:'پراکندگی در مقیاس log₂ برابر '+logSd.toFixed(2)+' است؛ '+low+' از '+n+' نمونه ('+pct(low)+'٪) تیتر حداکثر ۱:۴ و '+high+' نمونه ('+pct(high)+'٪) تیتر حداقل ۱:۱۶ دارند. '+(clustered?'بین دو بخش توزیع، فاصله‌ای دست‌کم دو رقت دوبرابری دیده می‌شود. ':'')+'پرچم ناهمگنی در این موتور یک قاعده اکتشافی مبتنی بر log₂ و فاصله خوشه‌هاست، نه cutoff تشخیصی اعتبارسنجی‌شده. این الگو با پاسخ/دریافت غیریکنواخت واکسن، تفاوت آنتی‌بادی مادری یا وضعیت ایمنی پرندگان، نمونه‌گیری ناهمگون و نیز مواجهه‌های متفاوت با آنتی‌ژن سازگار است؛ هیچ‌کدام از این علت‌ها با یک نوبت HI اثبات نمی‌شود.'})
     items.push({level:'info',title:'فرضیه‌های اولویت‌دار برای بررسی نیوکاسل',detail:'۱) اگر واکسن زنده از آب یا اسپری داده شده: یکنواختی توزیع، مصرف آب، آماده‌سازی، کلر/ضدعفونی‌کننده، زنجیره سرد و پوشش سالن را ممیزی کنید. ۲) اگر واکسن کشته تزریق شده: درصد پرندگان واقعاً تزریق‌شده، دوز کامل، محل تزریق، کیفیت امولسیون و نگهداری را بررسی کنید؛ واکسن کشته از پرنده به پرنده منتقل نمی‌شود. ۳) سابقه MDA، بیماری/استرس و تفاوت سالن‌ها را بررسی کنید. ۴) اگر افزایش تیتر غیرمنتظره یا علائم وجود دارد، مواجهه میدانی را با نمونه‌گیری جفتی و آزمون مستقیم مناسب بررسی کنید.'})
    }else{
     items.push({level:'info',title:'پراکندگی تیتر نیوکاسل در این نوبت',detail:'SD مقیاس log₂ برابر '+logSd.toFixed(2)+' است و '+low+' از '+n+' نمونه در محدوده تیترهای حداکثر ۱:۴ قرار دارند. نبود خوشه‌بندی واضح در این نمونه کوچک، یکنواختی کل گله را اثبات نمی‌کند؛ توزیع سالن‌به‌سالن و طرح نمونه‌گیری باید دیده شود.'})
@@ -129,6 +129,7 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
  if(!str(input,'antigen'))nextData.push('آنتی‌ژن دقیق کیت و در صورت وجود سویه/ژنوتیپ مرجع')
  if(!str(input,'sampleMatrix'))nextData.push('ماتریس نمونه و انطباق آن با IFU')
  const blocking=items.some(x=>x.level==='block')
- const summary=demo?'رکورد نمایشی است و فقط برای آزمودن رابط گزارش مناسب است.':blocking?'به‌علت محدودیت QC یا داده، تفسیر نهایی متوقف است.':items.some(x=>x.level==='warning')?'نتایج قابل توصیف‌اند، اما چند محدودیت مهم باید پیش از نتیجه‌گیری برطرف شوند.':'داده‌ها از نظر اطلاعات ثبت‌شده برای تفسیر توصیفی آماده‌اند؛ استنتاج حفاظت یا موفقیت واکسن همچنان مجاز نیست.'
+ const clinicalLead=disease==='ND'&&method==='HI'&&n>=2?'برداشت اولیه نیوکاسل: توزیع تیترها از نظر یکنواختی بررسی شده و فرضیه‌های اجرایی/زیستی و بررسی‌های تفکیک‌کننده در ادامه گزارش آمده‌اند؛ از یک نوبت HI نمی‌توان عفونت میدانی یا حفاظت را اثبات کرد.':disease==='AIV'&&method==='HI'&&n>=2?'برداشت اولیه آنفلوانزا: سطح و زمان پاسخ HI همراه با تطابق آنتی‌ژن واکسن و آزمون باید تفسیر شود؛ تیتر پایین به‌تنهایی شکست واکسن یا عدم حفاظت را اثبات نمی‌کند.':''
+ const summary=demo?'رکورد نمایشی است و فقط برای آزمودن رابط گزارش مناسب است.':clinicalLead|| (blocking?'به‌علت محدودیت QC یا داده، تفسیر نهایی متوقف است.':items.some(x=>x.level==='warning')?'نتایج قابل توصیف‌اند، اما چند محدودیت مهم باید پیش از نتیجه‌گیری برطرف شوند.':'داده‌ها از نظر اطلاعات ثبت‌شده برای تفسیر توصیفی آماده‌اند؛ استنتاج حفاظت یا موفقیت واکسن همچنان مجاز نیست.')
  return {items,summary,nextData:[...new Set(nextData)]}
 }
