@@ -3,6 +3,7 @@ import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRu
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { normalizeDigits } from '../core/ibd'
+import { emptyClinicalContext, validateClinicalContext, type ClinicalContext, type VaccinationEvent } from '../core/serologyClinicalContext'
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
 import SerologyReaderImport from './SerologyReaderImport'
@@ -34,7 +35,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const [positivityCutoff,setPositivityCutoff]=useState(''),[positivityDirection,setPositivityDirection]=useState<'above'|'below'>('above'),[positivitySource,setPositivitySource]=useState(''),[fourFoldComparisonSource,setFourFoldComparisonSource]=useState('')
  const [readerImportMeta,setReaderImportMeta]=useState<Record<string,unknown>|null>(null),[randomSamplingConfirmed,setRandomSamplingConfirmed]=useState(false)
  const [qc,setQc]=useState('pending'),[qcEvidence,setQcEvidence]=useState(''),[lab,setLab]=useState(''),[source,setSource]=useState(''),[notes,setNotes]=useState('')
- const [vaccinationEvents,setVaccinationEvents]=useState<VaccinationEvent[]>([]),[clinicalContext,setClinicalContext]=useState<ClinicalContext>(emptyClinicalContext)
+ const [vaccinationEvents,setVaccinationEvents]=useState<VaccinationEvent[]>([]),[clinicalContext,setClinicalContext]=useState<ClinicalContext>(emptyClinicalContext())
  async function refresh(){const x=await Promise.all([listLocalFlocks(),listLocalModelRuns()]);setFlocks(x[0]);setRuns(x[1])}
  useEffect(()=>{if(initialFlockId)setFlockId(initialFlockId)},[initialFlockId])
  useEffect(()=>{setForm(mode!=='reports')},[mode])
@@ -64,6 +65,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   if(vaccineDate&&vaccineDate>date){setMessage('تاریخ واکسیناسیون نمی‌تواند بعد از تاریخ نمونه‌گیری ثبت شود.');return}
   if(age.trim()&&(!Number.isFinite(Number(normalizeDigits(age)))||Number(normalizeDigits(age))<0)){setMessage('سن گله باید عددی و صفر یا بیشتر باشد.');return}
   if(!f||!date||v.length<2||(count.trim()&&(!Number.isInteger(n)||n!==v.length))){setMessage('برای ثبت اولیه، انتخاب گله و تاریخ و حداقل دو تیتر معتبر کافی است. اگر تعداد نمونه را وارد می‌کنید باید با تعداد تیترها برابر باشد.');return}
+  const clinicalError=validateClinicalContext(clinicalContext);if(clinicalError){setMessage(clinicalError);return}
   const vaccinationEventsForRun=[...vaccinationEvents]
   if(vaccinationEventsForRun.some(e=>e.date&&!/^\d{4}-\d{2}-\d{2}$/.test(e.date))){setMessage('تاریخ واکسیناسیون معتبر نیست.');return}
   if(vaccinationEventsForRun.some(e=>e.date&&e.date>date)){setMessage('تاریخ هیچ نوبت واکسن نباید بعد از تاریخ نمونه‌گیری باشد.');return}
