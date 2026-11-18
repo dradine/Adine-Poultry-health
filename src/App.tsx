@@ -169,6 +169,7 @@ export default function App() {
     }
   }, [])
 
+  const selectedDiagnosticKit = [...diagnosticKitCatalog, ...customKits].find(kit => kit.id === selectedDiagnosticKitId)
   const selectedVaccineProduct = vaccineCatalog.find(product => product.id === selectedVaccineProductId)
   const selectedAssay = assayCatalog.find(kit => kit.id === selectedAssayId)
   useEffect(() => {
@@ -705,7 +706,7 @@ export default function App() {
         )}
       </section>
 
-      {wizardStep===4 && selectedDisease!=='IBD' && <DiseaseMonitoring profiles={profiles} initialMode={selectedDisease} hideDiseaseSelector />}
+      {wizardStep===4 && selectedDisease!=='IBD' && <DiseaseMonitoring profiles={profiles} initialMode={selectedDisease} hideDiseaseSelector selectedKit={selectedDiagnosticKit} />}
 
       {wizardStep===4 && <section className="panel roadmap">
         <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
