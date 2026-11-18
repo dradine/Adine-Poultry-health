@@ -164,8 +164,7 @@ export const diagnosticKitCatalog: DiagnosticKit[] = [
     sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
     evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
     notes: 'Code documented in manufacturer SDS; confirm current product page/IFU and antigen target before use.'
-  }
-
+  },
   {
     id: 'avivac-ibd-elisa', disease: 'IBD', brand: 'AVIVAC', catalog: 'Catalog code verify',
     assay: 'IBD antibody', format: 'ELISA', sample: 'Chicken serum',
