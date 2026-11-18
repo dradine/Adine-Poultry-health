@@ -1,0 +1,21 @@
+import type {LocalModelRun} from '../core/localFirstDb'
+type Group={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;withinLimits:boolean|null}
+const f=(v:number)=>v.toLocaleString('fa-IR',{maximumFractionDigits:3})
+const str=(o:Record<string,unknown>,k:string)=>typeof o[k]==='string'?String(o[k]):''
+export default function SerologyControlTracking({run,runs}:{run:LocalModelRun;runs:LocalModelRun[]}){
+ const i=run.input_snapshot as Record<string,unknown>,meta=i.readerImportMeta as Record<string,unknown>|undefined
+ if(i.rawFileImported!==true||!meta||!Array.isArray(meta.controlSummary))return <section className="srs-chart-card"><h4>روند کنترل‌ها در طول زمان</h4><p className="srs-note">برای ردیابی کنترل‌ها، خروجی خام هر پلیت باید وارد شده باشد. QC اظهاری برای ساخت نمودار کنترل کافی نیست.</p></section>
+ const keys=['method','assayId','kit','catalog','assayVersion','sampleMatrix','antigen','unit','scale','kitLot','laboratory','readerModel','protocolVersion']
+ const compatible=(x:LocalModelRun)=>{
+  const a=x.input_snapshot as Record<string,unknown>,m=a.readerImportMeta as Record<string,unknown>|undefined
+  return x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&a.rawFileImported===true&&keys.every(k=>String(a[k]??'')===String(i[k]??''))&&str(m||{},'qcSource')===str(meta,'qcSource')
+ }
+ const series=runs.filter(compatible).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
+ const groupLabels=['positive','negative','reference']
+ const data=groupLabels.map(label=>({label,points:series.flatMap(x=>{const m=x.input_snapshot.readerImportMeta as Record<string,unknown>|undefined,g=(m?.controlSummary as Group[]|undefined)?.find(z=>z.label===label);return g?[{id:x.id,date:str(x.input_snapshot,'samplingDate')||x.created_at.slice(0,10),mean:g.mean,cv:g.cvPercent,n:g.n,qc:str(x.input_snapshot,'qcStatus')}]:[]})})).filter(x=>x.points.length)
+ if(!data.length)return <section className="srs-chart-card"><h4>روند کنترل‌ها در طول زمان</h4><p className="srs-note">در سوابق هم‌کیت و هم‌Lot داده کنترل خام کافی پیدا نشد.</p></section>
+ return <section className="srs-chart-card"><h4>روند کنترل‌ها در طول زمان · همان Lot و همان روش</h4><p className="srs-note">این نمودار میانگین کنترل‌های مثبت، منفی و مرجع را در Runهای متوالی نشان می‌دهد. تا زمانی که تعداد کافی Run پایدار و حدود کنترلی اعتبارسنجی‌شده وجود نداشته باشد، خطوط ±۲SD/±۳SD رسم نمی‌شوند و این نمودار را نباید Control Chart آماری کامل تلقی کرد.</p>
+ {data.map(group=>{const values=group.points.map(p=>p.mean),lo=Math.min(...values),hi=Math.max(...values),span=hi-lo||1,pts=values.map((v,j)=>({x:35+j*450/Math.max(1,values.length-1),y:120-(v-lo)/span*85}));return <div key={group.label}><h5>{group.label==='positive'?'کنترل مثبت':group.label==='negative'?'کنترل منفی':'کنترل مرجع'}</h5><svg className="srs-chart" viewBox="0 0 520 155" role="img" aria-label={'روند '+group.label+' control'}><line x1="25" y1="120" x2="495" y2="120" stroke="currentColor" opacity=".3"/><polyline points={pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#287b55" strokeWidth="2.5"/>{pts.map((p,j)=><g key={group.points[j].id}><circle cx={p.x} cy={p.y} r="5" fill={group.points[j].qc==='fail'?'#b33a3a':'#287b55'}/><text x={p.x} y="140" textAnchor="middle" fontSize="8" fill="currentColor">{group.points[j].date.slice(5)}</text></g>)}</svg>
+ <div className="srs-table-wrap"><table className="srs-table"><thead><tr><th>تاریخ</th><th>تعداد تکرار</th><th>میانگین کنترل</th><th>CV٪</th><th>QC</th></tr></thead><tbody>{group.points.map(p=><tr key={p.id}><td>{p.date}</td><td>{p.n}</td><td>{f(p.mean)}</td><td>{p.cv===null?'—':f(p.cv)}</td><td>{p.qc==='pass'?'قبول':p.qc==='fail'?'رد':'نامشخص'}</td></tr>)}</tbody></table></div></div>})}
+ </section>
+}
