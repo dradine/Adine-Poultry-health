@@ -586,7 +586,7 @@ export default function App() {
       </section>}
 
 
-      {wizardStep===4 && <MaternalAntibodyPanel sampleAgeDays={Number(normalizeDigits(samplingAge))} disease={selectedDisease} />}
+      {wizardStep===4 && <MaternalAntibodyPanel sampleAgeDays={Number(normalizeDigits(samplingAge))} disease={selectedDisease} flock={profiles.find(profile => profile.flockName.trim() === flockName.trim() && profile.placementDate === placementDate)} />}
       {wizardStep===4 && selectedDisease==='IBD' && <section className="panel">
         <div className="panel-heading">
           <div><span className="step">۴</span><h3>تحلیل مقدماتی گامبورو</h3></div>
