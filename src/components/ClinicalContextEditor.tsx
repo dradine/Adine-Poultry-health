@@ -1,4 +1,3 @@
-import type { ChangeEvent } from 'react'
 export type VaccinationEvent={id:string;date:string;disease:string;product:string;platform:string;strain:string;route:string;dose:string;batch:string;administrationQuality:string;notes:string}
 export type ClinicalContext={status:string;onsetDate:string;signs:string; morbidityPercent:string;mortalityPercent:string;mortalityTrend:string;feedChangePercent:string;waterChangePercent:string;productionChangePercent:string;necropsy:string;directTests:string;medications:string;houseNotes:string}
 export const emptyClinicalContext:ClinicalContext={status:'unknown',onsetDate:'',signs:'',morbidityPercent:'',mortalityPercent:'',mortalityTrend:'',feedChangePercent:'',waterChangePercent:'',productionChangePercent:'',necropsy:'',directTests:'',medications:'',houseNotes:''}
