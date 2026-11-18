@@ -163,3 +163,5 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .qc-details>summary::after,.roadmap-accordion>summary::after{content:'＋';float:left;color:#376b50}
 .qc-details[open]>summary::after,.roadmap-accordion[open]>summary::after{content:'−'}
 .roadmap-accordion .disease-grid{padding:0 0 12px}
+
+.strain-selector{margin:12px 0;border-color:#d5e2d9;background:#f7faf8}.strain-selector>summary{font-weight:700;color:#285740}.strain-field{display:grid;gap:10px;padding:10px;border:1px solid #e1eae4;border-radius:10px;background:#fff}.strain-manual{font-weight:500}.strain-summary,.strain-cautions{margin-top:12px;padding:12px;background:#eef5f0;border-radius:10px;font-size:12px;line-height:1.9}.strain-summary p{margin:3px 0}.strain-cautions{background:#fff8e9;color:#715d34}.strain-cautions ul{margin:6px 0;padding-right:20px}
