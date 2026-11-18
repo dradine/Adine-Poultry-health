@@ -64,11 +64,11 @@ export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'EL
 
 
 export type PlateControlCriteria={roleColumn:number|null;resultColumn:number;positiveRole:string;negativeRole:string;referenceRole?:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin?:number|null;referenceMax?:number|null;maxReplicateCvPercent?:number|null;source:string}
-export type PlateControlGroup={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;lowerLimit:number|null;upperLimit:number|null;maxReplicateCvPercent:number|null;withinLimits:boolean|null}
+export type PlateControlGroup={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;lowerLimit:number|null;upperLimit:number|null;cvPercent:number|null;maxReplicateCvPercent:number|null;percentDifference:number|null;maxReplicatePercentDifference:number|null;withinLimits:boolean|null}
 export type PlateControlEvaluation={status:'pass'|'fail'|'pending';evidence:string;groups:PlateControlGroup[];failures:string[]}
 export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCriteria,method:'ELISA'|'HI'):PlateControlEvaluation{
  const failures:string[]=[],groups:PlateControlGroup[]=[]
- if(criteria.roleColumn===null||criteria.roleColumn<0||criteria.roleColumn>=table.headers.length||criteria.resultColumn<0||criteria.resultColumn>=table.headers.length||!criteria.positiveRole.trim()||!criteria.negativeRole.trim()||criteria.positiveRole===criteria.negativeRole||!criteria.source.trim()||criteria.positiveMin===null||criteria.positiveMax===null||criteria.negativeMax===null||![criteria.positiveMin,criteria.positiveMax,criteria.negativeMax].every(Number.isFinite)||criteria.positiveMin<0||criteria.positiveMax<0||criteria.negativeMax<0||criteria.maxReplicateCvPercent!==null&&criteria.maxReplicateCvPercent!==undefined&&(!Number.isFinite(criteria.maxReplicateCvPercent)||criteria.maxReplicateCvPercent<0))return {status:'pending',evidence:'معیارهای کنترل و منبع IFU کامل یا معتبر نیستند؛ QC خودکار اجرا نشد.',groups,failures}
+ if(criteria.roleColumn===null||criteria.roleColumn<0||criteria.roleColumn>=table.headers.length||criteria.resultColumn<0||criteria.resultColumn>=table.headers.length||!criteria.positiveRole.trim()||!criteria.negativeRole.trim()||criteria.positiveRole===criteria.negativeRole||!criteria.source.trim()||criteria.positiveMin===null||criteria.positiveMax===null||criteria.negativeMax===null||![criteria.positiveMin,criteria.positiveMax,criteria.negativeMax].every(Number.isFinite)||criteria.positiveMin<0||criteria.positiveMax<0||criteria.negativeMax<0||criteria.maxReplicateCvPercent!==null&&criteria.maxReplicateCvPercent!==undefined&&(!Number.isFinite(criteria.maxReplicateCvPercent)||criteria.maxReplicateCvPercent<0)||criteria.maxReplicatePercentDifference!==null&&criteria.maxReplicatePercentDifference!==undefined&&(!Number.isFinite(criteria.maxReplicatePercentDifference)||criteria.maxReplicatePercentDifference<0))return {status:'pending',evidence:'معیارهای کنترل و منبع IFU کامل یا معتبر نیستند؛ QC خودکار اجرا نشد.',groups,failures}
  if(criteria.referenceRole?.trim()&&(criteria.referenceRole===criteria.positiveRole||criteria.referenceRole===criteria.negativeRole||criteria.referenceMin==null||criteria.referenceMax==null||!Number.isFinite(criteria.referenceMin)||!Number.isFinite(criteria.referenceMax)||criteria.referenceMin>criteria.referenceMax))return {status:'pending',evidence:'نقش یا محدوده کنترل مرجع کامل و سازگار نیست.',groups,failures}
  if(criteria.positiveMin>criteria.positiveMax)return {status:'pending',evidence:'حد پایین و بالای کنترل مثبت با هم سازگار نیستند.',groups,failures}
  const roleIndex=criteria.roleColumn
@@ -82,7 +82,7 @@ export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCri
    catch{failures.push('ردیف '+(index+2)+' برای کنترل '+spec.label+' مقدار معتبر ندارد.')}
   })
   if(!vals.length){incomplete=true;failures.push('کنترل '+spec.label+' در فایل پیدا نشد.');continue}
-  const mean=vals.reduce((a,b)=>a+b,0)/vals.length,sd=vals.length>1?Math.sqrt(vals.reduce((a,v)=>a+(v-mean)**2,0)/(vals.length-1)):null,cvPercent=sd!==null&&mean?sd/mean*100:null
+  const mean=vals.reduce((a,b)=>a+b,0)/vals.length,sd=vals.length>1?Math.sqrt(vals.reduce((a,v)=>a+(v-mean)**2,0)/(vals.length-1)):null,cvPercent=sd!==null&&mean?sd/mean*100:null,percentDifference=mean?(Math.max(...vals)-Math.min(...vals))/mean*100:null
   let withinLimits:boolean|null=null
   if(spec.label==='positive')withinLimits=spec.min!==null&&spec.max!==null&&mean>=spec.min&&mean<=spec.max
   else if(spec.label==='negative')withinLimits=spec.max!==null&&mean<=spec.max
@@ -92,7 +92,8 @@ export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCri
    if(vals.length<2||cvPercent===null)incomplete=true
    else if(cvPercent>criteria.maxReplicateCvPercent){withinLimits=false;failures.push('CV تکرارهای کنترل '+spec.label+' از حد ثبت‌شده بیشتر است.')}
   }
-  groups.push({label:spec.label,n:vals.length,mean,sd,cvPercent,minimum:Math.min(...vals),maximum:Math.max(...vals),lowerLimit:spec.min,upperLimit:spec.max,maxReplicateCvPercent:criteria.maxReplicateCvPercent??null,withinLimits})
+  if(criteria.maxReplicatePercentDifference!==null&&criteria.maxReplicatePercentDifference!==undefined){if(vals.length<2||percentDifference===null)incomplete=true;else if(percentDifference>criteria.maxReplicatePercentDifference){withinLimits=false;failures.push('اختلاف درصدی تکرارهای کنترل '+spec.label+' از حد ثبت‌شده بیشتر است.')}}
+  groups.push({label:spec.label,n:vals.length,mean,sd,cvPercent,minimum:Math.min(...vals),maximum:Math.max(...vals),lowerLimit:spec.min,upperLimit:spec.max,maxReplicateCvPercent:criteria.maxReplicateCvPercent??null,percentDifference,maxReplicatePercentDifference:criteria.maxReplicatePercentDifference??null,withinLimits})
  }
  const status=failures.some(x=>x.includes('خارج از محدوده')||x.includes('از حد ثبت‌شده بیشتر')||x.includes('مقدار معتبر ندارد'))?'fail':incomplete||failures.length?'pending':'pass'
  const fmt=(n:number)=>n.toLocaleString('en-US',{maximumFractionDigits:4})
