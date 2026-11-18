@@ -10,8 +10,10 @@ const roleOptions:{key:'vaccine'|'assay'|'field';label:string;role:StrainRole;ma
  {key:'field',label:'سویه میدانی / مرجع',role:'field-reference',manualKey:'manualField',hint:'سویه جداسازی‌شده، ژنوتیپ، lineage یا نمونه مرجع'}
 ]
 export default function StrainSelector({disease}:Props){
- const [choices,setChoices]=useState<Choices>(()=>{try{return {...defaults,...JSON.parse(localStorage.getItem(storageKey(disease))||'{}')}}catch{return defaults}})
- useEffect(()=>{try{localStorage.setItem(storageKey(disease),JSON.stringify(choices))}catch{}},[disease,choices])
+ const [choices,setChoices]=useState<Choices>(defaults)
+ const [loadedDisease,setLoadedDisease]=useState(disease)
+ useEffect(()=>{if(loadedDisease!==disease){try{setChoices({...defaults,...JSON.parse(localStorage.getItem(storageKey(disease))||'{}')})}catch{setChoices(defaults)}setLoadedDisease(disease)}},[disease,loadedDisease])
+ useEffect(()=>{if(loadedDisease===disease)try{localStorage.setItem(storageKey(disease),JSON.stringify(choices))}catch{}},[disease,choices,loadedDisease])
  const strains=useMemo(()=>strainsForDisease(disease),[disease])
  const displayName=(id:string,manual:string)=>manual.trim()||strains.find(s=>s.id===id)?.name||''
  const notes=roleOptions.flatMap(item=>{const s=strains.find(x=>x.id===choices[item.key]);return s?.caution?[s.name+': '+s.caution]:[]})
