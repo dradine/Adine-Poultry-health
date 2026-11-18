@@ -45,7 +45,7 @@
 
 [راهنمای تست نسخه آزمایشی](docs/TEST_GUIDE_FA.md)
 
-برای اجرای نسخه شاخه توسعه در مرورگر، [پروژه را در StackBlitz باز کنید](https://stackblitz.com/github/dradine/Adine-Poultry-health/tree/feature/ibd-first-mvp). این لینک یک پیش‌نمایش توسعه از شاخه عمومی است و هنوز به‌عنوان میزبانی پایدار تولیدی یا تست تأییدشده روی iOS/Android معرفی نمی‌شود. در وضعیت فعلی GitHub Pages برای این مخزن فعال/تأییدشده نیست. برای ورود ابری، آدرس بازگشت ایمیل باید در Supabase Auth مجاز باشد و تأیید ایمیل انجام شود.
+برای اجرای نسخه شاخه توسعه در مرورگر، [پروژه را در StackBlitz باز کنید](https://stackblitz.com/github/dradine/Adine-Poultry-health/tree/feature/ibd-first-mvp). این لینک یک پیش‌نمایش توسعه از شاخه عمومی است. برای commit قبلی شاخه، اجرای GitHub Actions شامل build و deploy به Pages با موفقیت کامل شده و artifact انتشار ثبت شده است؛ pushهای شاخه نیز workflow انتشار را فعال می‌کنند. این موضوع به معنی تست دستی روی iOS/Android یا اعتبارسنجی عملکرد آفلاین نیست. برای ورود ابری، آدرس بازگشت ایمیل باید در Supabase Auth مجاز باشد و تأیید ایمیل انجام شود.
 
 ## اجرای محلی
 `npm ci` و سپس `npm run dev`؛ آدرس توسعه `http://localhost:3000` است. برای آزمون PWA و Service Worker: `npm run build` و سپس `npm run preview`. تست‌ها: `npm test`.
