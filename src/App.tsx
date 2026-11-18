@@ -562,6 +562,9 @@ export default function App() {
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
           </label>
+        </div>
+        <details className="custom-kit-accordion"><summary>جزئیات کیت، واکسن و پارامترهای محاسبه (اختیاری برای نمایش)</summary>
+        <div className="form-grid">
           {catalogNotice && <p className="muted">{catalogNotice}</p>}
           <label>انتخاب محصول واکسن از بانک مرجع
             <select value={selectedVaccineProductId} onChange={(e) => applyVaccineProduct(e.target.value)}>
@@ -629,19 +632,19 @@ export default function App() {
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
             <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
           </label>
-        </div>
+        </div></details>
         <label className="wide-label">تیترهای انفرادی ELISA
           <textarea value={titersText} onChange={(e) => setTitersText(e.target.value)} rows={4} placeholder="تیترها را با فاصله یا ویرگول وارد کنید؛ مثال: 3200، 2800، 4100، 1900 ..." />
           <small>راهنمای BioChek RevB 2025 برای baseline/profile و پیش‌بینی زمان واکسن ۲۳ نمونه را پیشنهاد می‌کند؛ برچسب UK Avishield IBD Plus (Revised June 2026; AN 00716/2026) حداقل ۱۸ جوجه را ذکر می‌کند. این اعداد محصول/روش‌محورند، نه cutoff جهانی؛ منبع انتخاب را ثبت کنید. فقط تیتر عددی معتبر از یک کیت و یک روش واحد. OD، S/P و تیترهای کیت‌های متفاوت را مخلوط نکنید.</small>
         </label>
 
-        <div className="qc-gate">
+        <details className="qc-details"><summary>＋ کنترل کیفیت و تأییدهای آزمایشگاهی</summary><div className="qc-gate">
           <div className="saved-title">دروازه کنترل کیفیت پیش از محاسبه</div>
           <p>این تأییدها را برنامه به‌صورت خودکار از دستگاه آزمایش نمی‌خواند؛ فقط پس از کنترل گزارش معتبر آزمایشگاه آن‌ها را علامت بزنید.</p>
           <label><input type="checkbox" checked={plateQcAccepted} onChange={(e) => setPlateQcAccepted(e.target.checked)} /> کنترل‌های مثبت و منفی و کنترل مرجعِ قابل‌اعمال، طبق IFU همان کیت و SOP آزمایشگاه، در محدوده پذیرش بوده‌اند.</label>
           <label><input type="checkbox" checked={randomSamplingConfirmed} onChange={(e) => setRandomSamplingConfirmed(e.target.checked)} /> نمونه‌ها به‌صورت تصادفی و نماینده از نقاط مختلف سالن و از جوجه‌های سالم انتخاب شده‌اند.</label>
           <label><input type="checkbox" checked={pairingVerified} onChange={(e) => setPairingVerified(e.target.checked)} /> BTT دقیقاً با همان واکسن، همان کیت، همان نسخه آزمون و همان واحد تیتر تطبیق داده شده است.</label>
-        </div>
+        </div></details>
         <div className="data-summary">
           <span>تعداد مقادیر واردشده</span>
           <strong>{toPersianDigits(titers.length)}</strong>
