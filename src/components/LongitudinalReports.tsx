@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
-import { REFERENCE_BASELINES, UNPARSED_REFERENCE_DOCUMENTS } from '../data/referenceBaselines'
 import { normalizeDigits } from '../core/ibd'
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
 import SerologyReaderImport from './SerologyReaderImport'
-import { areComparableSerologyRounds, calculateBioChekVI, comparePairedSerology, hasCompleteSerologyComparisonMetadata, parseSampleIds, parseSerologyValues, serologyComparisonKey, summarizeSerology, type SerologyScale } from '../core/serologyStats'
+import { calculateBioChekVI, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
 
 type Profile={id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
 type Disease='IBD'|'ND'|'IBV'|'AIV'
@@ -20,17 +19,9 @@ const diseases:{code:Disease;title:string;methods:('ELISA'|'HI')[]}[]=[
 const faDate=(s:string)=>s?new Date(s+'T12:00:00').toLocaleDateString('fa-IR'):'—'
 const fa=(n:number)=>Number.isFinite(n)?n.toLocaleString('fa-IR',{maximumFractionDigits:2}):'—'
 const str=(o:Record<string,unknown>,k:string)=>typeof o[k]==='string'?String(o[k]):''
-const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number')?v as number[]:[]
-const strings=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='string')?v as string[]:[]
 const localToday=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tehran',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=(k:string)=>parts.find(x=>x.type===k)?.value||'';return get('year')+'-'+get('month')+'-'+get('day')}
-const purposeFa=(v:string)=>({mda:'آنتی‌بادی مادری / هچری','pre-vaccination':'قبل از واکسیناسیون','post-vaccination':'پس از واکسیناسیون',routine:'پایش دوره‌ای',outbreak:'بررسی در شرایط مشکوک به چالش'} as Record<string,string>)[v]||v
-const qcFa=(v:string)=>({pending:'بررسی نشده',demo:'QC واقعی اجرا نشده؛ صرفاً نمونه نمایشی',pass:'کنترل‌ها طبق IFU قابل قبول (اظهاری)',review:'نیازمند بازبینی',fail:'رد شده'} as Record<string,string>)[v]||v
-const matrixFa=(v:string)=>v==='serum'?'سرم':v==='egg-yolk'?'زرده تخم‌مرغ':v==='unknown'?'نامشخص':v
-function roundIdentity(r:LocalModelRun){return {flockId:r.flock_id,diseaseCode:r.disease_code,input:r.input_snapshot}}
-function hasComparisonMetadata(r:LocalModelRun){return hasCompleteSerologyComparisonMetadata(roundIdentity(r))}
-function compatible(a:LocalModelRun,b:LocalModelRun){return areComparableSerologyRounds(roundIdentity(a),roundIdentity(b))}
 export default function LongitudinalReports({profiles,mode='all',initialFlockId='',initialDisease='ND'}:{profiles:Profile[];mode?:'all'|'entry'|'reports';initialFlockId?:string;initialDisease?:Disease}){
- const [flocks,setFlocks]=useState<LocalFlock[]>([]),[runs,setRuns]=useState<LocalModelRun[]>([]),[chartGroupKey,setChartGroupKey]=useState(''),[accountEmail,setAccountEmail]=useState('')
+ const [flocks,setFlocks]=useState<LocalFlock[]>([]),[runs,setRuns]=useState<LocalModelRun[]>([]),[accountEmail,setAccountEmail]=useState('')
  const [disease,setDisease]=useState<Disease>(initialDisease),[flockId,setFlockId]=useState(initialFlockId),[population,setPopulation]=useState('unknown')
  const [form,setForm]=useState(mode!=='reports'),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[openId,setOpenId]=useState('')
  const [method,setMethod]=useState<'ELISA'|'HI'>('ELISA'),[date,setDate]=useState(localToday()),[age,setAge]=useState('')
@@ -55,13 +46,6 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const rows=runs.filter(x=>x.disease_code===disease&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
  const previousAssayRun=runs.filter(x=>x.model_family==='serology-longitudinal-round'&&x.flock_id===flockId&&x.disease_code===disease&&x.input_snapshot.method===method).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at))).at(-1)
- const trendRows=rows
- const chartGroups=useMemo(()=>{const m=new Map<string,LocalModelRun>();trendRows.filter(hasComparisonMetadata).forEach(r=>{const key=serologyComparisonKey(roundIdentity(r));if(key&&!m.has(key))m.set(key,r)});return [...m.entries()].map(([key,r])=>({key,label:(fl.find(x=>x.id===r.flock_id)?.name||'گله')+' · '+str(r.input_snapshot,'method')+' · '+str(r.input_snapshot,'kit')+' · '+str(r.input_snapshot,'unit')}))},[trendRows,fl])
- const activeChartKey=chartGroups.some(x=>x.key===chartGroupKey)?chartGroupKey:(chartGroups[0]?.key||'')
- const chartRows=trendRows.filter(r=>activeChartKey&&serologyComparisonKey(roundIdentity(r))===activeChartKey)
- const chartValues=chartRows.map(x=>Number(x.output_snapshot.trendValue??0))
- const chartMin=chartValues.length?Math.min(...chartValues):0,chartMax=chartValues.length?Math.max(...chartValues):0,chartSpan=chartMax-chartMin||1
- const chartPoints=chartValues.map((v,i)=>({x:28+(i*Math.max(1,220/(chartValues.length-1||1))),y:126-((v-chartMin)/chartSpan)*92}))
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
  const selectedAssay=ASSAY_CATALOG.find(x=>x.id===assayId)
  const sampleN=Number(normalizeDigits(count))
