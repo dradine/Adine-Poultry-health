@@ -21,6 +21,7 @@ type SavedProfile = {
   id: string
   flockName: string
   placementDate: string
+  hatchDate?: string
   savedAt: string
   flockType?: string
   flockSize?: string
@@ -104,6 +105,7 @@ function readStrainSelections(disease: DiagnosticKit['disease']): Record<string,
 export default function App() {
   const [flockName, setFlockName] = useState('')
   const [placementDate, setPlacementDate] = useState('')
+  const [hatchDate, setHatchDate] = useState('')
   const [sampleDate, setSampleDate] = useState('')
   const [flockType, setFlockType] = useState('broiler')
   const [flockSize, setFlockSize] = useState('')
@@ -142,10 +144,11 @@ export default function App() {
   const [customKitDraft, setCustomKitDraft] = useState({ brand:'', catalog:'', assay:'', format:'ELISA', sample:'Serum', intendedUse:'', sourceUrl:'', notes:'' })
   useEffect(() => { try { localStorage.setItem('adine-custom-diagnostic-kits-v1', JSON.stringify(customKits)) } catch { setError('ذخیره کیت دستی در مرورگر ناموفق بود.') } }, [customKits])
   useEffect(() => {
-    if (!placementDate || !sampleDate) return
-    const days = Math.round((Date.parse(sampleDate + 'T12:00:00') - Date.parse(placementDate + 'T12:00:00')) / 86400000)
+    if (!hatchDate || !sampleDate) return
+    const days = Math.round((Date.parse(sampleDate + 'T12:00:00') - Date.parse(hatchDate + 'T12:00:00')) / 86400000)
     if (Number.isFinite(days) && days >= 0) setSamplingAge(String(days))
-  }, [placementDate, sampleDate])
+    else setError('تاریخ نمونه‌گیری نمی‌تواند قبل از تاریخ هچ باشد؛ تاریخ‌ها یا سن نمونه را بازبینی کنید.')
+  }, [hatchDate, sampleDate])
   function goToStep(next: 1|2|3|4) {
     setError('')
     if (next > 1 && (!flockName.trim() || !placementDate)) { setError('برای ادامه، نام گله و تاریخ جوجه‌ریزی را در مرحله اول وارد کنید.'); setWizardStep(1); return }
@@ -379,6 +382,7 @@ export default function App() {
       id: existing?.id || crypto.randomUUID(),
       flockName: flockName.trim(),
       placementDate,
+      hatchDate: hatchDate || undefined,
       savedAt: new Date().toISOString(),
       flockType, flockSize, houseName, hatchery, sampleDate, vaccinationHistory,
     }
@@ -563,7 +567,7 @@ export default function App() {
             />
           </label>
         </div>
-        <details className="custom-kit-accordion"><summary>اطلاعات تکمیلی گله، سالن و واکسیناسیون</summary><div className="form-grid"><label>نوع گله<select value={flockType} onChange={e=>setFlockType(e.target.value)}><option value="broiler">گوشتی</option><option value="layer">تخم‌گذار</option><option value="breeder">مادر</option><option value="other">سایر</option></select></label><label>تعداد جوجه / پرنده<input inputMode="numeric" value={flockSize} onChange={e=>setFlockSize(e.target.value)} placeholder="تعداد تقریبی" /></label><label>نام / شماره سالن<input value={houseName} onChange={e=>setHouseName(e.target.value)} /></label><label>هچری / منبع جوجه<input value={hatchery} onChange={e=>setHatchery(e.target.value)} /></label><label>تاریخ نمونه‌گیری (اختیاری)<DatePicker calendar={persian} locale={persian_fa} value={sampleDate?new Date(sampleDate+'T12:00:00'):''} onChange={date=>setSampleDate(date&&!Array.isArray(date)?toIsoDate(date):'')} format="YYYY/MM/DD" calendarPosition="bottom-right" placeholder="انتخاب تاریخ نمونه" inputClass="date-input" /></label><label className="wide-label">تاریخچه واکسیناسیون<textarea rows={3} value={vaccinationHistory} onChange={e=>setVaccinationHistory(e.target.value)} placeholder="سن، بیماری، نوع واکسن، سویه، مسیر و تاریخ اجرا…" /></label></div></details>
+        <details className="custom-kit-accordion"><summary>اطلاعات تکمیلی گله، سالن و واکسیناسیون</summary><div className="form-grid"><label>تاریخ هچ / تولد جوجه (برای سن واقعی MDA)<DatePicker calendar={persian} locale={persian_fa} value={hatchDate?new Date(hatchDate+'T12:00:00'):''} onChange={date=>setHatchDate(date&&!Array.isArray(date)?toIsoDate(date):'')} format="YYYY/MM/DD" calendarPosition="bottom-right" placeholder="تاریخ هچ را وارد کنید" inputClass="date-input" /></label><label>نوع گله<select value={flockType} onChange={e=>setFlockType(e.target.value)}><option value="broiler">گوشتی</option><option value="layer">تخم‌گذار</option><option value="breeder">مادر</option><option value="other">سایر</option></select></label><label>تعداد جوجه / پرنده<input inputMode="numeric" value={flockSize} onChange={e=>setFlockSize(e.target.value)} placeholder="تعداد تقریبی" /></label><label>نام / شماره سالن<input value={houseName} onChange={e=>setHouseName(e.target.value)} /></label><label>هچری / منبع جوجه<input value={hatchery} onChange={e=>setHatchery(e.target.value)} /></label><label>تاریخ نمونه‌گیری (اختیاری)<DatePicker calendar={persian} locale={persian_fa} value={sampleDate?new Date(sampleDate+'T12:00:00'):''} onChange={date=>setSampleDate(date&&!Array.isArray(date)?toIsoDate(date):'')} format="YYYY/MM/DD" calendarPosition="bottom-right" placeholder="انتخاب تاریخ نمونه" inputClass="date-input" /></label><label className="wide-label">تاریخچه واکسیناسیون<textarea rows={3} value={vaccinationHistory} onChange={e=>setVaccinationHistory(e.target.value)} placeholder="سن، بیماری، نوع واکسن، سویه، مسیر و تاریخ اجرا…" /></label></div><p className="muted">برای محاسبه سن MDA از تاریخ هچ تا تاریخ نمونه‌گیری استفاده می‌شود، نه تاریخ جوجه‌ریزی. اگر تاریخ هچ ثبت نشده باشد، سن نمونه‌گیری را دستی و با مستندات وارد کنید.</p></details>
         <button className="button secondary" onClick={saveProfile}>ذخیره مشخصات گله</button>
         {error && <p className="error">{error}</p>}
         {profiles.length > 0 && (
@@ -573,7 +577,7 @@ export default function App() {
               <div className="saved-row" key={profile.id}>
                 <span>{profile.flockName}</span>
                 <small>{toPersianDigits(formatJalaliDate(profile.placementDate))}</small>
-                <button className="link-button" onClick={() => { setFlockName(profile.flockName); setPlacementDate(profile.placementDate); setFlockType(profile.flockType || 'broiler'); setFlockSize(profile.flockSize || ''); setHouseName(profile.houseName || ''); setHatchery(profile.hatchery || ''); setSampleDate(profile.sampleDate || ''); setVaccinationHistory(profile.vaccinationHistory || '') }}>انتخاب</button>
+                <button className="link-button" onClick={() => { setFlockName(profile.flockName); setPlacementDate(profile.placementDate); setHatchDate(profile.hatchDate || ''); setFlockType(profile.flockType || 'broiler'); setFlockSize(profile.flockSize || ''); setHouseName(profile.houseName || ''); setHatchery(profile.hatchery || ''); setSampleDate(profile.sampleDate || ''); setVaccinationHistory(profile.vaccinationHistory || '') }}>انتخاب</button>
                 <button className="link-button" onClick={() => removeProfile(profile.id)}>حذف</button>
               </div>
             ))}
