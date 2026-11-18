@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { normalizeDigits } from './ibd'
 import {
   listOutbox, removeOutboxItem, recordOutboxFailure, markLocalSynced,
   removeLocalRecord, listLocalFlocks, listLocalModelRuns, upsertLocalFromCloud,
@@ -8,7 +9,7 @@ import {
 
 const PROFILE_KEY = 'adine-vaccine-timing-profiles-v1'
 const ANALYSIS_KEY = 'adine-vaccine-timing-analyses-v1'
-type LegacyProfile = { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt: string }
+type LegacyProfile = { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt: string; flockType?: string; flockSize?: string; houseName?: string; hatchery?: string; sampleDate?: string; vaccinationHistory?: string }
 type LegacyAnalysis = {
   id: string; flockName: string; placementDate: string; samplingAge: string
   kitName: string; vaccineName: string; bttSource: string; halfLifeSource: string
@@ -29,6 +30,34 @@ function parseArray<T>(key: string): T[] {
   } catch { return [] }
 }
 function dateOnly(value: string): string { return value.slice(0, 10) }
+function flockMetadata(profile: LegacyProfile) {
+  const countText = profile.flockSize ? normalizeDigits(profile.flockSize).replace(/[,،٬\s]/g, '') : ''
+  const count = countText ? Number(countText) : NaN
+  const notes = {
+    hatchery: profile.hatchery || null,
+    sampleDate: profile.sampleDate || null,
+    vaccinationHistory: profile.vaccinationHistory || null,
+  }
+  return {
+    species: profile.flockType || 'broiler',
+    bird_count: Number.isInteger(count) && count > 0 ? count : null,
+    location_label: profile.houseName || null,
+    notes: JSON.stringify(notes),
+  }
+}
+function parseFlockNotes(value: string | null | undefined): { hatchery?:string; sampleDate?:string; vaccinationHistory?:string } {
+  if (!value) return {}
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    const row = parsed as Record<string, unknown>
+    return {
+      hatchery: typeof row.hatchery === 'string' ? row.hatchery : undefined,
+      sampleDate: typeof row.sampleDate === 'string' ? row.sampleDate : undefined,
+      vaccinationHistory: typeof row.vaccinationHistory === 'string' ? row.vaccinationHistory : undefined,
+    }
+  } catch { return {} }
+}
 
 async function bindLocalDataToSession(bindWhenEmpty = false): Promise<void> {
   const { data: { session }, error } = await supabase.auth.getSession()
@@ -98,7 +127,8 @@ async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses:
   for (const profile of profiles) {
     if (!profile.id || !profile.flockName || !profile.placementDate || byId.has(profile.id)) continue
     const row: Omit<LocalFlock, 'syncState'> = {
-      id: profile.id, flock_name: profile.flockName, species: 'broiler',
+      id: profile.id, flock_name: profile.flockName,
+      ...flockMetadata(profile),
       hatch_date: profile.hatchDate || null, placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
       created_at: profile.savedAt || new Date().toISOString(),
       updated_at: profile.savedAt || new Date().toISOString(),
@@ -135,7 +165,8 @@ async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses:
 export async function saveProfileToLocal(profile: LegacyProfile): Promise<void> {
   await bindLocalDataToSession(true)
   const row: Omit<LocalFlock, 'syncState'> = {
-    id: profile.id, flock_name: profile.flockName, species: 'broiler',
+    id: profile.id, flock_name: profile.flockName,
+    ...flockMetadata(profile),
     hatch_date: profile.hatchDate || null, placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
     created_at: profile.savedAt, updated_at: profile.savedAt,
   }
@@ -162,6 +193,10 @@ function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
   const profiles = flocks.filter(row => !row.deleted).map(row => ({
     id: row.id, flockName: row.flock_name, placementDate: row.placement_date,
     hatchDate: row.hatch_date || undefined, savedAt: row.updated_at || row.created_at,
+    flockType: row.species || 'broiler',
+    flockSize: row.bird_count ? String(row.bird_count) : undefined,
+    houseName: row.location_label || undefined,
+    ...parseFlockNotes(row.notes),
   }))
   const flockById = new Map(flocks.map(row => [row.id, row]))
   const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD' && row.model_family !== 'maternal-antibody-decay-exploratory').map(row => {
