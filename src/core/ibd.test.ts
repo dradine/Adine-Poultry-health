@@ -17,8 +17,11 @@ describe('IBD Deventer-style mathematical estimator', () => {
     expect(r.percentileRank).toBe(2)
     expect(r.warnings.some(w=>w.includes('مشاهده از انتهای پایین'))).toBe(true)
   })
-  it('rejects undersized samples', () => {
-    expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[64,128,256]})).toThrow(/حداقل 23 نمونه/)
+  it('allows undersized samples for exploratory calculations and emits strong warnings', () => {
+    const r=calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[64,128,256]})
+    expect(r.sampleCount).toBe(3)
+    expect(r.warnings.join(' ')).toContain('صرفاً اکتشافی')
+    expect(r.warnings.join(' ')).toContain('n<10')
   })
   it('flags a threshold already reached at sampling', () => {
     const r=calculateIbdWindow({samplingAgeDays:14,breakthroughTiter:4096,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
