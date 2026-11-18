@@ -9,6 +9,13 @@ describe('conservative serology interpretation',()=>{
   expect(x.summary).toContain('استنتاج حفاظت')
   expect(x.items.some(i=>i.level==='block')).toBe(false)
  })
+ it('adds descriptive distribution metrics and only applies positivity when a sourced cutoff exists',()=>{
+  const withCutoff=interpretSerologyRound('ND',{...valid,assayId:'manual',seropositivityCutoff:32,cutoffDirection:'above',cutoffSource:'IFU rev 2 p.6'})
+  expect(withCutoff.items.some(i=>i.title==='خلاصه توزیع نمونه‌ها')).toBe(true)
+  expect(withCutoff.items.some(i=>i.title.includes('طبقه‌بندی مثبت'))).toBe(true)
+  const withoutCutoff=interpretSerologyRound('ND',{...valid,assayId:'manual',seropositivityCutoff:32,cutoffSource:''})
+  expect(withoutCutoff.items.some(i=>i.title.includes('طبقه‌بندی مثبت'))).toBe(false)
+ })
  it('blocks interpretation when raw plate QC is not accepted',()=>{
   const x=interpretSerologyRound('ND',{...valid,qcStatus:'pass',readerImportMeta:{qcStatus:'fail'}})
   expect(x.items.some(i=>i.level==='block'&&i.title.includes('اعتبار پلیت'))).toBe(true)
