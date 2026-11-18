@@ -33,9 +33,9 @@ export function validateReaderScale(columnName:string,method:'ELISA'|'HI',scale:
  const name=columnName.trim()
  if(method==='HI'&&scale!=='hi-reciprocal')throw new Error('برای HI، مقیاس باید HI reciprocal titre باشد.')
  if(method==='ELISA'&&scale==='hi-reciprocal')throw new Error('مقیاس HI برای ELISA قابل استفاده نیست.')
- if(/\\bOD\\d{3,4}\\b|\\bOD\\b|optical density|absorbance/i.test(name)&&scale!=='od')throw new Error('ستون انتخاب‌شده OD/Absorbance به نظر می‌رسد؛ مقیاس را OD انتخاب کنید یا ستون تیتر/نسبت صحیح را مشخص کنید.')
- if(/S\\s*\\/\\s*P|S-P\\s*ratio/i.test(name)&&scale!=='sp')throw new Error('ستون انتخاب‌شده S/P به نظر می‌رسد؛ مقیاس S/P را انتخاب کنید.')
- if(/S\\s*\\/\\s*N|S-N\\s*ratio/i.test(name)&&scale!=='sn')throw new Error('ستون انتخاب‌شده S/N به نظر می‌رسد؛ مقیاس S/N را انتخاب کنید.')
+ if(/\bOD\d{3,4}\b|\bOD\b|optical density|absorbance/i.test(name)&&scale!=='od')throw new Error('ستون انتخاب‌شده OD/Absorbance به نظر می‌رسد؛ مقیاس را OD انتخاب کنید یا ستون تیتر/نسبت صحیح را مشخص کنید.')
+ if(/S\s*\/\s*P|S-P\s*ratio/i.test(name)&&scale!=='sp')throw new Error('ستون انتخاب‌شده S/P به نظر می‌رسد؛ مقیاس S/P را انتخاب کنید.')
+ if(/S\s*\/\s*N|S-N\s*ratio/i.test(name)&&scale!=='sn')throw new Error('ستون انتخاب‌شده S/N به نظر می‌رسد؛ مقیاس S/N را انتخاب کنید.')
 }
 export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'ELISA'|'HI'):ReaderImport{
  if(mapping.resultColumn<0||mapping.resultColumn>=table.headers.length)throw new Error('ستون نتیجه انتخاب نشده است.')
