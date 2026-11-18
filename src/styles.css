@@ -127,3 +127,5 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .monitor-history-row summary span{margin-right:auto;color:#62746a}
 .monitor-history-row summary small{color:#839087}
 .monitor-history-row .monitor-output{margin-top:10px}
+
+.sample-count-note{margin:14px 0;padding:13px 15px;border:1px solid #dbe6df;border-radius:12px;background:#f5faf7;color:#365c49}.sample-count-note p{font-size:12px;line-height:1.9;margin:7px 0}.sample-count-note small{font-size:10px;line-height:1.8;color:#718178}
