@@ -13,13 +13,12 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
  const {data:{session},error}=await supabase.auth.getSession()
  if(error)throw error
  const bound=await getSyncMeta('bound-account')
- const targetEmail='dradinehvand@gmail.com'
  if(session){
-  if((session.user.email||'').toLowerCase()!==targetEmail)throw new Error('برای ذخیره این پرونده‌ها باید با حساب '+targetEmail+' وارد شوید.')
+  if(!session.user.email)throw new Error('ایمیل حساب واردشده در دسترس نیست؛ برای ذخیره گزارش، نشست معتبر لازم است.')
   if(bound&&bound!==session.user.id)throw new Error('این دستگاه به حساب دیگری متصل است؛ برای جلوگیری از انتقال اطلاعات بین حساب‌ها ذخیره متوقف شد.')
   if(!bound)await setSyncMeta('bound-account',session.user.id)
  }else if(!bound){
-  throw new Error('برای اتصال امن گزارش‌ها به حساب '+targetEmail+'، ابتدا با همان حساب وارد شوید؛ پس از اتصال اولیه، ثبت آفلاین نیز ممکن است.')
+  throw new Error('برای اتصال امن گزارش‌ها به حساب موردنظر، ابتدا با همان حساب وارد شوید؛ پس از اتصال اولیه، ثبت آفلاین نیز ممکن است.')
  }
  const existing=(await listLocalFlocks(true)).find(x=>x.id===draft.flock.id)
  if(existing?.deleted)throw new Error('این گله حذف شده است؛ برای ثبت نوبت جدید ابتدا وضعیت گله را بازیابی کنید.')
