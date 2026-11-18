@@ -6,8 +6,11 @@ export function assessAivEvidence(i:AivEvidenceInput):AivEvidenceOutput{
  if(i.rtPcrResult==='positive')signals.push('RT-PCR مثبت: ارجاع فوری به دامپزشک مسئول و مرجع رسمی؛ تأیید/تایپ طبق پروتکل.')
  if(i.clinicalSigns||i.mortalityIncrease)signals.push('علائم یا افزایش تلفات: بررسی فوری و نمونه‌گیری ویروس‌شناختی طبق پروتکل.')
  if(i.serologyResult==='positive')signals.push('سرولوژی مثبت: تفسیر وابسته به واکسیناسیون، DIVA و برنامه پایش؛ به‌تنهایی تشخیص گردش ویروس نیست.')
- if(i.vaccinationStatus==='vaccinated'&&i.divaValidated)signals.push('DIVA فقط در صورت اعتبارسنجی روش و اجرای پروتکل اختصاصی قابل تفسیر است.')
+ if(i.serologyResult==='inconclusive')signals.push('سرولوژی نامشخص: نتیجه قابل طبقه‌بندی نیست؛ تکرار/تأیید در آزمایشگاه واجد صلاحیت طبق IFU و برنامه پایش بررسی شود.')
+ if(i.vaccinationStatus==='vaccinated'&&i.divaValidated)signals.push('DIVA توسط کاربر به‌عنوان معتبر علامت‌گذاری شده است؛ این برنامه کیت همراه، آنتی‌ژن هدف، IFU یا اعتبارسنجی پروتکل را مستقلاً کنترل نکرده است.')
  const urgent=i.rtPcrResult==='positive'||i.clinicalSigns||i.mortalityIncrease
- return {status:urgent?'urgent-veterinary-review':i.serologyResult==='positive'?'surveillance-follow-up':'insufficient-evidence',signals,
- limitations:['این ابزار تشخیص آنفلوانزا، تعیین سویه/زیرتیپ یا اثبات حفاظت نیست.','نتیجه باید توسط دامپزشک و آزمایشگاه مرجع و طبق مقررات رسمی تفسیر شود.','HI/ELISA به‌تنهایی عفونت فعال، دفع یا انتقال را ثابت/رد نمی‌کند.',...(i.vaccinationStatus==='unknown'?['وضعیت واکسیناسیون نامعلوم است؛ تفسیر DIVA/سرولوژی محدود می‌شود.']:[]),...(i.antigenMatch!=='documented'?['تطابق آنتی‌ژنی مستند نیست؛ ادعای اثربخشی واکسن مجاز نیست.']:[]),...(i.officialProgramConfirmed?[]:['برنامه رسمی منطقه/کشور در ورودی تأیید نشده است.'])]}
+ return {status:urgent?'urgent-veterinary-review':i.serologyResult==='positive'||i.serologyResult==='inconclusive'?'surveillance-follow-up':'insufficient-evidence',signals,
+ limitations:['این ابزار تشخیص آنفلوانزا، تعیین سویه/زیرتیپ یا اثبات حفاظت نیست.','نتیجه باید توسط دامپزشک و آزمایشگاه مرجع و طبق مقررات رسمی تفسیر شود.','HI/ELISA به‌تنهایی عفونت فعال، دفع یا انتقال را ثابت/رد نمی‌کند.',
+ ...(i.divaValidated?['علامت DIVA یک اظهار اپراتور است؛ نام آزمون، آنتی‌ژن، نسخه IFU و شواهد اعتبارسنجی در این فرم ثبت نشده‌اند و باید خارج از برنامه بررسی شوند.']:[]),
+ ...(i.subtype.trim()?[]:['زیرتیپ/آنتی‌ژن ثبت نشده است؛ تفسیر زیرتیپ‌محور ممکن نیست.']),...(i.vaccinationStatus==='unknown'?['وضعیت واکسیناسیون نامعلوم است؛ تفسیر DIVA/سرولوژی محدود می‌شود.']:[]),...(i.antigenMatch!=='documented'?['تطابق آنتی‌ژنی مستند نیست؛ ادعای اثربخشی واکسن مجاز نیست.']:[]),...(i.officialProgramConfirmed?[]:['برنامه رسمی منطقه/کشور در ورودی تأیید نشده است.'])]}
 }
