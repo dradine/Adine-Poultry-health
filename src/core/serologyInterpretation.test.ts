@@ -20,6 +20,10 @@ describe('conservative serology interpretation',()=>{
   const x=interpretSerologyRound('ND',{...valid,qcStatus:'pass',readerImportMeta:{qcStatus:'fail'}})
   expect(x.items.some(i=>i.level==='block'&&i.title.includes('اعتبار پلیت'))).toBe(true)
  })
+ it('flags disagreement between entered age and hatch/sampling dates',()=>{
+  const x=interpretSerologyRound('IBD',{...valid,hatchDate:'2026-10-01',samplingDate:'2026-10-20',samplingAgeDays:12})
+  expect(x.items.some(i=>i.title.includes('سن واردشده با تاریخ هچ'))).toBe(true)
+ })
  it('does not treat a catalog-only assay as IFU-validated',()=>{
   const x=interpretSerologyRound('AIV',{...valid,assayId:'idvet-aiv-flunps'})
   expect(x.items.some(i=>i.title.includes('کاتالوگ محصول موجود است'))).toBe(true)
