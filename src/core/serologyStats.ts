@@ -103,3 +103,23 @@ export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRo
   const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
   return ka!==null&&ka===kb
 }
+function daysBetween(a:unknown,b:unknown):number|null{
+  if(typeof a!=='string'||typeof b!=='string'||!/^\\d{4}-\\d{2}-\\d{2}$/.test(a)||!/^\\d{4}-\\d{2}-\\d{2}$/.test(b))return null
+  const x=Date.parse(a+'T00:00:00Z'),y=Date.parse(b+'T00:00:00Z')
+  return Number.isFinite(x)&&Number.isFinite(y)?Math.round((x-y)/86400000):null
+}
+/** Strict cross-flock comparability: same assay identity plus matched biological context. This is not a protection benchmark. */
+export function areComparableFlockRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
+  if(a.diseaseCode!==b.diseaseCode||a.flockId===b.flockId)return false
+  const x=a.input,y=b.input
+  if(x.demo===true||y.demo===true||x.qcStatus!=='pass'||y.qcStatus!=='pass')return false
+  if(!commonComparisonFields.every(k=>typeof x[k]==='string'&&typeof y[k]==='string'&&String(x[k]).trim()!==''&&String(x[k])===String(y[k])))return false
+  const ax=Number(x.samplingAgeDays),ay=Number(y.samplingAgeDays)
+  if(!Number.isFinite(ax)||!Number.isFinite(ay)||Math.abs(ax-ay)>1)return false
+  if(typeof x.samplingPurpose!=='string'||!x.samplingPurpose||x.samplingPurpose!==y.samplingPurpose)return false
+  if(typeof x.vaccinePlatform!=='string'||!x.vaccinePlatform||x.vaccinePlatform!==y.vaccinePlatform||x.vaccinePlatform==='unknown')return false
+  if(x.vaccinePlatform==='unvaccinated')return true
+  for(const k of ['vaccine','vaccineStrain','vaccineProgram'])if(typeof x[k]!=='string'||!String(x[k]).trim()||x[k]!==y[k])return false
+  const dx=daysBetween(x.samplingDate,x.vaccineDate),dy=daysBetween(y.samplingDate,y.vaccineDate)
+  return dx!==null&&dy!==null&&dx>=0&&dy>=0&&Math.abs(dx-dy)<=2
+}
