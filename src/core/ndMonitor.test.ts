@@ -6,11 +6,20 @@ const base = {assayAntigen:'LaSota',vaccineProduct:'live ND',route:'eye drop',sa
 describe('ND HI monitor',()=>{
  it('computes paired rise only from explicit matched bird IDs and response threshold',()=>{
   const result=monitorNdHi({...base,postHiLog2:[4,5,6],pairedObservations:[{birdId:'A',baselineHiLog2:2,postHiLog2:4},{birdId:'B',baselineHiLog2:3,postHiLog2:5},{birdId:'C',baselineHiLog2:4,postHiLog2:6}],responseThresholdLog2:5})
-  expect(result.geometricMeanLog2).toBe(5)
+  expect(result.meanHiLog2).toBe(5)
   expect(result.meanLog2Rise).toBe(2)
   expect(result.fourfoldRisePercent).toBe(100)
   expect(result.responderPercent).toBeCloseTo(66.666)
   expect(result.pairedN).toBe(3)
+ })
+ it('uses sample SD for individual birds and leaves it undefined for n=1',()=>{
+  const r=monitorNdHi({...base,postHiLog2:[2,4]})
+  expect(r.meanHiLog2).toBe(3)
+  expect(r.sdLog2).toBeCloseTo(Math.sqrt(2),8)
+  expect(r.cvReciprocalPercent).toBeCloseTo(84.8528,3)
+  const one=monitorNdHi({...base,postHiLog2:[3]})
+  expect(one.sdLog2).toBeNull()
+  expect(one.cvReciprocalPercent).toBeNull()
  })
  it('rejects fractional individual HI endpoints',()=>{
   expect(()=>monitorNdHi({...base,postHiLog2:[2,3.5]})).toThrow(/endpoint صحیح/)
