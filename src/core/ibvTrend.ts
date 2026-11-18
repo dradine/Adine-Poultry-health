@@ -1,7 +1,7 @@
 /** IBV serology trend monitor. Serum trend does not equal mucosal protection/cross-protection. */
 export type IbvObservation={day:number;value:number}
 export type IbvTrendInput={observations:IbvObservation[];assay:string;measurementScale:string;kitLot?:string;vaccineStrain?:string;route?:string;unit:'ELISA'|'HI-log2'|'VN'}
-export type IbvTrendOutput={n:number;assay:string;measurementScale:string;unit:'ELISA'|'HI-log2'|'VN';firstDay:number;lastDay:number;firstValue:number;lastValue:number;absoluteChange:number;foldChange:number|null;direction:'up'|'down'|'stable';slopePerDay:number;mean:number;median:number;sd:number;cvPercent:number|null;rSquared:number|null;warnings:string[]}
+export type IbvTrendOutput={n:number;assay:string;measurementScale:string;unit:'ELISA'|'HI-log2'|'VN';firstDay:number;lastDay:number;firstValue:number;lastValue:number;absoluteChange:number;lastToFirstRatio:number|null;direction:'up'|'down'|'stable';slopePerDay:number;mean:number;median:number;temporalSd:number;temporalCvPercent:number|null;rSquared:number|null;warnings:string[]}
 const median=(v:number[])=>{const s=[...v].sort((a,b)=>a-b);return s.length%2?s[(s.length-1)/2]:(s[s.length/2-1]+s[s.length/2])/2}
 export function analyzeIbvTrend(input:IbvTrendInput):IbvTrendOutput{
  const observations=[...input.observations].sort((a,b)=>a.day-b.day)
@@ -16,14 +16,16 @@ export function analyzeIbvTrend(input:IbvTrendInput):IbvTrendOutput{
  const slope=observations.reduce((s,o)=>s+(o.day-meanX)*(o.value-mean),0)/denom
  const ssTot=observations.reduce((s,o)=>s+(o.value-mean)**2,0),ssRes=observations.reduce((s,o)=>s+(o.value-(mean+slope*(o.day-meanX)))**2,0)
  const sd=Math.sqrt(ssTot/observations.length),r2=ssTot>0?Math.max(0,Math.min(1,1-ssRes/ssTot)):null
- const fold=input.unit==='HI-log2'?2**delta:(first.value>0?last.value/first.value:null)
+ const lastToFirstRatio=input.unit==='HI-log2'?2**delta:(first.value>0?last.value/first.value:null)
  const direction=delta===0?'stable':delta>0?'up':'down'
- return {n:observations.length,assay:input.assay,measurementScale:input.measurementScale,unit:input.unit,firstDay:first.day,lastDay:last.day,firstValue:first.value,lastValue:last.value,absoluteChange:delta,foldChange:fold,direction,slopePerDay:slope,mean,median:median(observations.map(o=>o.value)),sd,cvPercent:mean!==0?100*sd/Math.abs(mean):null,rSquared:r2,warnings:[
+ return {n:observations.length,assay:input.assay,measurementScale:input.measurementScale,unit:input.unit,firstDay:first.day,lastDay:last.day,firstValue:first.value,lastValue:last.value,absoluteChange:delta,lastToFirstRatio,direction,slopePerDay:slope,mean,median:median(observations.map(o=>o.value)),temporalSd:sd,temporalCvPercent:mean!==0?100*sd/Math.abs(mean):null,rSquared:r2,warnings:[
  'روند سرمی به‌تنهایی حفاظت مخاطی، جلوگیری از دفع ویروس یا cross-protection را تعیین نمی‌کند.',
  'مقادیر فقط در assay/کیت/واحد همسان قابل مقایسه‌اند؛ تبدیل بین ELISA، HI و VN معتبر نیست.',
  input.unit==='HI-log2'?'fold change از اختلاف log2 به‌صورت 2 به توان اختلاف محاسبه شده است؛ تقسیم مستقیم دو مقدار log2 معتبر نیست.':'fold change نسبت آخر به اول، نسبت عددی در همان مقیاس است و معادل افزایش حفاظت یا fold-neutralization نیست.',
  'شیب و R² توصیف روند عددی هستند، نه معیار اعتبار آزمون یا اثبات پاسخ ایمنی؛ تفسیر بالینی به سویه واکسن/میدانی، route، علائم، PCR/typing و شواهد میدانی نیاز دارد.',
  ...(observations.length<3?['با کمتر از سه زمان نمونه‌گیری، R² برای قضاوت درباره برازش روند اطلاعات کافی ندارد؛ با دو نقطه برازش خطی معمولاً کامل است.']:[]),
- 'آستانه تغییر پایدار مبتنی بر CV/precision assay در این نسخه تعریف نشده؛ تغییرات کوچک را با عدم‌قطعیت تحلیلی کیت و آزمایشگاه مقایسه کنید.'
+ 'SD و CV این خروجی فقط پراکندگی مقادیر ثبت‌شده بین زمان‌های نمونه‌گیری هستند؛ نه CV تحلیلی کیت، نه CV بین پرندگان و نه شاخص یکنواختی گله.',
+ 'نسبت آخر به اول برای ELISA/VN صرفاً نسبت عددی همان مقیاس است؛ آن را fold antibody یا افزایش حفاظت تعبیر نکنید. برای OD و S/P حتی نسبت عددی نیز ممکن است به علت غیرخطی بودن پاسخ، نماینده تغییر متناسب آنتی‌بادی نباشد.',
+ 'آستانه تغییر معنادار/پایدار بر پایه precision و uncertainty همان assay در این نسخه تعریف نشده است؛ تغییرات کوچک را بدون داده تکرارپذیری آزمایشگاه معنادار تلقی نکنید.'
  ]}
 }
