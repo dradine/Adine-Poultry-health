@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   countPendingChanges, importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listOutbox,
   markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun,
-  upsertLocalFromCloud,
+  upsertLocalFromCloud, reconcileLocalWithCloud,
 } from './localFirstDb'
 
 const makeFlock = (id: string) => ({
@@ -67,6 +67,18 @@ describe('IndexedDB local-first persistence', () => {
     const row = (await listLocalFlocks()).find(item => item.id === id)
     expect(row?.flock_name).toBe('آزمایش فارم')
     expect(row?.syncState).toBe('pending')
+  })
+
+  it('removes only synced rows deleted remotely and preserves pending local changes', async () => {
+    const syncedId = crypto.randomUUID(), pendingId = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(syncedId))
+    await markLocalSynced('flocks', syncedId)
+    await saveLocalFlock(makeFlock(pendingId))
+    const removed = await reconcileLocalWithCloud('flocks', [])
+    expect(removed).toBe(1)
+    const rows = await listLocalFlocks()
+    expect(rows.some(row=>row.id===syncedId)).toBe(false)
+    expect(rows.find(row=>row.id===pendingId)?.syncState).toBe('pending')
   })
 
   it('marks a local record as a tombstone and retains deletion provenance', async () => {
