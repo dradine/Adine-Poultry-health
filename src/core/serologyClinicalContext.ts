@@ -57,7 +57,11 @@ export function resolveVaccinationEvents(events:VaccinationEvent[],hatchDate:str
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date+'T00:00:00Z')))throw new Error('تاریخ نوبت واکسن '+(index+1)+' معتبر نیست.')
   if(date>samplingDate)throw new Error('تاریخ نوبت واکسن '+(index+1)+' بعد از تاریخ نمونه‌گیری است.')
   if(!event.disease||!event.product.trim()||!event.platform||!event.route.trim())throw new Error('برای نوبت واکسن '+(index+1)+' بیماری، محصول، پلتفرم و مسیر تجویز را تکمیل کنید.')
-  const computedAge=ageDays===null&&hatchDate?Math.round((Date.parse(date+'T00:00:00Z')-Date.parse(hatchDate+'T00:00:00Z'))/86400000):ageDays
+  const ageFromHatch=hatchDate?Math.round((Date.parse(date+'T00:00:00Z')-Date.parse(hatchDate+'T00:00:00Z'))/86400000):null
+  const ageFromSample=samplingAge!==null?samplingAge-Math.round((Date.parse(samplingDate+'T00:00:00Z')-Date.parse(date+'T00:00:00Z'))/86400000):null
+  const inferredAge=ageFromHatch??ageFromSample
+  if(ageDays!==null&&inferredAge!==null&&Math.abs(ageDays-inferredAge)>1)throw new Error('سن و تاریخ نوبت واکسن '+(index+1)+' با یکدیگر سازگار نیستند؛ تاریخ هچ و سن نمونه‌گیری را بررسی کنید.')
+  const computedAge=ageDays??inferredAge
   return {...event,ageDays:computedAge,date}
  })
 }
