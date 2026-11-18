@@ -164,7 +164,7 @@ function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
     hatchDate: row.hatch_date || undefined, savedAt: row.updated_at || row.created_at,
   }))
   const flockById = new Map(flocks.map(row => [row.id, row]))
-  const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD').map(row => {
+  const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD' && row.model_family !== 'maternal-antibody-decay-exploratory').map(row => {
     const input = row.input_snapshot as unknown as LegacyAnalysis
     const output = row.output_snapshot || {}
     const flock = flockById.get(row.flock_id)
