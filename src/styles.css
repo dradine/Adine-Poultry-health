@@ -155,3 +155,11 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .custom-kit-accordion[open] summary::after{content:'−'}
 .custom-kit-accordion .form-grid{padding-bottom:14px}
 @media(max-width:560px){.wizard-stepper{gap:4px}.wizard-step{padding:8px 3px;flex-direction:column;gap:4px;border-radius:10px}.wizard-step span{font-size:10px}.wizard-nav{flex-direction:column}.wizard-nav .button{width:100%}.kit-row{align-items:flex-start}.kit-evidence{white-space:normal;max-width:88px;text-align:center}}
+
+/* Accordion headings remain compact; technical details are opt-in. */
+.qc-details,.roadmap-accordion{border:1px solid #dce7df;border-radius:13px;padding:0 14px;background:#fbfdfb;margin:14px 0}
+.qc-details>summary,.roadmap-accordion>summary{cursor:pointer;font-size:13px;font-weight:700;color:#255a42;padding:13px 0;list-style:none}
+.qc-details>summary::-webkit-details-marker,.roadmap-accordion>summary::-webkit-details-marker{display:none}
+.qc-details>summary::after,.roadmap-accordion>summary::after{content:'＋';float:left;color:#376b50}
+.qc-details[open]>summary::after,.roadmap-accordion[open]>summary::after{content:'−'}
+.roadmap-accordion .disease-grid{padding:0 0 12px}
