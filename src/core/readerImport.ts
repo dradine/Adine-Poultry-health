@@ -2,6 +2,7 @@ export type ReaderTable={delimiter:string;headers:string[];rows:string[][]}
 export type ReaderMapping={resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string}
 export type ReaderImport={values:number[];sampleIds:string[];sampleRows:Record<string,string>[];controlRows:Record<string,string>[];invalidRows:{row:number;value:string;reason:string}[];delimiter:string}
 export function parseDelimitedTable(source:string):ReaderTable{
+ source=source.replace(/^\uFEFF/,'')
  const candidates=[',',';','\t'];const first=(source.split(/\r?\n/,1)[0]||'')
  const delimiter=candidates.map(d=>({d,n:first.split(d).length})).sort((a,b)=>b.n-a.n)[0]?.d||','
  const rows:string[][]=[];let row:string[]=[],cell='',quoted=false
