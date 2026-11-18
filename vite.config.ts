@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  // GitHub Pages project sites need a repository sub-path; local dev keeps root.
-  base: process.env.GITHUB_PAGES === 'true' ? '/Adine-Poultry-health/' : '/',
+  // Relative asset URLs keep local development at the root; the Pages workflow overrides base.
+  base: './',
   build: { sourcemap: true },
 })
