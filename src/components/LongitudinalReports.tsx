@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
@@ -36,6 +36,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const [readerImportMeta,setReaderImportMeta]=useState<Record<string,unknown>|null>(null),[randomSamplingConfirmed,setRandomSamplingConfirmed]=useState(false)
  const [qc,setQc]=useState('pending'),[qcEvidence,setQcEvidence]=useState(''),[lab,setLab]=useState(''),[source,setSource]=useState(''),[notes,setNotes]=useState('')
  const [vaccinationEvents,setVaccinationEvents]=useState<VaccinationEvent[]>([]),[clinicalContext,setClinicalContext]=useState<ClinicalContext>(emptyClinicalContext())
+ const hydratedFlockRef=useRef('')
  async function refresh(){const x=await Promise.all([listLocalFlocks(),listLocalModelRuns()]);setFlocks(x[0]);setRuns(x[1])}
  useEffect(()=>{if(initialFlockId)setFlockId(initialFlockId)},[initialFlockId])
  useEffect(()=>{setForm(mode!=='reports')},[mode])
@@ -49,6 +50,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const rows=runs.filter(x=>(mode==='reports'||x.disease_code===disease)&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
  const previousFlockRun=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0]
+ useEffect(()=>{if(!flockId||hydratedFlockRef.current===flockId)return;hydratedFlockRef.current=flockId;const latest=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0];if(latest){const i=latest.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext())}else{setVaccinationEvents([]);setClinicalContext(emptyClinicalContext())}},[flockId,runs])
  function copyFlockHistory(){if(!previousFlockRun){setMessage('گزارش قبلی برای این گله پیدا نشد.');return}const i=previousFlockRun.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext());setMessage('تاریخچه واکسن و اطلاعات بالینی از آخرین گزارش گله کپی شد؛ وضعیت بالینی و رویدادهای جدید را به‌روزرسانی کنید.')}
  const previousAssayRun=runs.filter(x=>x.model_family==='serology-longitudinal-round'&&x.flock_id===flockId&&x.disease_code===disease&&x.input_snapshot.method===method).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at))).at(-1)
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
