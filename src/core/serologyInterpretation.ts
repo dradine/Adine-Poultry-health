@@ -37,6 +37,10 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
  if(input.randomSamplingConfirmed!==true)items.push({level:'warning',title:'نمایندگی نمونه‌ها تأیید نشده',detail:'بدون نمونه‌گیری تصادفی/طبقه‌بندی‌شده و پوشش سالن‌ها، تعمیم نتایج به کل گله محدود است.'})
  if(isUnknown(str(input,'assayVersion'))||isUnknown(str(input,'kitLot'))||isUnknown(str(input,'readerModel'))||isUnknown(str(input,'protocolVersion')))items.push({level:'warning',title:'ردیابی آزمون ناقص است',detail:'نسخه IFU، Lot، مدل Reader و نسخه پروتکل باید ثبت شوند؛ مقایسه روند یا بین گله‌ها ممکن است غیرفعال شود.'})
  if(!str(input,'samplingPurpose')){items.push({level:'warning',title:'هدف نمونه‌گیری ثبت نشده',detail:'MDA، بررسی پاسخ پس از واکسن، پایش روند، غربالگری و بررسی مواجهه میدانی پرسش‌های متفاوتی هستند.'});nextData.push('هدف دقیق نمونه‌گیری')}
+ if(str(input,'hatchDate')&&str(input,'samplingDate')&&Number.isFinite(Number(input.samplingAgeDays))){
+  const hatch=Date.parse(str(input,'hatchDate')+'T00:00:00Z'),sample=Date.parse(str(input,'samplingDate')+'T00:00:00Z')
+  if(Number.isFinite(hatch)&&Number.isFinite(sample)){const derived=Math.round((sample-hatch)/86400000),entered=Number(input.samplingAgeDays);if(Math.abs(derived-entered)>1)items.push({level:'warning',title:'سن واردشده با تاریخ هچ هم‌خوان نیست',detail:'از تاریخ هچ و نمونه‌گیری، سن حدود '+derived+' روز محاسبه می‌شود؛ سن ثبت‌شده '+entered+' روز است. پیش از تحلیل MDA یا روند سنی، تاریخ/سن را تطبیق دهید.'})}
+ }
  if(!str(input,'vaccinePlatform')||str(input,'vaccinePlatform')==='unknown')nextData.push('پلتفرم واکسن: زنده، غیرفعال، وکتور، نوترکیب یا سایر')
  if(!str(input,'vaccineDate'))nextData.push('تاریخ دقیق واکسیناسیون و فاصله تا نمونه‌گیری')
  if(str(input,'vaccineDate')&&str(input,'samplingDate')){
