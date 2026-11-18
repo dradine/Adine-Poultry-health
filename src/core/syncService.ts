@@ -189,7 +189,7 @@ export async function saveAnalysisToLocal(item: LegacyAnalysis, profileId?: stri
   }
   await saveLocalModelRun(modelRunFromLegacy(item, flock.id))
 }
-function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
+export function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
   const profiles = flocks.filter(row => !row.deleted).map(row => ({
     id: row.id, flockName: row.flock_name, placementDate: row.placement_date,
     hatchDate: row.hatch_date || undefined, savedAt: row.updated_at || row.created_at,
@@ -199,7 +199,7 @@ function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
     ...parseFlockNotes(row.notes),
   }))
   const flockById = new Map(flocks.map(row => [row.id, row]))
-  const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD' && row.model_family !== 'maternal-antibody-decay-exploratory').map(row => {
+  const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD' && row.model_family !== 'maternal-antibody-decay-exploratory' && row.model_family !== 'serology-longitudinal-round').map(row => {
     const input = row.input_snapshot as unknown as LegacyAnalysis
     const output = row.output_snapshot || {}
     const flock = flockById.get(row.flock_id)
