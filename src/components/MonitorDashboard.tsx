@@ -1,5 +1,7 @@
 import type {ReactNode} from 'react'
 import {interpretNdHi,interpretIbvTrend} from '../core/monitorInterpretation'
+import type {NdMonitorOutput} from '../core/ndMonitor'
+import type {IbvTrendOutput} from '../core/ibvTrend'
 type Props={mode:'ND'|'IBV'|'AIV';output:unknown;input:Record<string,unknown>}
 const num=(x:unknown)=>typeof x==='number'&&Number.isFinite(x)?x:null
 const fmt=(x:unknown)=>num(x)?.toLocaleString('fa-IR',{maximumFractionDigits:2})??'—'
@@ -11,7 +13,7 @@ export default function MonitorDashboard({mode,output,input}:Props){
  const nd=input as {postHiLog2?:number[];baselineHiLog2?:number[]}
  const ib=(input.observations||[]) as {day:number;value:number}[]
  const warnings=(o.warnings||[]) as string[],signals=(o.signals||[]) as string[],limitations=(o.limitations||[]) as string[]
- const narrative=mode==='ND'?interpretNdHi(o as never):mode==='IBV'?interpretIbvTrend(o as never):[]
+ const narrative=mode==='ND'?interpretNdHi(o as unknown as NdMonitorOutput):mode==='IBV'?interpretIbvTrend(o as unknown as IbvTrendOutput):[]
  return <div className="monitor-dashboard"><div className="monitor-dashboard-title"><b>خلاصه تحلیلی</b><span>{mode==='ND'?'نیوکاسل · HI':mode==='IBV'?'برونشیت · روند سرولوژی':'آنفلوانزا · surveillance'}</span></div>
  {mode==='ND'&&<><div className="monitor-metrics-grid"><Metric label="تعداد نمونه" value={fmt(o.n)}/><Metric label="میانگین endpoint در مقیاس log₂" value={fmt(o.meanHiLog2)}/><Metric label="GMT تقریبی reciprocal" value={fmt(o.geometricMeanReciprocal)}/><Metric label="میانه" value={fmt(o.medianLog2)}/><Metric label="دامنه" value={fmt(o.minLog2)+' تا '+fmt(o.maxLog2)}/><Metric label="SD (log₂)" value={fmt(o.sdLog2)}/><Metric label="CV تیتر reciprocal" value={fmt(o.cvReciprocalPercent)+'٪'}/><Metric label="چارک اول تا سوم" value={fmt(o.q1Log2)+' تا '+fmt(o.q3Log2)}/><Metric label="درصد responder" value={o.responderPercent===null?'تعریف نشده':fmt(o.responderPercent)+'٪'}/><Metric label="افزایش میانگین paired" value={fmt(o.meanLog2Rise)}/><Metric label="افزایش ۴ برابری" value={o.fourfoldRisePercent===null?'paired ندارد':fmt(o.fourfoldRisePercent)+'٪'}/></div>{nd.postHiLog2?.length&&<Histogram values={nd.postHiLog2}/>}</>}
  {mode==='IBV'&&<><div className="monitor-metrics-grid"><Metric label="تعداد مشاهده" value={fmt(o.n)}/><Metric label="اولین روز / مقدار" value={fmt(o.firstDay)+' / '+fmt(o.firstValue)}/><Metric label="آخرین روز / مقدار" value={fmt(o.lastDay)+' / '+fmt(o.lastValue)}/><Metric label="تغییر مطلق" value={fmt(o.absoluteChange)}/><Metric label="نسبت عددی آخر به اول (نه fold آنتی‌بادی)" value={fmt(o.lastToFirstRatio)}/><Metric label="شیب روزانه" value={fmt(o.slopePerDay)}/><Metric label="میانه" value={fmt(o.median)}/><Metric label="پراکندگی بین زمان‌ها (SD / CV زمانی)" value={fmt(o.temporalSd)+' / '+fmt(o.temporalCvPercent)+'٪'}/><Metric label="R² خط روند" value={fmt(o.rSquared)}/><Metric label="جهت روند" value={o.direction==='up'?'افزایش':o.direction==='down'?'کاهش':'تقریباً ثابت'}/></div>{ib.length>=2&&<LineTrend observations={ib}/>}</>}
