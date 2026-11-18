@@ -38,6 +38,21 @@
 - BioChek RevB 2025 نمونه‌های H5N2 و H9N2 غیرفعال را برای لایه/مادر و 6–10 هفته پس از واکسن فهرست می‌کند؛ این‌ها HI titre نیستند و به برنامه/زیرتیپ محدودند.
 
 ## 3) منابع سازنده و وضعیت دسترسی
+
+### WOAH — چارچوب تشخیصی و اعتبارسنجی
+این مراجع، پایه تفکیک روش‌ها و محدودیت‌های تفسیر هستند؛ نه منبع cutoffهای عددی واکسیناسیون:
+- WOAH Terrestrial Manual, Chapter 3.3.12 — Infectious bursal disease: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.12_IBD.pdf
+- WOAH Terrestrial Manual, Chapter 3.3.10 — Newcastle disease: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.10_NEWCASTLE_DIS.pdf
+- WOAH Terrestrial Manual, Chapter 3.3.2 — Avian infectious bronchitis: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.02_AIB.pdf
+- WOAH Terrestrial Manual, Chapter 3.3.4 — Avian influenza: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.04_AI.pdf
+- WOAH assay validation framework: Chapters 1.1.6 (validation of diagnostic assays), 2.2.1 (antibody assay development), 2.2.6 (reference samples/panels) and 2.2.8 (assay comparability after method changes), index: https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/A_summry.htm
+
+نکات عملی که در طراحی اعمال شده‌اند:
+- ND: HI روش رایج سرولوژی است، اما ارزش تشخیصی آن به وضعیت واکسیناسیون و شرایط بیماری وابسته است؛ تیتر HI به‌تنهایی تشخیص نیست.
+- IBV: ELISA تجاری معمولاً پاسخ عمومی و cross-reactive را برای پایش سرولوژی نشان می‌دهد؛ HI/VN می‌تواند برای پاسخ serotype-specific مفید باشد، اما در گله‌های مادر/تخم‌گذار با چند واکسن/عفونت، serotyping از سرم با اطمینان بالا ممکن نیست.
+- AIV: NP/M ELISA و HA-HI دو هدف آنتی‌ژنی متفاوت‌اند؛ DIVA باید بر اساس واکسن، آنتی‌ژن و آزمون معتبر همان برنامه طراحی شود.
+- IBD: وضعیت واکسن، سن، MDA و آنتی‌ژن هدف باید در انتخاب مدل و آزمون لحاظ شوند؛ تیتر ELISA به‌تنهایی حفاظت را اثبات نمی‌کند.
+
 ### BioChek
 راهنمای رسمی Poultry ELISA Interpretation Manual RevB 2025:
 - برای ساخت baseline/profile کمی و پیش‌بینی زمان واکسیناسیون: 23 نمونه به‌عنوان مقدار توصیه‌شده.
