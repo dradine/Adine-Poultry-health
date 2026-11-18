@@ -10,6 +10,7 @@ import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTite
 import { interpretIbdResult } from './core/ibdInterpretation'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import StrainSelector from './components/StrainSelector'
+import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
 import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCatalog'
 import CloudSyncPanel from './components/CloudSyncPanel'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
@@ -573,6 +574,7 @@ export default function App() {
       </section>}
 
 
+      {wizardStep===4 && <MaternalAntibodyPanel sampleAgeDays={Number(normalizeDigits(samplingAge))} disease={selectedDisease} />}
       {wizardStep===4 && selectedDisease==='IBD' && <section className="panel">
         <div className="panel-heading">
           <div><span className="step">۴</span><h3>تحلیل مقدماتی گامبورو</h3></div>
