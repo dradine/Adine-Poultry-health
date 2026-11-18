@@ -62,6 +62,7 @@ type SavedAnalysis = {
   vaccineLabelVersion?: string | null
   bttAssayKitId?: string | null
   savedAt: string
+  strainSelections?: Record<string,string>
 }
 
 const STORAGE_KEY = 'adine-vaccine-timing-profiles-v1'
@@ -93,6 +94,10 @@ function readAnalyses(): SavedAnalysis[] {
 }
 function writeLocalStorage(key: string, value: unknown): boolean {
   try { localStorage.setItem(key, JSON.stringify(value)); return true } catch { return false }
+}
+
+function readStrainSelections(disease: DiagnosticKit['disease']): Record<string,string> {
+  try { return JSON.parse(localStorage.getItem('adine-strain-selections-v1-'+disease) || '{}') as Record<string,string> } catch { return {} }
 }
 
 export default function App() {
@@ -429,6 +434,7 @@ export default function App() {
       vaccineMarketCode: selectedVaccineProduct?.market_code,
       vaccineLabelVersion: selectedVaccineProduct?.label_version,
       bttAssayKitId: selectedVaccineProduct?.btt_assay_kit_id,
+      strainSelections: readStrainSelections(selectedDisease),
       savedAt: new Date().toISOString(),
     }
     const next = [record, ...analyses].slice(0, 100)
