@@ -23,6 +23,9 @@ describe('flock clinical and vaccination context',()=>{
   expect(()=>resolveVaccinationEvents([{...event,date:'2026-11-19'}],'','2026-11-18',30)).toThrow()
   expect(()=>resolveVaccinationEvents([{...event,product:''}],'','2026-11-18',30)).toThrow()
  })
+ it('rejects inconsistent event date and age',()=>{
+  expect(()=>resolveVaccinationEvents([{...event,date:'2026-11-10',ageDays:28}],'2026-10-20','2026-11-18',30)).toThrow(/سازگار/)
+ })
  it('ignores untouched blank event cards',()=>{
   const blank={...event,date:'',ageDays:null,product:'',strain:'',route:''}
   expect(resolveVaccinationEvents([blank],'','2026-11-18',30)).toHaveLength(0)
