@@ -39,7 +39,7 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
  const id=crypto.randomUUID(),now=new Date().toISOString()
  const assayId=typeof draft.input.assayId==='string'?draft.input.assayId:''
  const assay=assayId&&assayId!=='manual'?findAssayCatalogEntry(assayId):undefined
- const sourceReferences=[...(assay?[{kind:'manufacturer-assay-catalog',citation:assay.source,manufacturer:assay.manufacturer,catalog:assay.catalog||null,status:assay.status,note:assay.note}]:[]),...(draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[])]
+ const sourceReferences=[...(assay?[{kind:'manufacturer-assay-catalog',citation:assay.source,manufacturer:assay.manufacturer,catalog:assay.catalog||null,status:assay.status,note:assay.note}]:[]),...(draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[]),...(typeof draft.output.bioChekVI==='number'?[{kind:'manufacturer-interpretation-manual',citation:'https://www.biochek.com/wp-content/uploads/2025/11/BioChek-Poultry-ELISA-Interpretation-Manual-RevB-2025.pdf',version:'RevB 2025',formula:'VI = AMT / %CV'}]:[])]
  await saveLocalModelRun({
   id,flock_id:draft.flock.id,disease_code:draft.diseaseCode,
   model_version:'serology-longitudinal-0.2.0',model_family:'serology-longitudinal-round',
