@@ -19,10 +19,10 @@ type AivInput = {
   mortalityIncrease: boolean
   officialProgramConfirmed: boolean
 }
-type Props = { profiles: FlockOption[] }
+type Props = { profiles: FlockOption[]; initialMode?: Mode; hideDiseaseSelector?: boolean }
 
-export default function DiseaseMonitoring({ profiles }: Props) {
-  const [mode, setMode] = useState<Mode>('ND')
+export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSelector = false }: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode || 'ND')
   const [flockId, setFlockId] = useState('')
   const [baseline, setBaseline] = useState('')
   const [post, setPost] = useState('')
@@ -51,6 +51,7 @@ export default function DiseaseMonitoring({ profiles }: Props) {
   useEffect(() => {
     setFlockId(current => profiles.some(profile => profile.id === current) ? current : profiles[0]?.id || '')
   }, [profiles])
+  useEffect(() => { if (initialMode) setMode(initialMode) }, [initialMode])
 
   useEffect(() => {
     let active = true
@@ -164,13 +165,13 @@ export default function DiseaseMonitoring({ profiles }: Props) {
             {profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.flockName} · {profile.placementDate}</option>)}
           </select>
         </label>
-        <label>انتخاب موتور
+        {!hideDiseaseSelector && <label>انتخاب موتور
           <select value={mode} onChange={event => { setMode(event.target.value as Mode); setOut(null); setLastInput(null); setErr(''); setSavedMessage('') }}>
             <option value="ND">نیوکاسل · HI monitor</option>
             <option value="IBV">برونشیت · Serology trend</option>
             <option value="AIV">آنفلوانزا · Evidence gate</option>
           </select>
-        </label>
+        </label>}
       </div>
 
       {mode === 'ND' && <>
