@@ -85,13 +85,23 @@ function stripLocalFields(value: Record<string, unknown>): Record<string, unknow
   const { syncState: _syncState, deleted: _deleted, ...payload } = value
   return payload
 }
+function enqueueLatest(tx: IDBTransaction, item: OutboxItem): void {
+  const store = tx.objectStore('outbox')
+  const request = store.index('entity').getAll(item.entity)
+  request.onsuccess = () => {
+    for (const queued of request.result as OutboxItem[]) {
+      if (queued.recordId === item.recordId && queued.id !== undefined) store.delete(queued.id)
+    }
+    store.add(item)
+  }
+}
 export async function saveLocalFlock(flock: Omit<LocalFlock, 'syncState'> & { syncState?: SyncState }): Promise<void> {
   const db = await openDb()
   const tx = db.transaction(['flocks', 'outbox'], 'readwrite')
   const done = transactionDone(tx)
   const record: LocalFlock = { ...flock, syncState: 'pending', deleted: false }
   tx.objectStore('flocks').put(record)
-  tx.objectStore('outbox').add({
+  enqueueLatest(tx, {
     entity: 'flocks', operation: 'upsert', recordId: record.id,
     payload: stripLocalFields(record as unknown as Record<string, unknown>),
     createdAt: new Date().toISOString(), attempts: 0,
@@ -104,7 +114,7 @@ export async function saveLocalModelRun(run: Omit<LocalModelRun, 'syncState'> & 
   const done = transactionDone(tx)
   const record: LocalModelRun = { ...run, syncState: 'pending', deleted: false }
   tx.objectStore('modelRuns').put(record)
-  tx.objectStore('outbox').add({
+  enqueueLatest(tx, {
     entity: 'model_runs', operation: 'upsert', recordId: record.id,
     payload: stripLocalFields(record as unknown as Record<string, unknown>),
     createdAt: new Date().toISOString(), attempts: 0,
@@ -124,7 +134,7 @@ export async function markLocalDeleted(entity: 'flocks' | 'model_runs', id: stri
     row.deleted = true
     row.syncState = 'pending'
     store.put(row)
-    tx.objectStore('outbox').add({
+    enqueueLatest(tx, {
       entity, operation: 'delete', recordId: id,
       payload: stripLocalFields(row as unknown as Record<string, unknown>),
       createdAt: new Date().toISOString(), attempts: 0,
@@ -273,7 +283,7 @@ export async function importLocalFirstBackup(snapshot: { flocks?: unknown[]; mod
   for (const row of incomingFlocks) {
     const record: LocalFlock = { ...row, syncState: 'pending', deleted: false }
     tx.objectStore('flocks').put(record)
-    tx.objectStore('outbox').add({
+    enqueueLatest(tx, {
       entity: 'flocks', operation: 'upsert', recordId: record.id,
       payload: stripLocalFields(record as unknown as Record<string, unknown>),
       createdAt: new Date().toISOString(), attempts: 0,
@@ -282,7 +292,7 @@ export async function importLocalFirstBackup(snapshot: { flocks?: unknown[]; mod
   for (const row of incomingRuns) {
     const record: LocalModelRun = { ...row, syncState: 'pending', deleted: false }
     tx.objectStore('modelRuns').put(record)
-    tx.objectStore('outbox').add({
+    enqueueLatest(tx, {
       entity: 'model_runs', operation: 'upsert', recordId: record.id,
       payload: stripLocalFields(record as unknown as Record<string, unknown>),
       createdAt: new Date().toISOString(), attempts: 0,
