@@ -28,14 +28,14 @@ describe('reader export import',()=>{
 
 
 describe('plate control evaluation',()=>{
- const table=parseDelimitedTable('Well,Type,ID,Result\\nA1,Sample,S1,1200\\nA2,Positive,PC1,1.5\\nA3,Positive,PC2,1.6\\nA4,Negative,NC1,0.1\\nA5,Negative,NC2,0.12')
+ const table=parseDelimitedTable('Well,Type,ID,Result\nA1,Sample,S1,1200\nA2,Positive,PC1,1.5\nA3,Positive,PC2,1.6\nA4,Negative,NC1,0.1\nA5,Negative,NC2,0.12')
  const criteria={roleColumn:1,resultColumn:3,positiveRole:'Positive',negativeRole:'Negative',positiveMin:1,positiveMax:2,negativeMax:.2,source:'IFU rev 3 p.8',maxReplicateCvPercent:20}
  it('passes only when both controls meet entered IFU limits and replicate precision',()=>{
   const q=evaluatePlateControls(table,criteria,'ELISA')
   expect(q.status).toBe('pass');expect(q.groups).toHaveLength(2);expect(q.groups[0].n).toBe(2)
  })
  it('fails when a control mean is outside its entered IFU range',()=>{
-  const bad=parseDelimitedTable('Well,Type,ID,Result\\nA1,Sample,S1,1200\\nA2,Positive,PC1,0.5\\nA3,Negative,NC1,0.1')
+  const bad=parseDelimitedTable('Well,Type,ID,Result\nA1,Sample,S1,1200\nA2,Positive,PC1,0.5\nA3,Negative,NC1,0.1')
   expect(evaluatePlateControls(bad,criteria,'ELISA').status).toBe('fail')
  })
  it('does not claim QC pass when a reference control is selected without its limits',()=>{
