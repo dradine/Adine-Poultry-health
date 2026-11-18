@@ -139,6 +139,8 @@ export default function App() {
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1)
+  const [view, setView] = useState<'home'|'workflow'|'reports'|'settings'>('home')
+  const [selectedFlockId, setSelectedFlockId] = useState('')
   const [selectedDisease, setSelectedDisease] = useState<DiagnosticKit['disease']>('IBD')
   const [diseaseChosen, setDiseaseChosen] = useState(false)
   const [selectedDiagnosticKitId, setSelectedDiagnosticKitId] = useState('')
@@ -152,6 +154,7 @@ export default function App() {
   }, [hatchDate, sampleDate])
   function goToStep(next: 1|2|3|4) {
     setError('')
+    setView('workflow')
     if (next > 1 && (!flockName.trim() || !placementDate)) { setError('برای ادامه، نام گله و تاریخ جوجه‌ریزی را در مرحله اول وارد کنید.'); setWizardStep(1); return }
     if (next > 2 && !diseaseChosen) { setError('در مرحله دوم، بیماری موردنظر را انتخاب کنید.'); setWizardStep(2); return }
     if (next > 3 && !selectedDiagnosticKitId) { setError('در مرحله سوم، کیت یا روش آزمون را انتخاب یا ثبت کنید.'); setWizardStep(3); return }
@@ -395,6 +398,7 @@ export default function App() {
       : [record, ...profiles]
     if (!writeLocalStorage(STORAGE_KEY, next)) { setError('ذخیره‌سازی مرورگر در دسترس نیست یا فضای آن کافی نیست. ابتدا از اطلاعات نسخه پشتیبان تهیه کنید.'); return }
     setProfiles(next)
+    setSelectedFlockId(record.id)
     void saveProfileToLocal(record)
       .then(() => { notifyLocalDataChanged(); setError('') })
       .catch(cause => setError(cause instanceof Error ? cause.message : 'ذخیره محلی پایدار انجام نشد؛ از فایل پشتیبان استفاده کنید.'))
@@ -518,13 +522,23 @@ export default function App() {
         <div className="brand-mark">آ</div>
         <div>
           <div className="eyebrow">مرکز تخصصی سلامت طیور آدینه</div>
-          <h1>تصمیم‌یار زمان‌بندی واکسیناسیون</h1>
+          <h1>سامانه پایش و سلامت طیور</h1>
         </div>
-        <span className="offline-pill"><i /> آفلاین‌محور</span>
+        {view!=='home'&&<button className="button secondary home-return" onClick={()=>setView('home')}>صفحه اصلی</button>}<span className="offline-pill"><i /> آفلاین‌محور</span>
       </header>
 
-      <CloudSyncPanel />
-      <BaselineLibrary />
+      {view==='home'&&<section className="workspace-home">
+        <div className="workspace-welcome"><div><span className="section-kicker">مرکز تخصصی سلامت طیور آدینه</span><h2>مدیریت پرونده‌های گله</h2><p>از انتخاب گله تا ثبت آزمایش و مشاهده گزارش، همه‌چیز در مسیرهای مشخص و جداگانه.</p></div><div className="workspace-mark">آدینه</div></div>
+        <div className="workspace-actions">
+          {[{step:1,title:'اطلاعات گله',desc:'ثبت یا انتخاب پرونده گله',icon:'۱'},{step:2,title:'انتخاب بیماری',desc:'تعیین بیماری مورد بررسی',icon:'۲'},{step:3,title:'کیت و روش',desc:'انتخاب آزمون و روش آزمایش',icon:'۳'},{step:4,title:'ورود داده و تحلیل',desc:'ثبت تیترها و دریافت تفسیر',icon:'۴'}].map(item=><button key={item.step} className="workspace-action" onClick={()=>goToStep(item.step as 1|2|3|4)}><span>{item.icon}</span><b>{item.title}</b><small>{item.desc}</small></button>)}
+        </div>
+        <section className="workspace-flocks"><div className="workspace-section-heading"><h3>گله‌های ثبت‌شده</h3><button className="link-button" onClick={()=>goToStep(1)}>＋ افزودن گله</button></div>
+          {profiles.length===0?<p className="empty-result">هنوز گله‌ای ثبت نشده است. ابتدا اطلاعات گله را وارد کنید.</p>:profiles.map(profile=><div className="workspace-flock-row" key={profile.id}><div><b>{profile.flockName}</b><small>{toPersianDigits(formatJalaliDate(profile.placementDate))} · {profile.flockType==='broiler'?'گوشتی':profile.flockType==='layer'?'تخم‌گذار':profile.flockType==='breeder'?'مادر':'سایر'}{profile.flockSize?' · '+toPersianDigits(profile.flockSize)+' قطعه':''}</small></div><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setFlockName(profile.flockName);setPlacementDate(profile.placementDate);setHatchDate(profile.hatchDate||'');setFlockType(profile.flockType||'broiler');setFlockSize(profile.flockSize||'');setHouseName(profile.houseName||'');setHatchery(profile.hatchery||'');setSampleDate(profile.sampleDate||'');setVaccinationHistory(profile.vaccinationHistory||'');setWizardStep(2);setView('workflow')}}>انتخاب برای تحلیل</button><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setView('reports')}}>گزارش‌ها</button></div></div>)}
+        </section>
+        <details className="workspace-tools"><summary>تنظیمات، همگام‌سازی و ابزارهای جانبی</summary><CloudSyncPanel/><details><summary>کتابخانه مراجع و اطلاعات مرجع</summary><BaselineLibrary/></details><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></details>
+      </section>}
+      {view==='workflow'&&<>
+      <div className="wizard-stepper" aria-label="مراحل تحلیل">
 
       <section className="intro">
         <div>
@@ -551,7 +565,7 @@ export default function App() {
       <div className="wizard-stepper" aria-label="مراحل تحلیل">
         {[1,2,3,4].map((step) => <button type="button" key={step} className={wizardStep===step ? 'wizard-step active' : wizardStep>step ? 'wizard-step complete' : 'wizard-step'} onClick={() => goToStep(step as 1|2|3|4)}><b>{step}</b><span>{['اطلاعات گله','بیماری','کیت و روش','تحلیل'][step-1]}</span></button>)}
       </div>
-      <section className="panel wizard-nav-panel"><div className="panel-heading"><div><h3>فرایند تحلیل مرحله‌ای</h3></div><span className="tag">گام {wizardStep} از ۴</span></div><p className="muted">اطلاعات مراحل قبل حفظ می‌شود. انتخاب کیت به‌تنهایی مجوز تبدیل واحد یا تفسیر محافظت ایجاد نمی‌کند.</p>{error && <p className="error" role="alert">{error}</p>}<div className="wizard-nav"><button className="button secondary" disabled={wizardStep===1} onClick={()=>goToStep((wizardStep-1) as 1|2|3|4)}>مرحله قبل</button><button className="button primary" disabled={wizardStep===4} onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>مرحله بعد</button></div></section>
+      <section className="workflow-heading"><div><span className="tag">مرحله {toPersianDigits(wizardStep)} از ۴</span><h2>{['اطلاعات گله','انتخاب بیماری','انتخاب کیت و روش','ورود داده و تحلیل'][wizardStep-1]}</h2></div>{error&&<p className="error" role="alert">{error}</p>}<div className="wizard-nav"><button className="button secondary" disabled={wizardStep===1} onClick={()=>goToStep((wizardStep-1) as 1|2|3|4)}>مرحله قبل</button><button className="button primary" disabled={wizardStep===4} onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>مرحله بعد</button></div></section>
       {wizardStep===2 && <section className="panel"><div className="panel-heading"><div><span className="step">۲</span><h3>انتخاب بیماری</h3></div></div><div className="disease-grid">{([{code:'IBD',title:'گامبورو',desc:'MDA، زمان‌بندی واکسن و Deventer-style'},{code:'ND',title:'نیوکاسل',desc:'HI و پایش پاسخ سرولوژیک'},{code:'IBV',title:'برونشیت عفونی',desc:'روند سرولوژی و مقایسه دوره‌ای'},{code:'AIV',title:'آنفلوانزا',desc:'شواهد سرولوژی، PCR و مسیر surveillance'}] as const).map(item=><button type="button" key={item.code} className={selectedDisease===item.code?'disease active':'disease'} onClick={()=>{setSelectedDisease(item.code);setDiseaseChosen(true);setSelectedDiagnosticKitId('')}}><b>{item.title} · {item.code}</b><small>{item.desc}</small></button>)}</div><p className="muted">انتخاب بیماری، موتور و فهرست کیت‌های مرتبط را در مراحل بعدی تعیین می‌کند.</p></section>}
       {wizardStep===3 && <section className="panel kit-selection"><div className="panel-heading"><div><span className="step">۳</span><h3>انتخاب کیت و روش</h3></div><span className="tag">{selectedDisease}</span></div><p className="muted">کاتالوگ شناسایی کیت؛ محاسبات فقط در موتورهای دارای روش، مقیاس و مستندات معتبر فعال می‌شوند.</p><div className="kit-list">{[...diagnosticKitCatalog.filter(k=>k.disease===selectedDisease),...customKits.filter(k=>k.disease===selectedDisease)].map(kit=><button type="button" key={kit.id} className={selectedDiagnosticKitId===kit.id?'kit-row active':'kit-row'} onClick={()=>setSelectedDiagnosticKitId(kit.id)}><span><b>{kit.brand}{kit.catalog ? ' · '+kit.catalog : ''}</b><small>{kit.assay} · {kit.format} · {kit.sample}</small></span><span className="kit-evidence">{kit.evidenceStatus==='manufacturer-source'?'منبع سازنده':kit.evidenceStatus==='manufacturer-catalog'?'کاتالوگ':'نیازمند بررسی'}</span></button>)}</div><p className="kit-selected-info">{selectedDiagnosticKitId?'کیت انتخاب شده؛ قبل از تحلیل، روش و مقیاس را با IFU همان کیت تطبیق دهید.':'هنوز کیتی انتخاب نشده است.'}</p><StrainSelector disease={selectedDisease} selectedKit={selectedDiagnosticKit} /><details className="custom-kit-accordion"><summary>＋ افزودن کیت دستی / کیت جدید</summary><div className="form-grid"><label>شرکت / برند<input value={customKitDraft.brand} onChange={e=>setCustomKitDraft({...customKitDraft,brand:e.target.value})}/></label><label>کد کاتالوگ<input value={customKitDraft.catalog} onChange={e=>setCustomKitDraft({...customKitDraft,catalog:e.target.value})}/></label><label>نام آزمون / هدف<input value={customKitDraft.assay} onChange={e=>setCustomKitDraft({...customKitDraft,assay:e.target.value})}/></label><label>روش / فرمت<input value={customKitDraft.format} onChange={e=>setCustomKitDraft({...customKitDraft,format:e.target.value})}/></label><label>نوع نمونه<input value={customKitDraft.sample} onChange={e=>setCustomKitDraft({...customKitDraft,sample:e.target.value})}/></label><label>کاربرد<input value={customKitDraft.intendedUse} onChange={e=>setCustomKitDraft({...customKitDraft,intendedUse:e.target.value})}/></label><label>لینک IFU / منبع<input value={customKitDraft.sourceUrl} onChange={e=>setCustomKitDraft({...customKitDraft,sourceUrl:e.target.value})}/></label><label>یادداشت<textarea rows={2} value={customKitDraft.notes} onChange={e=>setCustomKitDraft({...customKitDraft,notes:e.target.value})}/></label></div><div className="wizard-nav"><button className="button secondary" onClick={()=>setCustomKitDraft({brand:'',catalog:'',assay:'',format:'ELISA',sample:'Serum',intendedUse:'',sourceUrl:'',notes:''})}>پاک‌کردن فرم</button><button className="button primary" disabled={!customKitDraft.brand.trim()||!customKitDraft.assay.trim()} onClick={()=>{const kit:DiagnosticKit={id:'custom-'+crypto.randomUUID(),disease:selectedDisease,brand:customKitDraft.brand.trim(),catalog:customKitDraft.catalog.trim(),assay:customKitDraft.assay.trim(),format:customKitDraft.format.trim()||'نامشخص',sample:customKitDraft.sample.trim()||'نامشخص',intendedUse:customKitDraft.intendedUse.trim()||'ثبت دستی',documentedSource:'User-added kit',sourceUrl:customKitDraft.sourceUrl.trim(),evidenceStatus:'market-not-confirmed',iranMarket:'not-confirmed',notes:customKitDraft.notes.trim()};setCustomKits(prev=>[kit,...prev]);setSelectedDiagnosticKitId(kit.id);setCustomKitDraft({brand:'',catalog:'',assay:'',format:'ELISA',sample:'Serum',intendedUse:'',sourceUrl:'',notes:''})}}>ثبت کیت</button></div></details><details className="custom-kit-accordion"><summary>مدیریت کیت‌های دستی ثبت‌شده ({customKits.filter(k=>k.disease===selectedDisease).length})</summary>{customKits.filter(k=>k.disease===selectedDisease).length===0 ? <p className="muted">کیت دستی ثبت نشده است.</p> : customKits.filter(k=>k.disease===selectedDisease).map(kit=><div className="saved-row" key={kit.id}><span>{kit.brand}{kit.catalog?' · '+kit.catalog:''}</span><small>{kit.assay}</small><button className="link-button" onClick={()=>{setSelectedDiagnosticKitId('');setCustomKits(prev=>prev.filter(x=>x.id!==kit.id))}}>حذف</button></div>)}</details><div className="wizard-nav"><button className="button secondary" onClick={()=>goToStep(2)}>بازگشت</button><button className="button primary" onClick={()=>goToStep(4)}>ورود داده‌ها</button></div></section>}
 
@@ -596,6 +610,7 @@ export default function App() {
       </section>}
 
 
+      <details className="panel advanced-analysis"><summary>محاسبات تکمیلی و پایش بالینی (در صورت نیاز)</summary>
       {wizardStep===4 && <MaternalAntibodyPanel sampleAgeDays={Number(normalizeDigits(samplingAge))} disease={selectedDisease} flock={profiles.find(profile => profile.flockName.trim() === flockName.trim() && profile.placementDate === placementDate)} />}
       {wizardStep===4 && selectedDisease==='IBD' && <section className="panel">
         <div className="panel-heading">
@@ -767,7 +782,12 @@ export default function App() {
           <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
         </div></details>}
 
-      <LongitudinalReports profiles={profiles} />
+      </details>
+      {wizardStep===4&&<LongitudinalReports profiles={profiles} mode="entry" initialFlockId={selectedFlockId} initialDisease={selectedDisease}/>} 
+      <div className="workflow-bottom"><button className="button secondary" onClick={()=>setView('home')}>بازگشت به صفحه اصلی</button>{wizardStep<4&&<button className="button primary" onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>ادامه</button>}</div>
+      </>}
+      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
+      {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
