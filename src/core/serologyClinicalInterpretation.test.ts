@@ -35,8 +35,8 @@ describe('disease-specific clinical interpretation',()=>{
  })
  it('incorporates vaccine execution and clinical status into observations',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{id:'v1',date:'2026-11-01',disease:'ND',product:'ND live',platform:'live-conventional',strain:'LaSota',route:'water',administrationQuality:'poor'}],clinicalContext:{status:'clinical',signs:'respiratory signs',mortalityTrend:'increasing',mortalityPercent:'2.1'}}))
-  expect(x.observations.some(o=>o.title.includes('خط زمانی واکسن'))).toBe(true)
-  expect(x.observations.some(o=>o.title.includes('روند تلفات'))).toBe(true)
+  expect(x.observations.some(o=>o.title==='خط زمانی واکسیناسیون')).toBe(true)
+  expect(x.observations.some(o=>o.title.includes('تلفات تجمعی'))).toBe(true)
   expect(x.actions.some(a=>a.task.includes('وضعیت بالینی'))).toBe(true)
  })
  it('does not issue clinical inference from demo data',()=>{
