@@ -107,7 +107,7 @@ export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):b
 }
 export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
   if(!hasCompleteSerologyComparisonMetadata(r)) return null
-  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed])])
+  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed,...(r.input.method==='ELISA'&&r.input.scale==='kit-titer'?[r.input.fourFoldComparisonSource??'']:[])])])
 }
 export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
   const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
