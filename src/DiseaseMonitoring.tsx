@@ -3,6 +3,7 @@ import { monitorNdHi } from './core/ndMonitor'
 import { analyzeIbvTrend } from './core/ibvTrend'
 import { assessAivEvidence } from './core/aivEvidence'
 import { normalizeDigits } from './core/ibd'
+import { parseMonitorNumbers, parsePairedHiRows, parseDayValueRows } from './core/monitorInput'
 import { listLocalModelRuns, notifyLocalDataChanged, type LocalModelRun } from './core/localFirstDb'
 import { saveMonitorRunToLocal } from './core/syncService'
 import type { DiagnosticKit } from './data/diagnosticKitCatalog'
@@ -80,8 +81,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
     }
   }, [])
 
-  const numbers = (value: string) => value.split(/[،,;\s]+/).filter(Boolean)
-    .map(item => Number(normalizeDigits(item)))
+  const numbers = parseMonitorNumbers
 
   function run() {
     setErr('')
@@ -102,7 +102,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         const input = {
           baselineHiLog2: baseline.trim() ? numbers(baseline) : undefined,
           postHiLog2: numbers(post),
-          pairedObservations: pairedData.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{const parts=line.split(/[,:;،\t]/).map(part=>part.trim());if(parts.length!==3)throw new Error('هر ردیف paired باید دقیقاً سه ستون داشته باشد: شناسه پرنده، HI قبل و HI بعد.');const [birdId,baseValue,postValue]=parts;return {birdId,baselineHiLog2:Number(normalizeDigits(baseValue)),postHiLog2:Number(normalizeDigits(postValue))}}),
+          pairedObservations: parsePairedHiRows(pairedData),
           assayAntigen: assay,
           vaccineProduct: product,
           selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null,
@@ -114,10 +114,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         setLastInput(input as unknown as Record<string, unknown>)
         setOut(result)
       } else if (mode === 'IBV') {
-        const observations = ibData.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
-          const [day, value] = line.split(/[:;,،]/)
-          return { day: Number(normalizeDigits(day || '')), value: Number(normalizeDigits(value || '')) }
-        })
+        const observations = parseDayValueRows(ibData)
         const input = { observations, assay: ibAssay, measurementScale: unit === 'HI-log2' ? 'log2 endpoint' : ibScale, unit, selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null }
         const result = analyzeIbvTrend(input)
         setLastInput(input as unknown as Record<string, unknown>)
