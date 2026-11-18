@@ -17,6 +17,9 @@ export type BaselineAssessment = {
 const norm=(s:string)=>s.trim().toLocaleLowerCase('en-US').replace(/\s+/g,' ')
 const present=(s:string|undefined)=>Boolean(s&&s.trim())
 function assess(disease:BaselineDisease,context:BaselineContext):BaselineAssessment {
+ if(context.disease!==disease)return {status:'no-match',usableForNumericComparison:false,baselineId:null,
+ explanationFa:'کد بیماری انتخاب‌شده با موتور درخواست‌شده یکسان نیست؛ مقایسه متوقف شد.',
+ reasonsFa:['ناسازگاری شناسه بیماری بین ورودی و موتور.'],source:null,sourceVersion:null,numericRange:null}
  const refs=REFERENCE_BASELINES.filter(x=>x.disease===disease)
  if(!refs.length)return {status:'no-match',usableForNumericComparison:false,baselineId:null,
  explanationFa:'برای این بیماری Baseline عددی تأییدشده‌ای ثبت نشده است؛ هیچ محدوده‌ای برای مقایسه انتخاب نشد.',
