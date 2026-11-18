@@ -79,7 +79,8 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const percentileRank = selected.rank
   const log2PercentileTiter = Math.log2(percentileTiter)
   const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + correctionDays
-  const thresholdAlreadyReachedAtSampling = rawCalculatedAgeDays <= samplingAgeDays
+  // An observed selected titre already at/below the product BTT cannot be made "not yet susceptible" by a positive age-correction term.
+  const thresholdAlreadyReachedAtSampling = percentileTiter <= breakthroughTiter || rawCalculatedAgeDays <= samplingAgeDays
   const estimatedVaccinationAgeDays = thresholdAlreadyReachedAtSampling ? null : rawCalculatedAgeDays
   const arithmeticMean = titers.reduce((s,v)=>s+v,0)/titers.length
   const medianTiter = sorted.length % 2 === 0
@@ -101,7 +102,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
   if (!input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ مقدار انتخابی باید با IFU/برچسب همان محصول و کیت تطبیق داده شود.')
   else warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
-  if (thresholdAlreadyReachedAtSampling) warnings.push('برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
+  if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ از نظر این شاخص آستانه در زمان نمونه‌گیری قبلاً حاصل شده است. اصلاح سن نمی‌تواند این مشاهده را به یک پنجره آینده تبدیل کند.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
   return { log2PercentileTiter, percentileTiter, percentileRank, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
