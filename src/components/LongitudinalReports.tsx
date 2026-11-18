@@ -4,7 +4,7 @@ import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { REFERENCE_BASELINES, UNPARSED_REFERENCE_DOCUMENTS } from '../data/referenceBaselines'
 import { normalizeDigits } from '../core/ibd'
-import { calculateBioChekVI, comparePairedSerology, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
+import { areComparableSerologyRounds, calculateBioChekVI, comparePairedSerology, hasCompleteSerologyComparisonMetadata, parseSampleIds, parseSerologyValues, serologyComparisonKey, summarizeSerology, type SerologyScale } from '../core/serologyStats'
 
 type Profile={id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
 type Disease='IBD'|'ND'|'IBV'|'AIV'
@@ -23,16 +23,9 @@ const localToday=()=>{const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asi
 const purposeFa=(v:string)=>({mda:'آنتی‌بادی مادری / هچری','pre-vaccination':'قبل از واکسیناسیون','post-vaccination':'پس از واکسیناسیون',routine:'پایش دوره‌ای',outbreak:'بررسی در شرایط مشکوک به چالش'} as Record<string,string>)[v]||v
 const qcFa=(v:string)=>({pending:'بررسی نشده',pass:'کنترل‌ها طبق IFU قابل قبول (اظهاری)',review:'نیازمند بازبینی',fail:'رد شده'} as Record<string,string>)[v]||v
 const matrixFa=(v:string)=>v==='serum'?'سرم':v==='egg-yolk'?'زرده تخم‌مرغ':v==='unknown'?'نامشخص':v
-const commonMatchFields=['population','method','assayId','kit','catalog','assayVersion','antigen','unit','scale','sampleMatrix','laboratory','readerModel','protocolVersion','kitLot']
-const hiMatchFields=['hiHAU','antigenPretreatment','serumPretreatment','dilutionFactor','rbcSource','rbcLot','rbcConcentration']
-function comparisonFields(r:LocalModelRun){return r.input_snapshot.method==='HI'?[...commonMatchFields,...hiMatchFields]:commonMatchFields}
-function hasComparisonMetadata(r:LocalModelRun){
- const i=r.input_snapshot
- return i.qcStatus==='pass'&&typeof i.qcEvidence==='string'&&String(i.qcEvidence).trim().length>0&&comparisonFields(r).every(k=>typeof i[k]==='string'&&String(i[k]).trim().length>0&&!['unknown','نامشخص','نامعلوم','not provided','n/a','na'].includes(String(i[k]).trim().toLowerCase()))
-}
-function compatible(a:LocalModelRun,b:LocalModelRun){
- return a.flock_id===b.flock_id&&a.disease_code===b.disease_code&&a.input_snapshot.method===b.input_snapshot.method&&hasComparisonMetadata(a)&&hasComparisonMetadata(b)&&comparisonFields(a).every(k=>a.input_snapshot[k]===b.input_snapshot[k])
-}
+function roundIdentity(r:LocalModelRun){return {flockId:r.flock_id,diseaseCode:r.disease_code,input:r.input_snapshot}}
+function hasComparisonMetadata(r:LocalModelRun){return hasCompleteSerologyComparisonMetadata(roundIdentity(r))}
+function compatible(a:LocalModelRun,b:LocalModelRun){return areComparableSerologyRounds(roundIdentity(a),roundIdentity(b))}
 export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const [flocks,setFlocks]=useState<LocalFlock[]>([]),[runs,setRuns]=useState<LocalModelRun[]>([]),[chartGroupKey,setChartGroupKey]=useState('')
  const [disease,setDisease]=useState<Disease>('ND'),[flockId,setFlockId]=useState(''),[population,setPopulation]=useState('unknown')
@@ -54,9 +47,9 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const rows=runs.filter(x=>x.disease_code===disease&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
  const trendRows=rows
- const chartGroups=useMemo(()=>{const m=new Map<string,LocalModelRun>();trendRows.filter(hasComparisonMetadata).forEach(r=>{const key=JSON.stringify([r.flock_id,r.disease_code,...comparisonFields(r).map(k=>r.input_snapshot[k])]);if(!m.has(key))m.set(key,r)});return [...m.entries()].map(([key,r])=>({key,label:(fl.find(x=>x.id===r.flock_id)?.name||'گله')+' · '+str(r.input_snapshot,'method')+' · '+str(r.input_snapshot,'kit')+' · '+str(r.input_snapshot,'unit')}))},[trendRows,fl])
+ const chartGroups=useMemo(()=>{const m=new Map<string,LocalModelRun>();trendRows.filter(hasComparisonMetadata).forEach(r=>{const key=serologyComparisonKey(roundIdentity(r));if(key&&!m.has(key))m.set(key,r)});return [...m.entries()].map(([key,r])=>({key,label:(fl.find(x=>x.id===r.flock_id)?.name||'گله')+' · '+str(r.input_snapshot,'method')+' · '+str(r.input_snapshot,'kit')+' · '+str(r.input_snapshot,'unit')}))},[trendRows,fl])
  const activeChartKey=chartGroups.some(x=>x.key===chartGroupKey)?chartGroupKey:(chartGroups[0]?.key||'')
- const chartRows=trendRows.filter(r=>activeChartKey&&JSON.stringify([r.flock_id,r.disease_code,...comparisonFields(r).map(k=>r.input_snapshot[k])])===activeChartKey)
+ const chartRows=trendRows.filter(r=>activeChartKey&&serologyComparisonKey(roundIdentity(r))===activeChartKey)
  const chartValues=chartRows.map(x=>Number(x.output_snapshot.trendValue??0))
  const chartMin=chartValues.length?Math.min(...chartValues):0,chartMax=chartValues.length?Math.max(...chartValues):0,chartSpan=chartMax-chartMin||1
  const chartPoints=chartValues.map((v,i)=>({x:28+(i*Math.max(1,220/(chartValues.length-1||1))),y:126-((v-chartMin)/chartSpan)*92}))
