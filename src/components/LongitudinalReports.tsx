@@ -89,7 +89,7 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
  const title=diseases.find(x=>x.code===disease)?.title||disease
  return <section className="panel" aria-label="پرونده‌های پایش سرولوژیک">
   <div className="panel-heading"><div><span className="step">۵</span><h3>پرونده‌های پایش و گزارش‌های دوره‌ای</h3></div><span className="tag">ذخیره حساب + آفلاین</span></div>
-  <p className="muted">هر نوبت گزارش مستقل دارد. سوابق فقط پس از همگام‌سازی موفق به حساب کاربری منتقل می‌شوند. فرم، داده خام و مشخصات آزمون را حفظ می‌کند.</p>
+  <p className="muted">هر نوبت گزارش مستقل دارد. سوابق فقط پس از همگام‌سازی موفق به حساب dradinehvand@gmail.com منتقل می‌شوند. برای جلوگیری از ثبت در حساب اشتباه، ورود با همین ایمیل الزامی است. فرم، داده خام و مشخصات آزمون را حفظ می‌کند.</p>
   <div className="disease-grid">{diseases.map(x=><button type="button" key={x.code} className={disease===x.code?'disease active':'disease'} onClick={()=>{setDisease(x.code);setOpenId('')}}><b>{x.title}</b><small>{runs.filter(r=>r.disease_code===x.code&&r.model_family==='serology-longitudinal-round').length.toLocaleString('fa-IR')} نوبت</small></button>)}</div>
   <div className="form-grid"><label>گله<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه گله‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select></label><label>پرونده فعال<input value={title} readOnly/></label></div>
   <div className="wizard-nav"><button type="button" className="button primary" onClick={()=>setForm(!form)}>{form?'بستن فرم':'＋ ثبت نوبت جدید'}</button><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی</button></div>
