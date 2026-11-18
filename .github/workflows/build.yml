@@ -15,7 +15,12 @@ jobs:
         with:
           node-version: 22
       - name: Refresh lockfile from declared dependencies
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund || {
+            echo 'Existing lockfile refresh failed; regenerating from declared package versions.'
+            rm -f package-lock.json
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          }
       - run: npm ci --no-audit --no-fund
       - name: Audit all dependencies
         run: npm audit --audit-level=high
