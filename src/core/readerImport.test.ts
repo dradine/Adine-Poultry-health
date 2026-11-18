@@ -58,6 +58,13 @@ describe('plate control evaluation',()=>{
  it('does not claim QC pass when a reference control is selected without its limits',()=>{
   expect(evaluatePlateControls(table,{...criteria,referenceRole:'Reference'},'ELISA').status).toBe('pending')
  })
+ it('rejects duplicated control roles even when case differs and rejects result-role column collision',()=>{
+  expect(evaluatePlateControls(table,{...criteria,negativeRole:'positive'},'ELISA').status).toBe('pending')
+  expect(evaluatePlateControls(table,{...criteria,resultColumn:1},'ELISA').status).toBe('pending')
+ })
+ it('rejects negative reference control limits',()=>{
+  expect(evaluatePlateControls(table,{...criteria,referenceRole:'Reference',referenceMin:-1,referenceMax:1},'ELISA').status).toBe('pending')
+ })
  it('does not claim QC pass when IFU source or role mapping is missing',()=>{
   expect(evaluatePlateControls(table,{...criteria,source:''},'ELISA').status).toBe('pending')
   expect(evaluatePlateControls(table,{...criteria,roleColumn:null},'ELISA').status).toBe('pending')
