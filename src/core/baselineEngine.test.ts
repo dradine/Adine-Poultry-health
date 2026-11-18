@@ -4,5 +4,6 @@ const c:BaselineContext={disease:'IBD',vendor:'BioChek',assayOrKit:'BioChek IBD 
 describe('strict disease-specific baseline gates',()=>{
  it('keeps worked examples reference-only when exact assay metadata is absent',()=>{const r=assessIbdBaseline(c);expect(r.usableForNumericComparison).toBe(false);expect(r.status).toBe('reference-only');expect(r.numericRange).toBeNull()})
  it('does not treat missing context as wildcard',()=>{const r=assessIbdBaseline({...c,unit:''});expect(r.usableForNumericComparison).toBe(false);expect(r.explanationFa).toContain('اطلاعات لازم')})
+ it('requires exact catalog and IFU version when supplied',()=>{expect(assessIbdBaseline({...c,catalog:'CK113'}).usableForNumericComparison).toBe(false);expect(assessIbdBaseline({...c,assayVersion:'RevB 2025'}).usableForNumericComparison).toBe(false)})
  it('never borrows IBD baseline for other diseases',()=>{expect(assessIbvBaseline({...c,disease:'IBV'}).usableForNumericComparison).toBe(false);expect(assessNdBaseline({...c,disease:'ND'}).usableForNumericComparison).toBe(false);expect(assessAivBaseline({...c,disease:'AIV'}).usableForNumericComparison).toBe(false)})
 })
