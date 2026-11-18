@@ -54,7 +54,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2) throw new Error('حداقل تعداد نمونه باید حداقل ۲ باشد.')
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
   if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
-  if (!Array.isArray(titers) || titers.length < minimumSampleCount) throw new Error(`تعداد نمونه کافی نیست؛ حداقل ${minimumSampleCount} نمونه برای این پیکربندی لازم است.`)
+  if (!Array.isArray(titers) || titers.length < 2) throw new Error('برای محاسبه توصیفی حداقل دو تیتر معتبر لازم است؛ با یک نمونه تحلیل پراکندگی/صدک انجام نمی‌شود.')
   if (titers.some(v => !Number.isFinite(v) || v <= 0 || v > 1e9)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
   const sorted = [...titers].sort((a,b) => a-b)
   const selected = nearestRank(sorted, susceptiblePercent)
@@ -78,6 +78,9 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const maximumTiter = sorted[sorted.length-1]
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
+  if (titers.length < minimumSampleCount) warnings.push(`تعداد نمونه (${titers.length}) کمتر از راهنمای/حداقل ثبت‌شده این تحلیل (${minimumSampleCount}) است؛ خروجی صرفاً اکتشافی و توصیفی محسوب شود و برای تعمیم به کل گله یا تصمیم قطعی استفاده نشود.`)
+  if (titers.length < 10) warnings.push('حجم نمونه بسیار کم (n<10): صدک پایین و زمان برآوردی به چند مشاهده وابسته است؛ ناپایداری و عدم‌قطعیت زیاد است. تحلیل فقط اکتشافی است.')
+  else if (titers.length < 18) warnings.push('حجم نمونه محدود (n<18): برآورد تیتر و زمان واکسیناسیون ممکن است ناپایدار باشد؛ نمونه‌گیری تکمیلی توصیه می‌شود.')
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
   if (!input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ مقدار انتخابی باید با IFU/برچسب همان محصول و کیت تطبیق داده شود.')
   else warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
