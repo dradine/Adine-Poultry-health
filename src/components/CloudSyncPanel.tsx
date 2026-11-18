@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '../core/supabase'
+import { AUTH_REDIRECT_URL } from '../core/authRedirect'
 import { countPendingChanges, listLocalFlocks, listLocalModelRuns } from '../core/localFirstDb'
 import { getLastSync, migrateLegacyLocalData, syncLocalData } from '../core/syncService'
 
@@ -145,7 +146,7 @@ export default function CloudSyncPanel() {
     setBusy(true)
     setMessage('')
     try {
-      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: window.location.origin + window.location.pathname } })
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: AUTH_REDIRECT_URL } })
       if (error) throw error
       if (data.session) {
         setUser(data.user)
@@ -158,11 +159,27 @@ export default function CloudSyncPanel() {
       setMessage(error instanceof Error ? error.message : 'ساخت حساب انجام نشد.')
     } finally { setBusy(false) }
   }
+  async function resendConfirmation() {
+    if (!email.trim()) { setMessage('ابتدا ایمیل حساب را وارد کنید.'); return }
+    setBusy(true)
+    setMessage('')
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email.trim(),
+        options: { emailRedirectTo: AUTH_REDIRECT_URL },
+      })
+      if (error) throw error
+      setMessage('اگر حساب هنوز تأیید نشده باشد، لینک تأیید تازه ارسال می‌شود. فقط آخرین ایمیل را باز کنید؛ لینک‌های قبلی یک‌بارمصرف‌اند.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'ارسال دوباره ایمیل تأیید ناموفق بود.')
+    } finally { setBusy(false) }
+  }
   async function resetPassword() {
     if (!email.trim()) { setMessage('ابتدا ایمیل حساب را وارد کنید.'); return }
     setBusy(true)
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + window.location.pathname })
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: AUTH_REDIRECT_URL })
       if (error) throw error
       setMessage('اگر حسابی با این ایمیل وجود داشته باشد، دستور بازیابی گذرواژه ارسال می‌شود.')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'درخواست بازیابی ناموفق بود.') }
@@ -234,7 +251,7 @@ export default function CloudSyncPanel() {
       ) : (
         <details className="cloud-auth">
           <summary>ورود یا ساخت حساب برای همگام‌سازی بین دستگاه‌ها</summary>
-          <p className="muted cloud-redirect-note">آدرس بازگشت تأیید ایمیل (باید در Supabase Auth مجاز باشد): <span dir="ltr">{window.location.origin + window.location.pathname}</span></p>
+          <p className="muted cloud-redirect-note">آدرس ثابت بازگشت تأیید ایمیل و بازیابی گذرواژه: <span dir="ltr">{AUTH_REDIRECT_URL}</span></p>
           <form onSubmit={mode === 'signin' ? signIn : (event) => { event.preventDefault(); void signUp() }}>
             <label>ایمیل حساب
               <input type="email" value={email} onChange={event => setEmail(event.target.value)} autoComplete="username" required placeholder="name@example.com" dir="ltr" />
@@ -249,7 +266,7 @@ export default function CloudSyncPanel() {
               </button>
               {mode === 'signup' && <button className="button primary" type="submit" disabled={busy}>ثبت‌نام</button>}
             </div>
-            {mode === 'signin' && <button className="cloud-link" type="button" disabled={busy} onClick={() => void resetPassword()}>بازیابی گذرواژه</button>}
+            {mode === 'signin' && <div className="cloud-buttons"><button className="cloud-link" type="button" disabled={busy} onClick={() => void resetPassword()}>بازیابی گذرواژه</button><button className="cloud-link" type="button" disabled={busy} onClick={() => void resendConfirmation()}>ارسال مجدد ایمیل تأیید</button></div>}
           </form>
         </details>
       )}
