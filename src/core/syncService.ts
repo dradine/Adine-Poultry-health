@@ -276,7 +276,7 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
 }
 export type MdaRunDraft = {
   id?: string
-  flock: { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt?: string }
+  flock: { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt?: string; flockType?: string; flockSize?: string; houseName?: string; hatchery?: string; sampleDate?: string; vaccinationHistory?: string }
   diseaseCode: 'IBD' | 'IBV' | 'ND' | 'AIV'
   input: Record<string, unknown>
   output: Record<string, unknown>
@@ -290,6 +290,12 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
       flockName: draft.flock.flockName,
       placementDate: draft.flock.placementDate,
       hatchDate: draft.flock.hatchDate,
+      flockType: draft.flock.flockType,
+      flockSize: draft.flock.flockSize,
+      houseName: draft.flock.houseName,
+      hatchery: draft.flock.hatchery,
+      sampleDate: draft.flock.sampleDate,
+      vaccinationHistory: draft.flock.vaccinationHistory,
       savedAt: draft.flock.savedAt || new Date().toISOString(),
     })
   }
@@ -377,7 +383,7 @@ export async function getLastSync(userId: string): Promise<string | null> {
 
 
 export type MonitorRunDraft = {
-  flock: { id: string; flockName: string; placementDate: string; savedAt?: string }
+  flock: { id: string; flockName: string; placementDate: string; savedAt?: string; hatchDate?: string; flockType?: string; flockSize?: string; houseName?: string; hatchery?: string; sampleDate?: string; vaccinationHistory?: string }
   diseaseCode: 'ND' | 'IBV' | 'AIV'
   input: Record<string, unknown>
   output: unknown
@@ -390,6 +396,13 @@ export async function saveMonitorRunToLocal(draft: MonitorRunDraft): Promise<str
       id: draft.flock.id,
       flockName: draft.flock.flockName,
       placementDate: draft.flock.placementDate,
+      hatchDate: draft.flock.hatchDate,
+      flockType: draft.flock.flockType,
+      flockSize: draft.flock.flockSize,
+      houseName: draft.flock.houseName,
+      hatchery: draft.flock.hatchery,
+      sampleDate: draft.flock.sampleDate,
+      vaccinationHistory: draft.flock.vaccinationHistory,
       savedAt: draft.flock.savedAt || new Date().toISOString(),
     })
   }
