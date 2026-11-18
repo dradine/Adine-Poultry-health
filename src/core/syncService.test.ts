@@ -1,7 +1,19 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { listLocalFlocks, listLocalModelRuns, listOutbox } from './localFirstDb'
-import { saveMonitorRunToLocal, saveMdaRunToLocal } from './syncService'
+import { saveMonitorRunToLocal, saveMdaRunToLocal, saveProfileToLocal } from './syncService'
+
+describe('full flock metadata persistence', () => {
+  it('stores flock type, bird count, house, hatchery, sample date and vaccination history', async () => {
+    const profile = { id:crypto.randomUUID(), flockName:'Metadata flock', placementDate:'2026-11-16', hatchDate:'2026-11-14', savedAt:'2026-11-16T10:00:00.000Z', flockType:'layer', flockSize:'۱۵٬۰۰۰', houseName:'سالن ۲', hatchery:'هچری الف', sampleDate:'2026-11-18', vaccinationHistory:'ND day 1; IB day 7' }
+    await saveProfileToLocal(profile)
+    const saved = (await listLocalFlocks()).find(row=>row.id===profile.id)
+    expect(saved?.species).toBe('layer')
+    expect(saved?.bird_count).toBe(15000)
+    expect(saved?.location_label).toBe('سالن ۲')
+    expect(JSON.parse(saved?.notes || '{}')).toEqual({hatchery:'هچری الف',sampleDate:'2026-11-18',vaccinationHistory:'ND day 1; IB day 7'})
+  })
+})
 
 describe('persisted disease monitor runs', () => {
   it('stores ND output linked to a flock and queues both records for sync', async () => {
