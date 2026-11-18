@@ -303,3 +303,37 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .clinical-context-list b{font-size:11px;color:#365743}
 .clinical-context-list span{font-size:12px;line-height:1.9;color:#56675c;white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:600px){.clinical-context-list>div{grid-template-columns:1fr;gap:4px}}
+
+/* Structured flock history and clinical context */
+.clinical-context-editor{display:grid;gap:16px;margin:12px 0}
+.context-editor-section{display:grid;gap:12px;padding:15px;border:1px solid #dfe9e2;border-radius:14px;background:#fbfdfb}
+.context-editor-section>header,.vaccine-event-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.context-editor-section h4{margin:0;color:#28533b;font-size:14px}
+.context-editor-section>header p{margin:5px 0 0;color:#748278;font-size:11px;line-height:1.8}
+.vaccine-event-card{display:grid;gap:10px;padding:13px;border:1px solid #e1e9e3;border-radius:12px;background:white}
+.vaccine-event-card>header b{font-size:12px;color:#355a42}
+.vaccine-event-card .button.small{padding:5px 9px;font-size:10px}
+.context-empty{padding:13px;border:1px dashed #d4dfd6;border-radius:10px;color:#7a897f;font-size:11px}
+.context-editor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:8px 0}
+.context-editor-toolbar span{font-size:11px;color:#738178}
+.context-timeline{display:grid;gap:0}
+.context-timeline article{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid #e9efea}
+.context-timeline article:last-child{border-bottom:0}
+.context-date{font-size:11px;font-weight:700;color:#276347}
+.context-timeline article b{font-size:12px;color:#304c39}
+.context-timeline article p{margin:5px 0 0;font-size:11px;line-height:1.8;color:#6c7b70}
+.context-timeline article small{font-size:10px;color:#8b7446}
+.flock-context-report{display:grid;gap:15px;margin:14px 0}
+.flock-context-report>section{padding:15px;border:1px solid #e1e9e3;border-radius:13px;background:#fff}
+.flock-context-report h4{margin:0 0 10px;font-size:14px;color:#2e5a3f}
+.context-clinical-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.context-clinical-grid article{display:grid;gap:5px;padding:10px;border-radius:9px;background:#f5f8f5}
+.context-clinical-grid small{font-size:10px;color:#7b897f}
+.context-clinical-grid b{font-size:11px;line-height:1.7;color:#3f5948;overflow-wrap:anywhere}
+.trend-context{display:grid;gap:12px}
+@media(max-width:650px){
+ .context-editor-section>header{align-items:flex-start;flex-direction:column}
+ .context-editor-toolbar{align-items:flex-start;flex-direction:column}
+ .context-timeline article{grid-template-columns:1fr;gap:5px}
+ .context-clinical-grid{grid-template-columns:1fr}
+}
