@@ -30,7 +30,7 @@ export function geometricMeanConfidenceInterval(titres:number[]):MeanInterval|nu
 export function analyzePairedRounds(previousValues:number[],previousIds:string[],currentValues:number[],currentIds:string[],scale:'titre'|'continuous'):PairedAnalysis|null {
   if(previousIds.length!==previousValues.length||currentIds.length!==currentValues.length||!previousIds.length||!currentIds.length) return null
   if(new Set(previousIds).size!==previousIds.length||new Set(currentIds).size!==currentIds.length) return null
-  if(previousValues.some(v=>!Number.isFinite(v)||v<=0)||currentValues.some(v=>!Number.isFinite(v)||v<=0)) return null
+  if(previousValues.some(v=>!Number.isFinite(v)||(scale==='titre'?v<=0:v<0))||currentValues.some(v=>!Number.isFinite(v)||(scale==='titre'?v<=0:v<0))) return null
   const old=new Map(previousIds.map((id,i)=>[id,previousValues[i]]))
   const now=new Map(currentIds.map((id,i)=>[id,currentValues[i]]))
   const ids=previousIds.filter(id=>now.has(id))
