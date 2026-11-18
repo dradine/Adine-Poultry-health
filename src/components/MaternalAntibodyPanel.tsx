@@ -3,7 +3,7 @@ import {estimateMaternalAntibodyDecay} from '../core/maternalAntibody'
 import {saveMdaRunToLocal} from '../core/syncService'
 import {listLocalModelRuns,notifyLocalDataChanged} from '../core/localFirstDb'
 import type {StrainDisease} from '../core/strainRegistry'
-type Props={sampleAgeDays:number;disease:StrainDisease;flock?:{id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string}}
+type Props={sampleAgeDays:number;disease:StrainDisease;flock?:{id:string;flockName:string;placementDate:string;hatchDate?:string;savedAt:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;sampleDate?:string;vaccinationHistory?:string}}
 type Run=ReturnType<typeof estimateMaternalAntibodyDecay>
 type SavedMda={id:string;createdAt:string;disease:string;flockId?:string;flockName?:string;sampleAge:number;sampleTiters:number[];halfLife:number;threshold:number;meanHatch:number;medianHatch:number;geometricHatch:number;medianCrossing:number|null;belowCount:number;unit:string;source:string;strainSelections?:Record<string,string>}
 const digits=(v:string)=>v.replace(/[۰-۹]/g,d=>String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/٫/g,'.')
