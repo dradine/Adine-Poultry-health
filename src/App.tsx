@@ -504,9 +504,9 @@ export default function App() {
 
       <section className="intro">
         <div>
-          <span className="section-kicker">نسخه آزمایشی ۰.۲</span>
+          <span className="section-kicker">نسخه آزمایشی ۰.۳</span>
           <h2>تصمیم علمی، بر اساس داده واقعی گله</h2>
-          <p>ثبت اطلاعات گله و بررسی اولیه زمان‌بندی واکسن گامبورو بر پایه تیتر آنتی‌بادی مادری.</p>
+          <p>ثبت گله، انتخاب بیماری و کیت، ورود داده و تحلیل تخصصی سرولوژی و پایش بیماری‌های طیور.</p>
         </div>
         <div className="intro-symbol">IBD</div>
         <div className="backup-actions">
