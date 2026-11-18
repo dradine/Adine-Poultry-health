@@ -28,6 +28,22 @@ describe('conservative serology interpretation',()=>{
   expect(x.items.some(i=>i.title==='توزیع تیتر در مقیاس لگاریتمی')).toBe(true)
   expect(x.items.some(i=>i.level==='block')).toBe(false)
  })
+ it('interprets heterogeneous Newcastle HI titres as a differential, not a diagnosis',()=>{
+  const titres=[512,512,256,32,16,16,8,8,4,4,4,2]
+  const x=interpretSerologyRound('ND',{titers:titres,method:'HI',scale:'hi-reciprocal',assayId:'manual',samplingDate:'2026-11-18',samplingAgeDays:30,vaccineDate:'2026-11-09',vaccineProgram:'روز ۱ واکسن کشته؛ واکسن زنده هر دو هفته؛ روز ۲۱ واکسن زنده',vaccinePlatform:'live-conventional',hiHAU:'',qcStatus:'pending'})
+  expect(x.items.some(i=>i.title.includes('ناهمگون'))).toBe(true)
+  expect(x.items.some(i=>i.title.includes('فرضیه‌های اولویت‌دار'))).toBe(true)
+  expect(x.items.some(i=>i.title.includes('آستانه مثبت HI') )).toBe(true)
+  expect(x.items.some(i=>i.detail.includes('۹ روز'))).toBe(true)
+  expect(x.items.some(i=>i.detail.includes('عفونت مزرعه‌ای را اثبات'))).toBe(false)
+ })
+ it('does not classify HI positivity without four HAU, and explains homologous antigen relevance for AIV',()=>{
+  const x=interpretSerologyRound('AIV',{titers:[4,4,4,4,4,4,4,4,4,4,4,1],method:'HI',scale:'hi-reciprocal',assayId:'manual',antigen:'H9N2',vaccineDate:'2026-10-26',samplingDate:'2026-11-18',vaccinePlatform:'inactivated',vaccine:'H9N2 killed vaccine',hiHAU:'',qcStatus:'pending'})
+  expect(x.items.some(i=>i.title.includes('تطابق آنتی‌ژن H9'))).toBe(true)
+  expect(x.items.some(i=>i.title.includes('زمان نمونه‌گیری نسبت به واکسن'))).toBe(true)
+  expect(x.items.some(i=>i.title.includes('مسیر تزریق و کیفیت واکسن'))).toBe(true)
+  expect(x.items.some(i=>i.title.includes('آستانه مثبت HI'))).toBe(false)
+ })
  it('flags disagreement between entered age and hatch/sampling dates',()=>{
   const x=interpretSerologyRound('IBD',{...valid,hatchDate:'2026-10-01',samplingDate:'2026-10-20',samplingAgeDays:12})
   expect(x.items.some(i=>i.title.includes('سن واردشده با تاریخ هچ'))).toBe(true)
