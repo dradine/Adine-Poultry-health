@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adine-vaccine-timing-v5';
+const CACHE_NAME = 'adine-vaccine-timing-v6';
 const APP_ROOT = new URL('./', self.registration.scope).toString();
 const MANIFEST_URL = new URL('manifest.webmanifest', self.registration.scope).toString();
 const ICON_URL = new URL('icon.svg', self.registration.scope).toString();
