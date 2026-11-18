@@ -16,7 +16,7 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
  const raw=input.rawFileImported===true,meta=input.readerImportMeta&&typeof input.readerImportMeta==='object'?input.readerImportMeta as Input:{}
  const qc=raw?str(meta,'qcStatus'):str(input,'qcStatus')
  if(demo)items.push({level:'warning',title:'داده نمایشی',detail:'این رکورد شبیه‌سازی‌شده است؛ هیچ تفسیر آزمایشگاهی یا تصمیم گله‌ای از آن استخراج نمی‌شود.'})
- else if(raw&&qc!=='pass')items.push({level:'block',title:'اعتبار پلیت تأیید نشده',detail:qc==='fail'?'کنترل‌های ثبت‌شده با معیارهای واردشده سازگار نیستند؛ نتایج نمونه‌ها تا بررسی Run قابل گزارش قطعی نیستند.':'معیارهای QC یا داده کنترل کافی نیست؛ وضعیت پلیت در انتظار بررسی است.'})
+ else if(raw&&qc!=='pass')items.push({level:'warning',title:'QC پلیت تأیید نشده؛ گزارش فقط توصیفی است',detail:qc==='fail'?'کنترل‌های ثبت‌شده معیارهای واردشده را پاس نکرده‌اند؛ شاخص‌های توزیع صرفاً برای بازبینی فنی نمایش داده می‌شوند و تفسیر اختصاصی/مقایسه‌ای مجاز نیست.':'معیارهای QC یا داده کنترل کافی نیست؛ شاخص‌های آماری اولیه نمایش داده می‌شوند، اما نتیجه آزمون از نظر اعتبار پلیت تأیید نشده است.'})
  else if(!raw)items.push({level:'warning',title:'QC اظهاری است',detail:'فایل خام و کنترل‌های پلیت برای ممیزی مستقل در دسترس نیستند؛ وضعیت ثبت‌شده توسط اپراتور تأیید مستقل محسوب نمی‌شود.'})
  if(n>=2){
   const sorted=[...values].sort((a,b)=>a-b),mean=values.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(values.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)),median=n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2
