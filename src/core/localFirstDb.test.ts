@@ -24,6 +24,26 @@ describe('IndexedDB local-first persistence', () => {
     expect(queue[0].operation).toBe('upsert')
   })
 
+  it('keeps only the newest queued upsert when a flock is edited repeatedly', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه اول' })
+    await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه دوم', updated_at: '2026-11-16T11:00:00.000Z' })
+    const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
+    expect(queue).toHaveLength(1)
+    expect(queue[0].operation).toBe('upsert')
+    expect(queue[0].payload?.flock_name).toBe('نسخه دوم')
+  })
+
+  it('replaces a queued flock upsert with a delete tombstone', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await markLocalDeleted('flocks', id)
+    const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
+    expect(queue).toHaveLength(1)
+    expect(queue[0].operation).toBe('delete')
+    expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
+  })
+
   it('persists model runs as appendable local records', async () => {
     const flockId = crypto.randomUUID()
     const id = crypto.randomUUID()
