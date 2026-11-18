@@ -31,6 +31,7 @@ describe('IBD Deventer-style mathematical estimator', () => {
   it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
   it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
   it('accepts a documented correction for day-old sampling',()=>expect(calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:2}).estimatedVaccinationAgeDays).toBeGreaterThan(2))
+  it('keeps an already-crossed BTT status even when positive age correction shifts the raw formula forward',()=>{const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:50,titers:[80,90,95],correctionDays:2});expect(r.rawCalculatedAgeDays).toBeGreaterThan(2);expect(r.thresholdAlreadyReachedAtSampling).toBe(true);expect(r.estimatedVaccinationAgeDays).toBeNull();expect(r.warnings.join(' ')).toContain('اصلاح سن نمی‌تواند')})
 })
 
 describe('IBD assay quality gate', () => {
