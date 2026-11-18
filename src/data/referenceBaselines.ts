@@ -92,7 +92,8 @@ export const UNPARSED_REFERENCE_DOCUMENTS = [
     version: 'March 2026, English doc17201 (760 KB); Russian doc17202 (860 KB), listed in the official Pro Access portal',
     status: 'The official portal search index lists the March 2026 English and Russian PDFs. The PDF payload was not retrievable for independent transcription in this review; numeric tables have NOT been transcribed or activated. This supersedes the stale June 2025 listing previously recorded in this project.',
     sourceUrl: 'https://www.innovative-diagnostics.com/pro-access-en/',
-    requiredNextStep: 'Obtain the March 2026 English PDF and transcribe every poultry row with disease, assay code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, population and footnotes. Independently double-enter and verify every numeric cell before enabling comparisons.'
+    requiredNextStep: 'Obtain the March 2026 English PDF and transcribe every poultry row with disease, assay code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, population and footnotes. Independently double-enter and verify every numeric cell before enabling comparisons.',
+  },
   {
     id: 'idvet-avian-kit-matrices',
     vendor: 'Innovative Diagnostics / IDvet',
@@ -100,7 +101,7 @@ export const UNPARSED_REFERENCE_DOCUMENTS = [
     version: 'Portal-listed files; versions vary by assay',
     status: 'Official portal lists separate English matrices: IBDS (ver0416), IBDVP2 (ver0916), IBVC (ver0217), IBVS (ver0416), IBVARSV2 (ver0223), NDVC (ver0417), NDVS (ver0416), NDVS-CV (ver0416), FLUACA (ver0917), FLUACH5 (ver0215), FLUACH9 (ver0616), FLUH9S (ver0620), and FLUNPS (ver0620). Their filenames and existence are verified; the spreadsheet payloads could not be downloaded/inspected in this session, so no numeric matrices or equations have been imported or activated.',
     sourceUrl: 'https://www.innovative-diagnostics.com/pro-access-en/',
-    requiredNextStep: 'Acquire each applicable workbook, inspect hidden sheets/formulas/locked ranges and IFU pairing, then implement only exact version-specific calculation logic with test fixtures.',
+    requiredNextStep: 'Acquire each applicable workbook from the official portal, inspect hidden sheets, formulas, locked ranges, calibration factors and IFU pairing, then independently reproduce the calculation with manufacturer examples before implementation. Current source portal: https://www.innovative-diagnostics.com/pro-access-en/',
   },
 ]
 
