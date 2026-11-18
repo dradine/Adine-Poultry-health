@@ -485,24 +485,30 @@ export default function App() {
       .catch(cause => setError(cause instanceof Error ? cause.message : 'ثبت حذف در صف همگام‌سازی انجام نشد.'))
   }
 
-  function removeProfile(id: string) {
+  async function removeProfile(id: string) {
     const profile = profiles.find(item => item.id === id)
     if (!profile) return
-    const related = analyses.filter(item => item.flockName === profile.flockName && item.placementDate === profile.placementDate)
-    if (related.length && !window.confirm('تحلیل‌های وابسته به این گله نیز حذف شوند؟')) return
-    const nextProfiles = profiles.filter(item => item.id !== id)
-    const nextAnalyses = analyses.filter(item => !related.some(run => run.id === item.id))
-    if (!writeLocalStorage(STORAGE_KEY, nextProfiles) || !writeLocalStorage(ANALYSIS_STORAGE_KEY, nextAnalyses)) {
-      setError('حذف کامل انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.')
-      return
-    }
-    setProfiles(nextProfiles)
-    setAnalyses(nextAnalyses)
-    void (async () => {
-      for (const run of related) await markLocalDeleted('model_runs', run.id)
+    setError('')
+    try {
+      const localRuns = await listLocalModelRuns()
+      const flockRuns = localRuns.filter(run => run.flock_id === id)
+      const relatedLegacy = analyses.filter(item => item.flockName === profile.flockName && item.placementDate === profile.placementDate)
+      const runIds = [...new Set([...flockRuns.map(run => run.id), ...relatedLegacy.map(run => run.id)])]
+      if (runIds.length && !window.confirm(`این گله ${runIds.length} سابقه تحلیل/پایش دارد. با حذف گله، همه سوابق وابسته نیز برای حذف محلی و ابری علامت‌گذاری می‌شوند. ادامه می‌دهید؟`)) return
+      const nextProfiles = profiles.filter(item => item.id !== id)
+      const nextAnalyses = analyses.filter(item => !relatedLegacy.some(run => run.id === item.id))
+      if (!writeLocalStorage(STORAGE_KEY, nextProfiles) || !writeLocalStorage(ANALYSIS_STORAGE_KEY, nextAnalyses)) {
+        setError('حذف کامل انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.')
+        return
+      }
+      setProfiles(nextProfiles)
+      setAnalyses(nextAnalyses)
+      for (const runId of runIds) await markLocalDeleted('model_runs', runId)
       await markLocalDeleted('flocks', id)
       notifyLocalDataChanged()
-    })().catch(cause => setError(cause instanceof Error ? cause.message : 'ثبت حذف در صف همگام‌سازی انجام نشد.'))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'حذف گله و سوابق وابسته انجام نشد.')
+    }
   }
 
   return (
@@ -581,7 +587,7 @@ export default function App() {
                 <span>{profile.flockName}</span>
                 <small>{toPersianDigits(formatJalaliDate(profile.placementDate))}</small>
                 <button className="link-button" onClick={() => { setFlockName(profile.flockName); setPlacementDate(profile.placementDate); setHatchDate(profile.hatchDate || ''); setFlockType(profile.flockType || 'broiler'); setFlockSize(profile.flockSize || ''); setHouseName(profile.houseName || ''); setHatchery(profile.hatchery || ''); setSampleDate(profile.sampleDate || ''); setVaccinationHistory(profile.vaccinationHistory || '') }}>انتخاب</button>
-                <button className="link-button" onClick={() => removeProfile(profile.id)}>حذف</button>
+                <button className="link-button" onClick={() => void removeProfile(profile.id)}>حذف</button>
               </div>
             ))}
           </div>
