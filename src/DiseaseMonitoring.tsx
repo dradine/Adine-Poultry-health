@@ -158,8 +158,10 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
   const diseaseName = (code: string) => code === 'ND' ? 'نیوکاسل' : code === 'IBV' ? 'برونشیت' : 'آنفلوانزا'
   const autoSampleCount = mode === 'ND' ? numbers(post).filter(Number.isFinite).length
     : mode === 'IBV' ? ibData.split('\n').map(line => line.trim()).filter(Boolean).length : 0
-  const reportedSampleCount = sampleCountOverride.trim() ? Number(sampleCountOverride) : autoSampleCount
-  const sampleCountWarning = reportedSampleCount > 0 && reportedSampleCount < 10
+  const reportedSampleCount = mode === 'AIV' ? (sampleCountOverride.trim() ? Number(normalizeDigits(sampleCountOverride)) : 0) : autoSampleCount
+  const sampleCountWarning = mode === 'IBV'
+    ? 'این عدد تعداد زمان‌های نمونه‌گیری/مشاهده است، نه تعداد پرندگان؛ از روند تجمیعی روز:مقدار نمی‌توان n پرنده را استنباط کرد.'
+    : reportedSampleCount > 0 && reportedSampleCount < 10
     ? 'نمونه بسیار کم (کمتر از ۱۰): نتایج بسیار ناپایدارند؛ از تعمیم به کل گله یا تصمیم قطعی خودداری کنید.'
     : reportedSampleCount >= 10 && reportedSampleCount < 20
       ? 'حجم نمونه محدود (۱۰ تا ۱۹): این تعداد به‌تنهایی نمایندگی گله یا اعتبار نتیجه را تضمین نمی‌کند.'
@@ -177,9 +179,9 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         <span className="tag">Research / Monitor</span>
       </div>
       <div className="form-grid">
-        <label>تعداد نمونه (برای AIV دستی؛ برای ND/IBV شمارش خودکار قابل اصلاح)
-          <input inputMode="numeric" value={sampleCountOverride} onChange={event => setSampleCountOverride(event.target.value)} placeholder={autoSampleCount ? String(autoSampleCount) + ' نمونه شمارش‌شده' : 'تعداد نمونه'} />
-        </label>
+        {mode === 'AIV' && <label>تعداد نمونه‌های آزمایشگاهی (ورود دستی)
+          <input inputMode="numeric" value={sampleCountOverride} onChange={event => setSampleCountOverride(event.target.value)} placeholder="تعداد نمونه" />
+        </label>}
         <label>گله مربوط به این پایش
           <select value={flockId} onChange={event => setFlockId(event.target.value)}>
             <option value="">انتخاب گله ذخیره‌شده…</option>
@@ -259,7 +261,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
 
       </details>
 
-      <div className="sample-count-note" role="status"><strong>کنترل حجم نمونه · n = {reportedSampleCount || '—'}</strong><p>{sampleCountWarning}</p><small>این هشدار جایگزین تعیین حجم نمونه بر اساس هدف، شیوع مورد انتظار، دقت، سطح اطمینان، طراحی خوشه‌ای و دستورالعمل کیت نیست.</small></div>
+      <div className="sample-count-note" role="status"><strong>{mode === 'IBV' ? 'تعداد زمان‌های مشاهده' : mode === 'ND' ? 'تعداد پرندگان HI پس از واکسن' : 'تعداد نمونه‌های ثبت‌شده برای AIV'} · n = {reportedSampleCount || '—'}</strong><p>{sampleCountWarning}</p><small>{mode === 'IBV' ? 'تعداد پرندگان، نمونه‌های تکراری و طراحی نمونه‌گیری باید جداگانه در پرونده آزمایش ثبت شوند.' : 'این هشدار جایگزین تعیین حجم نمونه بر اساس هدف، شیوع مورد انتظار، دقت، سطح اطمینان، طراحی خوشه‌ای و دستورالعمل کیت نیست.'}</small></div>
       {selectedKit && <div className="sample-count-note"><strong>کیت/روش انتخاب‌شده</strong><p>{selectedKit.brand}{selectedKit.catalog ? ' · '+selectedKit.catalog : ''} — {selectedKit.assay} ({selectedKit.format})</p><small>منبع: {selectedKit.sourceUrl || 'ثبت دستی'} · وضعیت مستندات: {selectedKit.evidenceStatus}. این انتخاب در سابقه ثبت می‌شود؛ فقط در موتورهای سازگار نقش ورودی محاسباتی دارد.</small></div>}
       <button className="button primary" onClick={run}>اجرای موتور پایش</button>
       {err && <p className="error">{err}</p>}
