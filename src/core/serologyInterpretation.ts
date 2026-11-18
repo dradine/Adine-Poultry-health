@@ -68,6 +68,8 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
  if(disease==='IBV')items.push({level:'info',title:'محدودیت اختصاصیت سویه در IBV',detail:'ELISA عمومی IBV را معادل تعیین سویه یا اثبات cross-protection تلقی نکنید؛ برای تعیین سویه به روش مولکولی و شواهد تکمیلی نیاز است.'})
  if(disease==='ND'&&method==='HI')items.push({level:'info',title:'تفسیر HI وابسته به آنتی‌ژن و روش است',detail:'تیتر HI را بدون سویه آنتی‌ژن، HAU، RBC، تیمار سرم و زمینه واکسیناسیون به آستانه حفاظت عمومی تبدیل نکنید.'})
  if(!assay)items.push({level:'warning',title:'کیت در کاتالوگ تأییدشده پیدا نشد',detail:'مشخصات محصول، IFU، آنتی‌ژن، ماتریس و فرمول محاسبه باید پیش از تفسیر اختصاصی ثبت و بررسی شوند.'})
+ else if(assay.status==='catalog-only')items.push({level:'warning',title:'کاتالوگ محصول موجود است، اما IFU اختصاصی هنوز اعتبارسنجی نشده',detail:'وجود نام محصول در کاتالوگ به معنی تأیید فرمول، cutoff یا معیار QC نیست؛ نسخه جاری IFU و matrix همان محصول باید بررسی و ثبت شود.'})
+ else if(assay.status==='local-validation-required')items.push({level:'warning',title:'اعتبارسنجی محلی آزمون لازم است',detail:'محصول/روش شناسایی شده، اما برای این آزمایشگاه هنوز مقایسه‌پذیری و عملکرد محلی تأیید نشده است.'})
  if(!str(input,'antigen'))nextData.push('آنتی‌ژن دقیق کیت و در صورت وجود سویه/ژنوتیپ مرجع')
  if(!str(input,'sampleMatrix'))nextData.push('ماتریس نمونه و انطباق آن با IFU')
  const blocking=items.some(x=>x.level==='block')
