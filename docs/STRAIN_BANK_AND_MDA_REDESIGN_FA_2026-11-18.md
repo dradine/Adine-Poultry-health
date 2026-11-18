@@ -39,3 +39,8 @@
 - G1 classical، G2 variant، G3 vvIBDV، G4 distinct، G5 Mexican/recombinant، G6 Italian، G7 Australian در بانک اولیه به‌عنوان reference molecular group پیشنهاد شده‌اند.
 - این گروه‌بندی بر اساس hvVP2 و scheme تاریخی G1–G7 است؛ طبقه‌بندی‌های جدیدتر، segment A/B، sub-lineage و genogroupهای تازه ممکن است تفاوت داشته باشند. G2/G7 نام سویه اختصاصی نیستند. برای isolate واقعی، sequence accession، segment، lineage، تاریخ/کشور و source لازم است.
 - Reference: Michel & Jackwood 2017, *Classification of infectious bursal disease virus into genogroups*, https://doi.org/10.1007/s00705-017-3500-4 . Review of updated nomenclature: https://pmc.ncbi.nlm.nih.gov/articles/PMC13386920/ .
+
+### IBV: 4/91 و 793B
+- 4/91 و 793B و CR88 معمولاً نام‌های مرتبط/مترادف برای GI-13 (793B-type) lineage هستند؛ بنابراین در فهرست به یک پیشنهاد واحد تبدیل شدند تا به‌صورت سویه‌های مستقل و متفاوت نمایش داده نشوند.
+- QX-like (GI-19) یک field lineage/reference است؛ QXL87 به‌صورت جداگانه و product-specific vaccine reference ثبت شده است و نباید با تمام QX field isolates یکسان فرض شود.
+- References: https://pmc.ncbi.nlm.nih.gov/articles/PMC10221305/ ; https://doi.org/10.1080/03079457.2023.2177140
