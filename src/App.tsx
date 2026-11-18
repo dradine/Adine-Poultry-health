@@ -601,7 +601,7 @@ export default function App() {
               <div className="saved-row" key={profile.id}>
                 <span>{profile.flockName}</span>
                 <small>{toPersianDigits(formatJalaliDate(profile.placementDate))}</small>
-                <button className="link-button" onClick={() => { setFlockName(profile.flockName); setPlacementDate(profile.placementDate); setHatchDate(profile.hatchDate || ''); setFlockType(profile.flockType || 'broiler'); setFlockSize(profile.flockSize || ''); setHouseName(profile.houseName || ''); setHatchery(profile.hatchery || ''); setSampleDate(profile.sampleDate || ''); setVaccinationHistory(profile.vaccinationHistory || '') }}>انتخاب</button>
+                <button className="link-button" onClick={() => { setSelectedFlockId(profile.id); setFlockName(profile.flockName); setPlacementDate(profile.placementDate); setHatchDate(profile.hatchDate || ''); setFlockType(profile.flockType || 'broiler'); setFlockSize(profile.flockSize || ''); setHouseName(profile.houseName || ''); setHatchery(profile.hatchery || ''); setSampleDate(profile.sampleDate || ''); setVaccinationHistory(profile.vaccinationHistory || '') }}>انتخاب</button>
                 <button className="link-button" onClick={() => void removeProfile(profile.id)}>حذف</button>
               </div>
             ))}
