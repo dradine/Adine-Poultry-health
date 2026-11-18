@@ -64,7 +64,7 @@ export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'EL
 
 
 export type PlateControlCriteria={roleColumn:number|null;resultColumn:number;positiveRole:string;negativeRole:string;referenceRole?:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin?:number|null;referenceMax?:number|null;maxReplicateCvPercent?:number|null;maxReplicatePercentDifference?:number|null;source:string}
-export type PlateControlGroup={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;lowerLimit:number|null;upperLimit:number|null;cvPercent:number|null;maxReplicateCvPercent:number|null;percentDifference:number|null;maxReplicatePercentDifference:number|null;withinLimits:boolean|null}
+export type PlateControlGroup={label:string;n:number;mean:number;sd:number|null;cvPercent:number|null;minimum:number;maximum:number;lowerLimit:number|null;upperLimit:number|null;maxReplicateCvPercent:number|null;percentDifference:number|null;maxReplicatePercentDifference:number|null;withinLimits:boolean|null}
 export type PlateControlEvaluation={status:'pass'|'fail'|'pending';evidence:string;groups:PlateControlGroup[];failures:string[]}
 export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCriteria,method:'ELISA'|'HI'):PlateControlEvaluation{
  const failures:string[]=[],groups:PlateControlGroup[]=[]
