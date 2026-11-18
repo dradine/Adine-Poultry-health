@@ -21,7 +21,7 @@ export function parseDelimitedTable(source:string):ReaderTable{
  return {delimiter,headers,rows:data}
 }
 export function normalizeReaderNumber(raw:string,method:'ELISA'|'HI',decimalComma=false):number{
- let x=raw.trim().replace(/[۰-۹٠-٩]/g,c=>{const a='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(a>=0?a:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}).replace(/[٬]/g,'')
+ let x=raw.trim().replace(/[۰-۹٠-٩]/g,c=>{const a='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(a>=0?a:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}).replace(/[٬]/g,'').replace(/\u066B/g,'.')
  if(method==='HI'&&/^1[:/]\d+(?:\.\d+)?$/.test(x))x=x.slice(2)
  if(decimalComma&&x.includes(',')&&!x.includes('.'))x=x.replace(',','.')
  const n=Number(x)
