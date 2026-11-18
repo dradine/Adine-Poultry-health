@@ -189,3 +189,12 @@ Key new requirements:
 - Biogal ImmunoComb demonstrates POCT / image-assisted reading concepts; no poultry flock-trend software evidence found in reviewed official product pages, so do not port companion-animal performance claims to poultry.
 - Thermo SampleManager is a LIMS architecture reference, not a poultry serology engine.
 - IDvet General Baselines March 2026 is listed in distributor portal but full content has not been retrieved/validated; do not import any numeric baselines until the source PDF is reviewed.
+
+
+## Addendum 2: IDvet-specific assay/platform matrix (18 Nov 2026)
+Official IDvet product review identifies distinct assay pathways that should be represented explicitly:
+- IBD conventional IBDS vs IBDVP2 recombinant VP2.
+- ND conventional NDVS-CV vs rHVT-F-oriented NDVS vs NDV-NP vs competitive NDVC.
+- IBV broad recombinant conserved-protein ELISA (IBVARSV2) is not a genotype identification assay; use PCR/sequencing for field variant typing.
+- AIV NP and H5-HA assays are different targets. DIVA claims are restricted to exact vaccine-platform/assay combinations documented by manufacturer, e.g. rHVT-H5-alone with NP + H5 logic.
+The strain registry must store vector backbone, expressed antigen, assay-coated antigen/target and field isolate/genotype as separate relations. This is now a P0 scientific correctness requirement, not a cosmetic catalog feature.
