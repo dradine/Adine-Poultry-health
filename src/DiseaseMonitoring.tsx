@@ -191,6 +191,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         </label>}
       </div>
 
+      <details className="custom-kit-accordion disease-data-accordion"><summary>＋ ورود داده‌ها و جزئیات آزمون ​</summary>
       {mode === 'ND' && <>
         <p>ورودی HI بر حسب log2 endpoint (رقت ۱:۲ = ۱، ۱:۴ = ۲ و ...). فقط تحلیل پاسخ سرولوژیک، نه protection. اگر نمونه‌های baseline و post متعلق به همان پرندگان و همان ترتیب نیستند، baseline را وارد نکنید.</p>
         <div className="form-grid">
@@ -249,6 +250,8 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         <label><input type="checkbox" checked={aiv.divaValidated} onChange={event => setAiv({ ...aiv, divaValidated: event.target.checked })} /> روش DIVA معتبر شده</label>
         <label><input type="checkbox" checked={aiv.officialProgramConfirmed} onChange={event => setAiv({ ...aiv, officialProgramConfirmed: event.target.checked })} /> برنامه رسمی تأیید شده</label>
       </div>}
+
+      </details>
 
       <div className="sample-count-note" role="status"><strong>کنترل حجم نمونه · n = {reportedSampleCount || '—'}</strong><p>{sampleCountWarning}</p><small>این هشدار جایگزین تعیین حجم نمونه بر اساس هدف، شیوع مورد انتظار، دقت، سطح اطمینان، طراحی خوشه‌ای و دستورالعمل کیت نیست.</small></div>
       {selectedKit && <div className="sample-count-note"><strong>کیت/روش انتخاب‌شده</strong><p>{selectedKit.brand}{selectedKit.catalog ? ' · '+selectedKit.catalog : ''} — {selectedKit.assay} ({selectedKit.format})</p><small>منبع: {selectedKit.sourceUrl || 'ثبت دستی'} · وضعیت مستندات: {selectedKit.evidenceStatus}. این انتخاب در سابقه ثبت می‌شود؛ فقط در موتورهای سازگار نقش ورودی محاسباتی دارد.</small></div>}
