@@ -12,6 +12,8 @@ import MonitorDashboard from './components/MonitorDashboard'
 type Mode = 'ND' | 'IBV' | 'AIV'
 type FlockOption = { id: string; flockName: string; placementDate: string; savedAt?: string }
 type AivInput = {
+  divaAssay?: string
+  divaProtocolSource?: string
   vaccinationStatus: 'vaccinated' | 'unvaccinated' | 'unknown'
   vaccinePlatform: 'inactivated' | 'vector' | 'other' | 'unknown'
   subtype: string
@@ -41,7 +43,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
   const [ibScale, setIbScale] = useState('')
   const [unit, setUnit] = useState<'ELISA' | 'HI-log2' | 'VN'>('ELISA')
   const [aiv, setAiv] = useState<AivInput>({
-    vaccinationStatus: 'unknown', vaccinePlatform: 'unknown', subtype: '',
+    divaAssay:'', divaProtocolSource:'', vaccinationStatus: 'unknown', vaccinePlatform: 'unknown', subtype: '',
     antigenMatch: 'uncertain', serologyResult: 'not-tested', divaValidated: false,
     rtPcrResult: 'not-tested', clinicalSigns: false, mortalityIncrease: false,
     officialProgramConfirmed: false,
@@ -256,6 +258,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         <label><input type="checkbox" checked={aiv.clinicalSigns} onChange={event => setAiv({ ...aiv, clinicalSigns: event.target.checked })} /> علائم بالینی</label>
         <label><input type="checkbox" checked={aiv.mortalityIncrease} onChange={event => setAiv({ ...aiv, mortalityIncrease: event.target.checked })} /> افزایش تلفات</label>
         <label><input type="checkbox" checked={aiv.divaValidated} onChange={event => setAiv({ ...aiv, divaValidated: event.target.checked })} /> روش DIVA معتبر شده</label>
+        {aiv.divaValidated && <><label>نام آزمون همراه DIVA<input value={aiv.divaAssay || ''} onChange={event => setAiv({ ...aiv, divaAssay:event.target.value })} placeholder="مثلاً آزمون اختصاصی NP/HA؛ مطابق پروتکل" /></label><label>منبع و نسخه پروتکل DIVA<input value={aiv.divaProtocolSource || ''} onChange={event => setAiv({ ...aiv, divaProtocolSource:event.target.value })} placeholder="IFU، مقاله اعتبارسنجی یا دستورالعمل رسمی" /></label></>}
         <label><input type="checkbox" checked={aiv.officialProgramConfirmed} onChange={event => setAiv({ ...aiv, officialProgramConfirmed: event.target.checked })} /> برنامه رسمی تأیید شده</label>
       </div>}
 
