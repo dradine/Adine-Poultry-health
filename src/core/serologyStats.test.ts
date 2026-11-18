@@ -57,6 +57,12 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(areComparableSerologyRounds(a,round({...base,vaccineDate:'2026-10-03'}))).toBe(false)
   expect(areComparableSerologyRounds(a,round({...base,randomSamplingConfirmed:false}))).toBe(false)
  })
+ it('blocks trend comparison when the actual vaccination event timeline differs',()=>{
+  const events=[{date:'2026-10-15',ageDays:14,disease:'ND',product:'LaSota',strain:'LaSota',platform:'live',route:'water',dose:'full',coveragePercent:95}]
+  const a=round({...base,vaccinationEvents:events})
+  expect(areComparableSerologyRounds(a,round({...base,vaccinationEvents:events}))).toBe(true)
+  expect(areComparableSerologyRounds(a,round({...base,vaccinationEvents:[...events,{date:'2026-10-29',ageDays:28,disease:'ND',product:'LaSota booster',platform:'live',route:'water',coveragePercent:90}]}))).toBe(false)
+ })
  it('blocks raw-import rounds when computed plate QC is not pass, even if outer QC is pass',()=>{
   const failed=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'fail'}})
   const pending=round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'pending'}})
