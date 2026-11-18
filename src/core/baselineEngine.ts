@@ -34,8 +34,8 @@ function assess(disease:BaselineDisease,context:BaselineContext):BaselineAssessm
    &&norm(m.method||'')===norm(context.method)&&norm(m.unit||x.numericRange?.unit||'')===norm(context.unit)
    &&norm(x.population)===norm(context.population)&&norm(x.ageWindow||'')===norm(context.ageWindow)
    &&norm(x.vaccineProgram||'')===norm(context.vaccineProgram)
-   &&(!context.catalog||norm(m.catalog||'')===norm(context.catalog))
-   &&(!context.assayVersion||norm(m.assayVersion||'')===norm(context.assayVersion))
+   &&(present(m.catalog) ? present(context.catalog)&&norm(m.catalog!)===norm(context.catalog!) : !present(context.catalog))
+   &&(present(m.assayVersion) ? present(context.assayVersion)&&norm(m.assayVersion!)===norm(context.assayVersion!) : !present(context.assayVersion))
  })
  if(!exact)return {status:'reference-only',usableForNumericComparison:false,baselineId:null,
  explanationFa:'Baseline این بیماری در کتابخانه وجود دارد، اما تطابق دقیق سازنده، آزمون، روش، مقیاس، جمعیت، سن و برنامه واکسن احراز نشد. مقایسه عددی مسدود است.',
