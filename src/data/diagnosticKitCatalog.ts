@@ -89,6 +89,83 @@ export const diagnosticKitCatalog: DiagnosticKit[] = [
     evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
     notes: 'Exact product number, IFU, cut-off and distribution must be verified before this entry is selectable for calculations.'
   }
+
+  {
+    id: 'idexx-ibv-9909262', disease: 'IBV', brand: 'IDEXX', catalog: '99-09262',
+    assay: 'IBV antibody', format: 'Indirect ELISA', sample: 'Chicken serum',
+    intendedUse: 'Detection and monitoring of IBV antibodies',
+    documentedSource: 'IDEXX Canada official product page',
+    sourceUrl: 'https://ca.idexx.com/en-ca/livestock/livestock-tests/poultry-tests/idexx-ibv-ab-test/',
+    evidenceStatus: 'manufacturer-source', iranMarket: 'not-confirmed',
+    notes: 'Part number verified on manufacturer page; verify regional IFU, lot and titre conversion before calculations.'
+  },
+  {
+    id: 'biochek-ck122-nd-f', disease: 'ND', brand: 'BioChek', catalog: 'CK122 NDV-F',
+    assay: 'Newcastle F antibody', format: 'Indirect ELISA', sample: 'Chicken serum',
+    intendedUse: 'Monitoring antibodies to Newcastle virus F antigen',
+    documentedSource: 'BioChek ELISA SDS catalogue listing',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'F-antigen assay is distinct from standard NDV ELISA/HI; exact IFU and interpretation model need review.'
+  },
+  {
+    id: 'biochek-ck301-aiv-ag', disease: 'AIV', brand: 'BioChek', catalog: 'CK301',
+    assay: 'Avian influenza antigen', format: 'Direct ELISA', sample: 'Manufacturer-approved samples; verify IFU',
+    intendedUse: 'Direct antigen detection, not antibody monitoring',
+    documentedSource: 'BioChek official product page',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Separate antigen-detection pathway from serology. Confirm sample matrix, sensitivity, specificity and official confirmation protocol from current IFU.'
+  },
+  {
+    id: 'biochek-ck401-inf-a-multi', disease: 'AIV', brand: 'BioChek', catalog: 'CK401',
+    assay: 'Influenza A multispecies antibody', format: 'Competitive ELISA', sample: 'Avian serum; species-specific IFU',
+    intendedUse: 'Influenza A antibody surveillance in multiple avian species',
+    documentedSource: 'BioChek official portfolio',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Multispecies and competitive format; do not merge with poultry indirect-ELISA titers.'
+  },
+  {
+    id: 'biochek-ck129-ai-eds', disease: 'AIV', brand: 'BioChek', catalog: 'CK129',
+    assay: 'Influenza A / EDS antibodies', format: 'ELISA; exact format to verify',
+    sample: 'Chicken serum',
+    intendedUse: 'Combined influenza A and EDS antibody testing',
+    documentedSource: 'BioChek ELISA SDS product identifier',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Code and product name appear in manufacturer SDS; exact current assay design and interpretation must be checked from IFU.'
+  },
+  {
+    id: 'biochek-kit6073-aiv-np', disease: 'AIV', brand: 'BioChek', catalog: 'KIT6073',
+    assay: 'Influenza A nucleoprotein antibody', format: 'ELISA; verify current IFU',
+    sample: 'Avian serum',
+    intendedUse: 'NP antibody screening; DIVA-related interpretation only when validated with vaccination strategy',
+    documentedSource: 'BioChek ELISA SDS product identifier',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'NP antibody alone does not identify subtype or prove active infection. DIVA interpretation requires validated companion strategy and protocol.'
+  },
+  {
+    id: 'biochek-ck128-aiv', disease: 'AIV', brand: 'BioChek', catalog: 'CK128',
+    assay: 'Avian influenza antibody', format: 'ELISA; exact format to verify',
+    sample: 'Chicken serum',
+    intendedUse: 'Antibody monitoring; product-specific target and format require confirmation',
+    documentedSource: 'BioChek ELISA SDS product identifier',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Product code documented in manufacturer SDS; do not activate calculations until the current IFU is attached and reviewed.'
+  },
+  {
+    id: 'biochek-ck130-aiv', disease: 'AIV', brand: 'BioChek', catalog: 'CK130',
+    assay: 'Avian influenza antibody', format: 'ELISA; exact format to verify',
+    sample: 'Chicken serum',
+    intendedUse: 'Antibody monitoring; target and assay format require confirmation',
+    documentedSource: 'BioChek ELISA SDS product identifier',
+    sourceUrl: 'https://www.biochek.com/poultry/poultry-elisa/',
+    evidenceStatus: 'manufacturer-catalog', iranMarket: 'not-confirmed',
+    notes: 'Code documented in manufacturer SDS; confirm current product page/IFU and antigen target before use.'
+  }
 ]
 
 export const diseaseCatalogMeta = {
