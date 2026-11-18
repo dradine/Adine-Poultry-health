@@ -24,7 +24,7 @@ describe('assay-scale-aware summaries',()=>{
 })
 
 describe('strict longitudinal assay compatibility',()=>{
- const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive control 1.2; negative 0.1'}
+ const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive control 1.2; negative 0.1',samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccine:'Vaccine A',vaccineStrain:'D78',vaccineProgram:'day 14 drinking water',vaccineDate:'2026-10-01',randomSamplingConfirmed:true}
  const round=(input:Record<string,unknown>,flockId='F1',diseaseCode='IBD')=>({flockId,diseaseCode,input})
  it('allows only identical complete ELISA assay context',()=>{
   const a=round({...base}),b=round({...base})
@@ -84,7 +84,7 @@ describe('zero ELISA measurements',()=>{
  })
 })
 describe('strict cross-flock comparison gate',()=>{
- const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive and negative controls checked',samplingAgeDays:21,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccine:'Vaccine A',vaccineStrain:'D78',vaccineProgram:'day 14 drinking water',vaccineDate:'2026-10-01',samplingDate:'2026-10-22'}
+ const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive and negative controls checked',samplingAgeDays:21,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccine:'Vaccine A',vaccineStrain:'D78',vaccineProgram:'day 14 drinking water',vaccineDate:'2026-10-01',samplingDate:'2026-10-22',randomSamplingConfirmed:true}
  const round=(input:Record<string,unknown>,flockId:string)=>({flockId,diseaseCode:'IBD',input})
  it('allows only same assay, population, age and vaccine timing context',()=>{
   expect(areComparableFlockRounds(round({...base},'F1'),round({...base,samplingAgeDays:22,samplingDate:'2026-10-23'},'F2'))).toBe(true)
