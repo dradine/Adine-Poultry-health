@@ -26,6 +26,7 @@ describe('IBV trend', () => {
     const result = analyzeIbvTrend({
       observations: [{ day: 1, value: 0 }, { day: 2, value: 2 }],
       assay: 'HI antigen X',
+      measurementScale: 'log2 endpoint',
       unit: 'HI-log2',
     })
     expect(result.foldChange).toBe(4)
