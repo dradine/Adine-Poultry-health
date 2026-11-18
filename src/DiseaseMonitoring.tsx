@@ -100,6 +100,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
         const input = {
           baselineHiLog2: baseline.trim() ? numbers(baseline) : undefined,
           postHiLog2: numbers(post),
+          pairedObservations: pairedData.split('\n').map(line=>line.trim()).filter(Boolean).map(line=>{const [birdId,baseValue,postValue]=line.split(/[,:;\t]/).map(part=>part.trim());return {birdId,baselineHiLog2:Number(baseValue),postHiLog2:Number(postValue)}}),
           assayAntigen: assay,
           vaccineProduct: product,
           selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null,
