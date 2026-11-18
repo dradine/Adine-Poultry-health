@@ -51,7 +51,7 @@ describe('IBV trend', () => {
   it('does not use an arbitrary 5% change as a universal stability threshold', () => {
     const result = analyzeIbvTrend({ observations:[{day:1,value:1000},{day:14,value:1020}], assay:'ELISA kit A', measurementScale:'kit-derived titre', unit:'ELISA' })
     expect(result.direction).toBe('up')
-    expect(result.warnings.join(' ')).toContain('عدم‌قطعیت تحلیلی')
+    expect(result.warnings.join(' ')).toContain('دقت‌پذیری')
   })
 
 })
