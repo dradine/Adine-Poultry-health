@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { getSyncMeta, setSyncMeta, listLocalFlocks, saveLocalFlock, saveLocalModelRun } from './localFirstDb'
+import { getSyncMeta, setSyncMeta, listLocalFlocks, saveLocalFlock, saveLocalModelRun, notifyLocalDataChanged } from './localFirstDb'
 
 export type SerologyRoundDraft = {
  flock:{id:string;flockName:string;placementDate:string;hatchDate?:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
