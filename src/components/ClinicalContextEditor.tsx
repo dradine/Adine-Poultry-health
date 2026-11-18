@@ -2,7 +2,7 @@ import type { ClinicalContext, VaccinationEvent } from '../core/serologyClinical
 const blankEvent=():VaccinationEvent=>({id:globalThis.crypto?.randomUUID?.()||String(Date.now()),date:'',ageDays:null,disease:'ND',product:'',platform:'unknown',strain:'',route:'',dose:'',coveragePercent:null,administrationQuality:'unknown',batch:'',notes:''})
 const diseases=[['ND','نیوکاسل'],['AIV','آنفلوانزا'],['IBV','برونشیت'],['IBD','گامبورو'],['other','سایر']]
 export default function ClinicalContextEditor({events,onEventsChange,clinical,onClinicalChange}:{events:VaccinationEvent[];onEventsChange:(v:VaccinationEvent[])=>void;clinical:ClinicalContext;onClinicalChange:(v:ClinicalContext)=>void}){
- const patchEvent=(id:string,key:keyof VaccinationEvent,value:string)=>onEventsChange(events.map(e=>e.id===id?{...e,[key]:value}:e))
+ const patchEvent=(id:string,key:keyof VaccinationEvent,value:string)=>{const parsed=(key==='ageDays'||key==='coveragePercent')?(value.trim()?Number(value):null):value;onEventsChange(events.map(e=>e.id===id?({...e,[key]:parsed} as VaccinationEvent):e))}
  const patchClinical=(key:keyof ClinicalContext,value:string)=>onClinicalChange({...clinical,[key]:value})
  const input=(label:string,key:keyof ClinicalContext,placeholder='')=><label>{label}<input value={String(clinical[key]??'')} onChange={e=>patchClinical(key,e.target.value)} placeholder={placeholder}/></label>
  return <div className="clinical-context-editor">
