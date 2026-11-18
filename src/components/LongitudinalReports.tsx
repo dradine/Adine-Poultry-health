@@ -69,7 +69,6 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   const vaccinationEventsForRun=[...vaccinationEvents]
   if(vaccinationEventsForRun.some(e=>e.date&&!/^\d{4}-\d{2}-\d{2}$/.test(e.date))){setMessage('تاریخ واکسیناسیون معتبر نیست.');return}
   if(vaccinationEventsForRun.some(e=>e.date&&e.date>date)){setMessage('تاریخ هیچ نوبت واکسن نباید بعد از تاریخ نمونه‌گیری باشد.');return}
-  if(vaccinationEvents.some(e=>e.date&&e.date>date)){setMessage('تاریخ هیچ نوبت واکسن نباید بعد از تاریخ نمونه‌گیری باشد.');return}
   if(selectedAssay?.manufacturer==='IDvet'&&['idvet-nd-ndvc','idvet-nd-ndvs-cv','idvet-ibd-ibds-yolk','idvet-aiv-flunps-yolk'].includes(assayId)&&sampleMatrix!=='egg-yolk'){setMessage('این نسخه از آزمون IDvet طبق نام IFU برای زرده تخم‌مرغ است؛ نمونه سرم با آن قابل جایگزینی نیست.');return}
   if(selectedAssay?.manufacturer==='IDvet'&&sampleMatrix==='egg-yolk'&&!['idvet-nd-ndvc','idvet-nd-ndvs-cv','idvet-ibd-ibds-yolk'].includes(assayId)){setMessage('برای این کد IDvet نسخه egg-yolk در کاتالوگ انتخاب نشده است؛ ماتریس نمونه و IFU را تطبیق دهید.');return}
   if(selectedAssay&&['BioChek','IDEXX','AVIVAC','Pasouk'].includes(selectedAssay.manufacturer)&&sampleMatrix!=='serum'){setMessage('ماتریس نمونه این آزمون در کاتالوگ فعلی سرم است؛ برای زرده باید IFU جداگانه و کد آزمون مستقل انتخاب شود.');return}
