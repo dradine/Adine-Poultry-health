@@ -97,6 +97,6 @@ export function evaluatePlateControls(table:ReaderTable,criteria:PlateControlCri
  }
  const status=failures.some(x=>x.includes('خارج از محدوده')||x.includes('از حد ثبت‌شده بیشتر')||x.includes('مقدار معتبر ندارد'))?'fail':incomplete||failures.length?'pending':'pass'
  const fmt=(n:number)=>n.toLocaleString('en-US',{maximumFractionDigits:4})
- const evidence=['IFU/source: '+criteria.source,...groups.map(g=>g.label+': n='+g.n+', mean='+fmt(g.mean)+', range='+fmt(g.minimum)+'–'+fmt(g.maximum)+', CV='+(g.cvPercent===null?'NA':fmt(g.cvPercent))+'%, limits='+(g.withinLimits===null?'pending':g.withinLimits?'pass':'fail')),...failures].join(' | ')
+ const evidence=['IFU/source: '+criteria.source,...groups.map(g=>g.label+': n='+g.n+', mean='+fmt(g.mean)+', observedRange='+fmt(g.minimum)+'–'+fmt(g.maximum)+', IFUlimits='+(g.lowerLimit===null?'':fmt(g.lowerLimit)+'–')+(g.upperLimit===null?'':fmt(g.upperLimit))+', CV='+(g.cvPercent===null?'NA':fmt(g.cvPercent))+'%, rangeMeanDiff='+(g.percentDifference===null?'NA':fmt(g.percentDifference))+'%, maxCV='+(g.maxReplicateCvPercent===null?'NA':fmt(g.maxReplicateCvPercent))+'%, maxRangeMeanDiff='+(g.maxReplicatePercentDifference===null?'NA':fmt(g.maxReplicatePercentDifference))+'%, status='+(g.withinLimits===null?'pending':g.withinLimits?'pass':'fail')),...failures].join(' | ')
  return {status,evidence,groups,failures}
 }
