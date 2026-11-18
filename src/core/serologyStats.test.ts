@@ -67,6 +67,15 @@ describe('strict longitudinal assay compatibility',()=>{
  })
 
 
+describe('zero ELISA measurements',()=>{
+ it('keeps zero OD in arithmetic summaries but does not calculate GMT',()=>{
+  const x=summarizeSerology([0,.1,.2],'od')
+  expect(x.arithmeticMean).toBeCloseTo(.1);expect(x.geometricMean).toBeNull();expect(x.log2Mean).toBeNull();expect(x.trendScale).toBe('arithmetic')
+ })
+ it('does not accept zero in reciprocal titre scales',()=>{
+  expect(()=>summarizeSerology([0,16],'kit-titer')).toThrow(/تیترهای ratio-scale/)
+ })
+})
 describe('strict cross-flock comparison gate',()=>{
  const base={population:'broiler',method:'ELISA',assayId:'biochek-ibd-ck113',kit:'BioChek IBD',catalog:'CK113',assayVersion:'IFU rev 1',antigen:'IBDV antibody',unit:'kit titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Lab A',readerModel:'Reader X',protocolVersion:'SOP 2',kitLot:'LOT-001',qcStatus:'pass',qcEvidence:'positive and negative controls checked',samplingAgeDays:21,samplingPurpose:'post-vaccination',vaccinePlatform:'live-conventional',vaccine:'Vaccine A',vaccineStrain:'D78',vaccineProgram:'day 14 drinking water',vaccineDate:'2026-10-01',samplingDate:'2026-10-22'}
  const round=(input:Record<string,unknown>,flockId:string)=>({flockId,diseaseCode:'IBD',input})
