@@ -5,6 +5,7 @@ import { assessAivEvidence } from './core/aivEvidence'
 import { listLocalModelRuns, notifyLocalDataChanged, type LocalModelRun } from './core/localFirstDb'
 import { saveMonitorRunToLocal } from './core/syncService'
 import type { DiagnosticKit } from './data/diagnosticKitCatalog'
+import MonitorDashboard from './components/MonitorDashboard'
 
 type Mode = 'ND' | 'IBV' | 'AIV'
 type FlockOption = { id: string; flockName: string; placementDate: string; savedAt?: string }
@@ -259,7 +260,8 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
       {err && <p className="error">{err}</p>}
       {savedMessage && <p className="cloud-message" role="status">{savedMessage}</p>}
       {out !== null && <>
-        <pre className="monitor-output">{JSON.stringify(out, null, 2)}</pre>
+        {lastInput && <MonitorDashboard mode={mode} output={out} input={lastInput} />}
+        <details className="custom-kit-accordion"><summary>＋ خروجی فنی JSON</summary><pre className="monitor-output">{JSON.stringify(out, null, 2)}</pre></details>
         <button className="button secondary" disabled={saving || !flockId} onClick={() => void saveRun()}>
           {saving ? 'در حال ذخیره…' : 'ثبت نتیجه در سوابق گله'}
         </button>
