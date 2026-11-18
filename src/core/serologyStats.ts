@@ -89,7 +89,9 @@ export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):b
   const i=r.input
   if(i.method!=='ELISA'&&i.method!=='HI') return false
   const demoQc=i.demo===true&&i.qcStatus==='demo'
-  const realQc=i.demo!==true&&i.qcStatus==='pass'
+  const readerMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as Record<string,unknown>:null
+  const rawQcValid=i.rawFileImported!==true||readerMeta?.qcStatus==='pass'
+  const realQc=i.demo!==true&&i.qcStatus==='pass'&&rawQcValid
   if((!demoQc&&!realQc)||typeof i.qcEvidence!=='string'||!i.qcEvidence.trim()) return false
   return comparisonFieldsForRound(r).every(k=>{
     const v=i[k]
@@ -113,7 +115,8 @@ function daysBetween(a:unknown,b:unknown):number|null{
 export function areComparableFlockRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
   if(a.diseaseCode!==b.diseaseCode||a.flockId===b.flockId)return false
   const x=a.input,y=b.input
-  if(x.demo===true||y.demo===true||x.qcStatus!=='pass'||y.qcStatus!=='pass')return false
+  const rawQc=(i:Record<string,unknown>)=>i.rawFileImported!==true||(i.readerImportMeta&&typeof i.readerImportMeta==='object'&&(i.readerImportMeta as Record<string,unknown>).qcStatus==='pass')
+  if(x.demo===true||y.demo===true||x.qcStatus!=='pass'||y.qcStatus!=='pass'||!rawQc(x)||!rawQc(y))return false
   if(!commonComparisonFields.every(k=>typeof x[k]==='string'&&typeof y[k]==='string'&&String(x[k]).trim()!==''&&String(x[k])===String(y[k])))return false
   const ax=Number(x.samplingAgeDays),ay=Number(y.samplingAgeDays)
   if(!Number.isFinite(ax)||!Number.isFinite(ay)||Math.abs(ax-ay)>1)return false
