@@ -41,7 +41,8 @@ describe('strict longitudinal assay compatibility',()=>{
  it('blocks technical assay changes from descriptive trends',()=>{
   const a=round({...base}),b=round({...base,kitLot:'LOT-002'})
   expect(areComparableAssayRounds(a,b)).toBe(false)
-  expect(areComparableAssayRounds(a,round({...base,qcStatus:'pending'}))).toBe(false)
+  expect(areComparableAssayRounds(a,round({...base,qcStatus:'pending'}))).toBe(true)
+  expect(areComparableAssayRounds(a,round({...base,rawFileImported:true,readerImportMeta:{qcStatus:'fail'}}))).toBe(false)
  })
  it('blocks a changed lot, sample matrix, kit, population or QC',()=>{
   const a=round({...base})
