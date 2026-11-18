@@ -12,7 +12,7 @@ export type NdMonitorInput={
 }
 export type NdMonitorOutput={
  n:number;meanHiLog2:number;geometricMeanReciprocal:number;medianLog2:number
- minLog2:number;maxLog2:number;sdLog2:number;cvReciprocalPercent:number
+ minLog2:number;maxLog2:number;sdLog2:number|null;cvReciprocalPercent:number|null
  q1Log2:number;q3Log2:number;distribution:Array<{log2:number;count:number;percent:number}>
  responders:number|null;responderPercent:number|null;baselineN:number|null
  baselineMeanHiLog2:number|null;meanLog2Rise:number|null;fourfoldRisePercent:number|null
@@ -33,7 +33,7 @@ export function monitorNdHi(input:NdMonitorInput):NdMonitorOutput{
  if(!Number.isFinite(input.samplingDaysAfterDose)||input.samplingDaysAfterDose<0||input.samplingDaysAfterDose>365)throw Error('روز نمونه‌گیری باید بین ۰ تا ۳۶۵ روز باشد.')
  const threshold=input.responseThresholdLog2
  if(threshold!==undefined&&(!Number.isInteger(threshold)||threshold<0||threshold>20))throw Error('آستانه پاسخ HI باید endpoint صحیح ۰ تا ۲۰ log2 و مستند به پروتکل باشد.')
- const mean=values.reduce((s,v)=>s+v,0)/values.length,sd=Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/values.length)
+ const mean=values.reduce((s,v)=>s+v,0)/values.length,sd=values.length>1?Math.sqrt(values.reduce((s,v)=>s+(v-mean)**2,0)/(values.length-1)):null
  const reciprocal=values.map(v=>2**v),recMean=reciprocal.reduce((s,v)=>s+v,0)/values.length,recSd=values.length>1?Math.sqrt(reciprocal.reduce((s,v)=>s+(v-recMean)**2,0)/(values.length-1)):null
  const distributionMap=new Map<number,number>();values.forEach(v=>distributionMap.set(v,(distributionMap.get(v)||0)+1))
  const distribution=[...distributionMap.entries()].sort((a,b)=>a[0]-b[0]).map(([log2,count])=>({log2,count,percent:count*100/values.length}))
