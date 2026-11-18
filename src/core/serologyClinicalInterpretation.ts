@@ -20,6 +20,11 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const gmt=log.length?2**logMean:null,disease=run.disease_code
  const method=str(i,'method'),purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
+ const vaccinationEvents=Array.isArray(i.vaccinationEvents)?(i.vaccinationEvents as O[]).filter(e=>e&&typeof e==='object'):[]
+ const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
+ const relevantVaccines=vaccinationEvents.filter(e=>str(e,'disease')===disease).sort((a,b)=>str(a,'date').localeCompare(str(b,'date')))
+ const clinicalStatus=str(clinical,'status'),clinicalSigns=str(clinical,'signs'),mortalityTrend=str(clinical,'mortalityTrend')
+ const numericClinical=(key:string)=>{const raw=Number(str(clinical,key));return str(clinical,key)&&Number.isFinite(raw)?raw:null}
  const qcMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{}
  const qc=i.rawFileImported===true?str(qcMeta,'qcStatus'):str(i,'qcStatus')
  const demo=i.demo===true||qc==='demo'
@@ -36,6 +41,18 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  if(!random)add(observations,'نمایندگی نمونه‌گیری نامشخص','تصادفی‌بودن و پوشش سالن‌ها تأیید نشده است؛ نتایج را نمی‌توان بدون احتیاط به کل گله تعمیم داد.','caution')
  if(flock)add(observations,'زمینه گله',(flock.flock_name||'')+'؛ '+(flock.species||'نوع پرنده ثبت نشده')+'؛ '+(flock.bird_count?flock.bird_count+' قطعه':'تعداد قطعه ثبت نشده')+'.','neutral')
  if(vaccineContext)add(observations,'زمینه واکسیناسیون',vaccineContext+(sinceVaccine===null?'':'؛ '+sinceVaccine+' روز از تاریخ واکسن ثبت‌شده تا نمونه‌گیری')+'. توجه: تاریخ منفرد لزوماً تمام برنامه واکسیناسیون را بازنمایی نمی‌کند.','neutral')
+ if(relevantVaccines.length){
+  const eventSummary=relevantVaccines.map(e=>[str(e,'date'),str(e,'product'),str(e,'platform'),str(e,'strain'),str(e,'route')].filter(Boolean).join(' / ')).join('؛ ')
+  add(observations,'خط زمانی واکسن‌های همین بیماری',eventSummary,'neutral')
+  const poor=relevantVaccines.filter(e=>['poor','uncertain'].includes(str(e,'administrationQuality')))
+  if(poor.length)add(observations,'کیفیت اجرای واکسن نیازمند بازبینی',poor.length+' نوبت با کیفیت اجرا نامطمئن/نامناسب ثبت شده است؛ این داده گزارش‌شده کاربر است و مستقلاً راستی‌آزمایی نشده.','caution')
+ }else if(vaccinationEvents.length)limitations.push('تاریخچه واکسن وارد شده اما رویداد متناظر با بیماری انتخاب‌شده در آن وجود ندارد.')
+ if(clinicalStatus&&clinicalStatus!=='unknown')add(observations,'وضعیت بالینی ثبت‌شده',({normal:'گله بدون علامت گزارش شده',clinical:'علائم بالینی گزارش شده',recovering:'گله در حال بهبود گزارش شده',problem:'افت عملکرد/مشکل گله گزارش شده'} as Record<string,string>)[clinicalStatus]||clinicalStatus,'neutral')
+ if(clinicalSigns)add(observations,'علائم ثبت‌شده',clinicalSigns,'caution')
+ if(mortalityTrend==='increasing')add(observations,'روند تلفات افزایشی','افزایش تلفات یک هشدار بالینی مهم است؛ باید با سن، مقدار تلفات روزانه، کالبدگشایی و آزمون مستقیم تطبیق داده شود.','risk')
+ for(const [key,title] of [['morbidityPercent','ابتلا'],['mortalityPercent','تلفات تجمعی'],['feedChangePercent','تغییر مصرف دان'],['waterChangePercent','تغییر مصرف آب'],['productionChangePercent','تغییر عملکرد']] as const){const value=numericClinical(key);if(value!==null)add(observations,title,value+'٪ طبق گزارش فارم؛ مقدار ثبت‌شده مستقل تأیید نشده است.',key==='mortalityPercent'&&value>0?'caution':'neutral')}
+ if(str(clinical,'necropsy'))add(observations,'یافته کالبدگشایی',str(clinical,'necropsy'),'caution')
+ if(str(clinical,'directTests'))add(observations,'آزمون‌های مستقیم ثبت‌شده',str(clinical,'directTests'),'neutral')
  if(!purpose)limitations.push('هدف نمونه‌گیری (پایش واکسن، MDA، غربالگری یا بررسی بیماری) ثبت نشده است.')
  if(!str(i,'vaccineProgram')&&!str(i,'vaccinationHistory'))limitations.push('برنامه کامل واکسیناسیون با تاریخ، سویه، مسیر و نوع هر نوبت در دسترس نیست.')
  if(!str(i,'clinicalSigns'))limitations.push('علائم بالینی، روند تلفات، مصرف آب/دان و تغییر عملکرد ثبت نشده‌اند.')
@@ -53,6 +70,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
    scenarios.push({name:'پاسخ همورال پایین در بخشی از نمونه‌ها',likelihood:'فرضیه قابل بررسی؛ نه تشخیص',for:['سهم قابل توجهی از نمونه‌ها تیترهای پایین دارند','اگر نمونه‌گیری پس از زمان کافی از واکسن بوده باشد، پاسخ پایین نیازمند بررسی اجرایی است'],against:['زمان دقیق و تمام نوبت‌های واکسن مشخص نیست','آنتی‌ژن و شرایط استاندارد HI ممکن است مقایسه را تغییر دهند'],meaning:'بررسی یکنواختی اجرای واکسن زنده (آب/اسپری)، کیفیت آب و زنجیره سرد، یا پوشش تزریق واکسن کشته؛ همچنین MDA، بیماری همزمان و تفاوت سالن‌ها. در واکسن کشته، انتقال پرنده‌به‌پرنده رخ نمی‌دهد و جاافتادن تزریق می‌تواند زیرجمعیت کم‌پاسخ بسازد.'})
   }
 
+  if(relevantVaccines.some(e=>['poor','uncertain'].includes(str(e,'administrationQuality'))))scenarios[0]&&(scenarios[0].for.push('در تاریخچه فارم، کیفیت اجرای دست‌کم یک نوبت واکسن نامطمئن/نامناسب گزارش شده'),scenarios[0].likelihood='با توجه به ثبت مشکل اجرایی، فرضیه اجرایی اولویت بیشتری برای ممیزی دارد')
   scenarios.push({name:'مواجهه میدانی با ویروس نیوکاسل',likelihood:'فقط در صورت شواهد اپیدمیولوژیک/روندی مطرح می‌شود',for:['افزایش معنی‌دار تیتر در نمونه‌های جفتی بدون واکسن جدید','علائم تنفسی/عصبی، افزایش تلفات یا ارتباط اپیدمیولوژیک'],against:['یک نوبت تیتر پس از واکسن، علت را تفکیک نمی‌کند'],meaning:'در صورت وجود علائم یا افزایش تلفات، نمونه‌گیری سواب مناسب و RT-PCR/توالی‌یابی و بررسی کالبدگشایی لازم است. تا آن زمان برچسب عفونت میدانی یا ویروس ولوژنیک از سرولوژی صادر نشود.'})
   add(outlook,'چشم‌انداز کوتاه‌مدت','اگر برنامه واکسن به‌درستی اجرا شده و گله بدون علائم است، تیترها ممکن است با گذشت زمان کاهش یابند؛ اگر پاسخ ناهمگون باشد، بخشی از گله ممکن است در مواجهه آینده حاشیه ایمنی کمتری داشته باشد. از یک نوبت نمی‌توان زمان یا احتمال وقوع بیماری را عددی پیش‌بینی کرد.','caution')
   actions.push({priority:'۱ – فوری در صورت علائم',task:'در صورت افزایش تلفات یا علائم عصبی/تنفسی، نمونه‌گیری مستقیم و RT-PCR نیوکاسل را با دامپزشک آزمایشگاه هماهنگ کنید.',reason:'سرولوژی به‌تنهایی عفونت فعال یا حدت را تعیین نمی‌کند.'},{priority:'۲ – ممیزی واکسن',task:'برنامه تمام نوبت‌ها، سویه، مسیر، تاریخ، کیفیت آب/اسپری و درصد پوشش تزریق را بازبینی کنید.',reason:'خطای توزیع واکسن زنده و جاافتادن واکسن کشته سازوکارهای متفاوتی دارند.'},{priority:'۳ – پایش',task:'در صورت نیاز، نمونه جفتی از همان جمعیت و با همان روش/آنتی‌ژن در فاصله زمانی مناسب بگیرید.',reason:'جهت تغییر تیتر از یک مقدار منفرد اطلاع‌بخش‌تر است.'})
@@ -90,6 +108,10 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
   actions.push({priority:'۱ – تکمیل داده MDA',task:'تیتر روز اول/روز هچ، تاریخ هچ، سن نمونه‌گیری، کیت دقیق و BTT/نیمه‌عمر مستند را وارد کنید.',reason:'محاسبه Deventer به این ورودی‌ها وابسته است.'},{priority:'۲ – ارزیابی بورس',task:'در صورت افت عملکرد، تلفات یا شک به IBD، بورس را از نظر ماکروسکوپی و هیستوپاتولوژی بررسی کنید.',reason:'ضایعه بافتی از تیتر سرمی برای ارزیابی آسیب بورس مستقیم‌تر است.'},{priority:'۳ – آزمون مستقیم',task:'در نمونه بورس، RT-PCR و در صورت نیاز توالی‌یابی VP2 را انجام دهید.',reason:'برای شناسایی ویروس و تمایز ژنوتیپی/واکسنی لازم است.'})
  }else{
   scenarios.push({name:'کد بیماری پشتیبانی‌شده نیست',likelihood:'—',for:[],against:[],meaning:'این نسخه موتور برای ND، AIV، IBV و IBD طراحی شده است.'})
+ }
+ if(clinicalStatus==='clinical'||clinicalStatus==='problem'||mortalityTrend==='increasing'){
+  actions.unshift({priority:'۱ – ارزیابی بالینی',task:'وضعیت بالینی، تلفات روزانه، مصرف آب/دان و یافته‌های کالبدگشایی را با نمونه‌گیری مستقیم متناسب با بیماری تطبیق دهید.',reason:'وجود علائم یا افت عملکرد، تفسیر سرولوژی را از پایش واکسن به بررسی تشخیصی تغییر می‌دهد.'})
+  if(disease==='ND'||disease==='AIV'||disease==='IBV'||disease==='IBD')add(outlook,'پیش‌بینی مشروط به وضعیت بالینی','با ثبت علائم یا روند تلفات افزایشی، احتمال مسئله فعال گله باید جدی‌تر بررسی شود؛ اما نوع عامل و شدت آینده فقط با تیتر قابل تعیین نیست.','risk')
  }
  if(!demo&&n<2)add(observations,'داده ناکافی','برای تحلیل توزیع و سناریوهای مبتنی بر نمونه، حداقل دو نتیجه لازم است.','risk')
  if(!demo&&qc==='fail')limitations.push('QC رد شده است؛ سناریوهای زیستی تنها فرضیه‌های مقدماتی هستند و باید پس از اصلاح/تکرار آزمون بازبینی شوند.')
