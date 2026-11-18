@@ -113,6 +113,16 @@ export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
   if(!hasCompleteSerologyComparisonMetadata(r)) return null
   return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed,vaccinationHistoryKey(r.input),...(r.input.method==='ELISA'&&r.input.scale==='kit-titer'?[r.input.fourFoldComparisonSource??'']:[])])])
 }
+/** Technical assay comparability for descriptive longitudinal plots. Biological context is deliberately shown as annotations, not used to suppress the trend. */
+export function areComparableAssayRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
+ if(a.flockId!==b.flockId||a.diseaseCode!==b.diseaseCode)return false
+ const x=a.input,y=b.input
+ if(x.demo===true||y.demo===true||x.qcStatus!=='pass'||y.qcStatus!=='pass')return false
+ const rawQc=(i:Record<string,unknown>)=>i.rawFileImported!==true||(i.readerImportMeta&&typeof i.readerImportMeta==='object'&&(i.readerImportMeta as Record<string,unknown>).qcStatus==='pass')
+ if(!rawQc(x)||!rawQc(y))return false
+ const fields=[...commonComparisonFields,...(x.method==='HI'||y.method==='HI'?hiComparisonFields:[])]
+ return fields.every(k=>(x[k]??'')===(y[k]??''))&&x.method===y.method&&x.scale===y.scale
+}
 export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
   const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
   return ka!==null&&ka===kb
