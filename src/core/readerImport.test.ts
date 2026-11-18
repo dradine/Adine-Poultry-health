@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {mapReaderRows,normalizeReaderNumber,parseDelimitedTable} from './readerImport'
+import {evaluatePlateControls,mapReaderRows,normalizeReaderNumber,parseDelimitedTable} from './readerImport'
 describe('reader export import',()=>{
  it('parses quoted CSV cells and commas inside quoted values',()=>{
   const t=parseDelimitedTable('Sample ID,Result,Note\r\nA1,1200,"batch, one"\r\nA2,1500,"batch two"')
@@ -23,5 +23,26 @@ describe('reader export import',()=>{
  it('normalizes Persian digits and HI 1:16 notation',()=>{
   expect(normalizeReaderNumber('۱:۱۶','HI')).toBe(16)
   expect(normalizeReaderNumber('۰٫۲۵','ELISA')).toBe(0.25)
+ })
+})
+
+
+describe('plate control evaluation',()=>{
+ const table=parseDelimitedTable('Well,Type,ID,Result\\nA1,Sample,S1,1200\\nA2,Positive,PC1,1.5\\nA3,Positive,PC2,1.6\\nA4,Negative,NC1,0.1\\nA5,Negative,NC2,0.12')
+ const criteria={roleColumn:1,resultColumn:3,positiveRole:'Positive',negativeRole:'Negative',positiveMin:1,positiveMax:2,negativeMax:.2,source:'IFU rev 3 p.8',maxReplicateCvPercent:20}
+ it('passes only when both controls meet entered IFU limits and replicate precision',()=>{
+  const q=evaluatePlateControls(table,criteria,'ELISA')
+  expect(q.status).toBe('pass');expect(q.groups).toHaveLength(2);expect(q.groups[0].n).toBe(2)
+ })
+ it('fails when a control mean is outside its entered IFU range',()=>{
+  const bad=parseDelimitedTable('Well,Type,ID,Result\\nA1,Sample,S1,1200\\nA2,Positive,PC1,0.5\\nA3,Negative,NC1,0.1')
+  expect(evaluatePlateControls(bad,criteria,'ELISA').status).toBe('fail')
+ })
+ it('does not claim QC pass when a reference control is selected without its limits',()=>{
+  expect(evaluatePlateControls(table,{...criteria,referenceRole:'Reference'},'ELISA').status).toBe('pending')
+ })
+ it('does not claim QC pass when IFU source or role mapping is missing',()=>{
+  expect(evaluatePlateControls(table,{...criteria,source:''},'ELISA').status).toBe('pending')
+  expect(evaluatePlateControls(table,{...criteria,roleColumn:null},'ELISA').status).toBe('pending')
  })
 })
