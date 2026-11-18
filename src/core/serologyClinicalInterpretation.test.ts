@@ -25,6 +25,14 @@ describe('disease-specific clinical interpretation',()=>{
   expect(x.scenarios.some(s=>s.name.includes('آنتی‌بادی مادری'))).toBe(true)
   expect(x.actions.some(a=>a.task.includes('BTT'))).toBe(true)
  })
+ it('uses dated Newcastle vaccination events and clinical signs in interpretation',()=>{
+  const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{date:'2026-11-10',ageDays:21,disease:'ND',product:'LaSota',strain:'LaSota',platform:'live-conventional',route:'drinking-water',coveragePercent:90}],clinicalContext:{signs:'سرفه و رال تنفسی',mortalityPercent:'2.1',waterIntake:'کاهش ۱۰ درصد',feedIntake:'طبیعی',productionChange:'افت وزن روزانه',necropsy:'تراشه پرخون',directTests:'PCR در انتظار',exposureRisks:'تردد خودرو مشترک',clinicalCourse:'شروع علائم روز ۲۸'}}))
+  expect(x.observations.some(o=>o.title==='خط زمانی واکسیناسیون')).toBe(true)
+  expect(x.observations.some(o=>o.title==='وضعیت بالینی ثبت‌شده')).toBe(true)
+  expect(x.observations.some(o=>o.title==='تلفات ثبت‌شده')).toBe(true)
+  expect(x.scenarios.some(s=>s.name.includes('اثر نوبت اخیر واکسن'))).toBe(true)
+  expect(x.scenarios.some(s=>s.name.includes('مواجهه میدانی')&&s.for.some(v=>v.includes('سرفه')))).toBe(true)
+ })
  it('does not issue clinical inference from demo data',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,demo:true,qcStatus:'demo'}))
   expect(x.confidence).toContain('غیرقابل')
