@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import {
   listOutbox, removeOutboxItem, recordOutboxFailure, markLocalSynced,
   removeLocalRecord, listLocalFlocks, listLocalModelRuns, upsertLocalFromCloud,
-  setSyncMeta, getSyncMeta, saveLocalFlock, saveLocalModelRun,
+  setSyncMeta, getSyncMeta, saveLocalFlock, saveLocalModelRun, reconcileLocalWithCloud,
   type LocalFlock, type LocalModelRun, type OutboxItem,
 } from './localFirstDb'
 
@@ -279,6 +279,21 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
   return id
 }
 
+async function fetchAllOwnedRows(table: 'flocks' | 'model_runs', userId: string): Promise<Record<string, unknown>[]> {
+  const rows: Record<string, unknown>[] = []
+  const pageSize = 1000
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.from(table).select('*')
+      .eq('owner_id', userId).order('created_at', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (error) throw error
+    const page = (data || []) as unknown as Record<string, unknown>[]
+    rows.push(...page)
+    if (page.length < pageSize) break
+  }
+  return rows
+}
+
 export type SyncResult = { pushed: number; pulledFlocks: number; pulledRuns: number; pending: number; lastSyncAt: string }
 export async function syncLocalData(userId: string): Promise<SyncResult> {
   if (!navigator.onLine) throw new Error('اتصال اینترنت برقرار نیست؛ اطلاعات همچنان روی همین دستگاه ذخیره می‌شوند.')
@@ -301,23 +316,23 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
       throw new Error('همگام‌سازی متوقف شد تا اطلاعات از بین نروند: ' + message)
     }
   }
-  const [flocksResponse, runsResponse] = await Promise.all([
-    supabase.from('flocks').select('*').eq('owner_id', userId),
-    supabase.from('model_runs').select('*').eq('owner_id', userId),
+  const [cloudFlocks, cloudRuns] = await Promise.all([
+    fetchAllOwnedRows('flocks', userId),
+    fetchAllOwnedRows('model_runs', userId),
   ])
-  if (flocksResponse.error) throw flocksResponse.error
-  if (runsResponse.error) throw runsResponse.error
-  for (const row of (flocksResponse.data || []) as unknown as Record<string, unknown>[]) await upsertLocalFromCloud('flocks', row)
-  for (const row of (runsResponse.data || []) as unknown as Record<string, unknown>[]) await upsertLocalFromCloud('model_runs', row)
+  for (const row of cloudFlocks) await upsertLocalFromCloud('flocks', row)
+  for (const row of cloudRuns) await upsertLocalFromCloud('model_runs', row)
+  await reconcileLocalWithCloud('flocks', cloudFlocks.map(row => String(row.id)))
+  await reconcileLocalWithCloud('model_runs', cloudRuns.map(row => String(row.id)))
   const lastSyncAt = new Date().toISOString()
-  if (!boundAccount && queue.length === 0 && localFlocks.length === 0 && localRuns.length === 0 && ((flocksResponse.data?.length || 0) > 0 || (runsResponse.data?.length || 0) > 0)) {
+  if (!boundAccount && queue.length === 0 && localFlocks.length === 0 && localRuns.length === 0 && (cloudFlocks.length > 0 || cloudRuns.length > 0)) {
     await setSyncMeta('bound-account', userId)
   }
   await setSyncMeta('last-sync:' + userId, lastSyncAt)
   await refreshLegacyCacheFromLocal()
   return {
-    pushed, pulledFlocks: flocksResponse.data?.length || 0,
-    pulledRuns: runsResponse.data?.length || 0,
+    pushed, pulledFlocks: cloudFlocks.length,
+    pulledRuns: cloudRuns.length,
     pending: (await listOutbox()).length, lastSyncAt,
   }
 }
