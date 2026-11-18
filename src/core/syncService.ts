@@ -161,7 +161,7 @@ export async function saveAnalysisToLocal(item: LegacyAnalysis, profileId?: stri
 function legacyFromCloud(flocks: LocalFlock[], runs: LocalModelRun[]) {
   const profiles = flocks.filter(row => !row.deleted).map(row => ({
     id: row.id, flockName: row.flock_name, placementDate: row.placement_date,
-    savedAt: row.updated_at || row.created_at,
+    hatchDate: row.hatch_date || undefined, savedAt: row.updated_at || row.created_at,
   }))
   const flockById = new Map(flocks.map(row => [row.id, row]))
   const analyses = runs.filter(row => !row.deleted && row.disease_code === 'IBD').map(row => {
