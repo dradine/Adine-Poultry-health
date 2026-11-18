@@ -163,6 +163,22 @@ export default function App() {
 
   const selectedVaccineProduct = vaccineCatalog.find(product => product.id === selectedVaccineProductId)
   const selectedAssay = assayCatalog.find(kit => kit.id === selectedAssayId)
+  useEffect(() => {
+    if (selectedDisease !== 'IBD' || !selectedDiagnosticKitId) return
+    const selectedKit = [...diagnosticKitCatalog, ...customKits].find(kit => kit.id === selectedDiagnosticKitId)
+    if (!selectedKit) return
+    const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const match = assayCatalog.find(assay => assay.disease === 'IBD' && (normalize(assay.catalog || '') === normalize(selectedKit.catalog || '') || normalize(assay.manufacturer) === normalize(selectedKit.brand)))
+    if (match) {
+      setSelectedAssayId(match.id)
+      setKitName(match.manufacturer + ' — ' + match.name + (match.catalog ? ' (' + match.catalog + ')' : ''))
+    } else if (selectedKit.id.startsWith('custom-')) {
+      setSelectedAssayId('')
+      setKitName(selectedKit.brand + (selectedKit.catalog ? ' (' + selectedKit.catalog + ')' : '') + ' — ' + selectedKit.assay)
+      setMinimumSampleCount('23')
+      setMinimumSampleCountSource('')
+    }
+  }, [selectedDisease, selectedDiagnosticKitId, customKits, assayCatalog])
 
   useEffect(() => {
     if (!selectedAssayId || selectedAssay) return
@@ -224,6 +240,7 @@ export default function App() {
   const titers = useMemo(() => parseTiters(titersText), [titersText])
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
+    if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
     if (!minimumSampleCountSource.trim()) return { result: null, error: 'منبع حداقل تعداد نمونه باید از IFU یا برچسب همان محصول/کیت ثبت شود.' }
     if (selectedAssayId && (!selectedAssay || selectedAssay.status !== 'documented')) {
@@ -690,8 +707,6 @@ export default function App() {
           <div className="disease"><b>برونشیت (IBV)</b><small>روند سرولوژی آزمایشی فعال · assay-specific</small></div>
           <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
         </div>
-      </section>
-
       </section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
