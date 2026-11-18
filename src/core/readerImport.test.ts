@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {evaluatePlateControls,mapReaderRows,normalizeReaderNumber,parseDelimitedTable} from './readerImport'
+import {evaluatePlateControls,mapReaderRows,normalizeReaderNumber,parseDelimitedTable,validateReaderScale} from './readerImport'
 describe('reader export import',()=>{
  it('parses quoted CSV cells and commas inside quoted values',()=>{
   const t=parseDelimitedTable('Sample ID,Result,Note\r\nA1,1200,"batch, one"\r\nA2,1500,"batch two"')
@@ -28,6 +28,15 @@ describe('reader export import',()=>{
 })
 
 
+describe('reader column scale guard',()=>{
+ it('rejects OD columns mislabeled as kit titres',()=>expect(()=>validateReaderScale('OD450','ELISA','kit-titer')).toThrow(/OD/))
+ it('accepts OD only when OD scale is selected',()=>expect(()=>validateReaderScale('OD450','ELISA','od')).not.toThrow())
+ it('requires reciprocal scale for HI',()=>expect(()=>validateReaderScale('HI Titre','HI','od')).toThrow(/HI reciprocal/))
+ it('rejects S/P or S/N columns under another scale',()=>{
+  expect(()=>validateReaderScale('S/P ratio','ELISA','od')).toThrow(/S\/P/)
+  expect(()=>validateReaderScale('S/N ratio','ELISA','sp')).toThrow(/S\/N/)
+ })
+})
 describe('plate control evaluation',()=>{
  const table=parseDelimitedTable('Well,Type,ID,Result\nA1,Sample,S1,1200\nA2,Positive,PC1,1.5\nA3,Positive,PC2,1.6\nA4,Negative,NC1,0.1\nA5,Negative,NC2,0.12')
  const criteria={roleColumn:1,resultColumn:3,positiveRole:'Positive',negativeRole:'Negative',positiveMin:1,positiveMax:2,negativeMax:.2,source:'IFU rev 3 p.8',maxReplicateCvPercent:20}
