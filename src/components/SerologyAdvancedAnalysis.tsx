@@ -1,5 +1,6 @@
 import type { LocalFlock,LocalModelRun } from '../core/localFirstDb'
 import SerologyFlockComparison from './SerologyFlockComparison'
+import SerologyControlTracking from './SerologyControlTracking'
 import { areComparableSerologyRounds } from '../core/serologyStats'
 import { analyzePairedRounds, calculateSeropositivity, geometricMeanConfidenceInterval, meanConfidenceInterval } from '../core/serologyAdvancedStats'
 type O=Record<string,unknown>
@@ -29,6 +30,7 @@ export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalMod
    {controlSummary.length>0?<div className="srs-table-wrap"><table className="srs-table"><thead><tr><th>کنترل</th><th>تعداد</th><th>میانگین</th><th>SD</th><th>CV٪</th><th>دامنه</th><th>حدود IFU</th></tr></thead><tbody>{controlSummary.map((x,j)=><tr key={j}><td>{x.label==='positive'?'مثبت':x.label==='negative'?'منفی':'مرجع'}</td><td>{fa(x.n,0)}</td><td>{fa(x.mean)}</td><td>{x.sd===null?'—':fa(x.sd)}</td><td>{x.cvPercent===null?'—':fa(x.cvPercent)+'٪'}</td><td>{fa(x.minimum)} تا {fa(x.maximum)}</td><td>{x.withinLimits===null?'بررسی نشده':x.withinLimits?'قبول':'رد'}</td></tr>)}</tbody></table></div>:<p className="srs-note">کنترل‌ها از فایل استخراج شده‌اند، اما معیارهای مثبت/منفی و منبع IFU کامل نیست؛ QC به‌صورت قبول علامت‌گذاری نشده است.</p>}
    <p className="srs-footnote">{str(readerMeta,'qcEvidence')}</p></>:<p className="srs-note">فایل خام دستگاه وارد نشده است؛ وضعیت QC این نوبت صرفاً بر اساس ثبت اپراتور است و کنترل پلیت به‌طور خودکار ارزیابی نشده است.</p>}
   </section>
+  <SerologyControlTracking run={run} runs={runs}/>
 
   <p className="srs-note">فاصله اطمینان ۹۵٪ برای توصیف عدم‌قطعیت برآورد میانگین همین نمونه‌هاست؛ محدوده حفاظت یا حد تشخیص بیماری نیست.</p>
   <div className="srs-metrics">
