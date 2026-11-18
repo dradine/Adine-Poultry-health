@@ -1,7 +1,7 @@
 import { normalizeDigits } from './ibd'
 
 export function parseMonitorNumbers(value: string): number[] {
-  return value.split(/[،,;\s]+/).filter(Boolean).map(item => Number(normalizeDigits(item)))
+  return value.split(/[،,؛;\s]+/).filter(Boolean).map(item => Number(normalizeDigits(item)))
 }
 
 export function parsePairedHiRows(value: string): Array<{birdId:string;baselineHiLog2:number;postHiLog2:number}> {
