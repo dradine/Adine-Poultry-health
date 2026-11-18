@@ -85,6 +85,15 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
     setOut(null)
     setLastInput(null)
     try {
+      if (mode === 'ND' && selectedKit && !/HI/i.test(selectedKit.format + ' ' + selectedKit.assay)) {
+        throw new Error('موتور نیوکاسل فعلی فقط داده HI بر حسب log2 endpoint را تحلیل می‌کند. کیت انتخاب‌شده ELISA یا روش دیگری است؛ داده‌های آن را وارد موتور HI نکنید. در مرحله سوم، روش HI معتبر را انتخاب کنید یا این تحلیل را بدون اتصال به کیت انجام دهید.')
+      }
+      if (mode === 'IBV' && selectedKit) {
+        const kitFormat = selectedKit.format + ' ' + selectedKit.assay
+        if (/HI/i.test(kitFormat) && unit !== 'HI-log2') throw new Error('کیت/روش انتخاب‌شده HI است؛ واحد تحلیل باید HI-log2 باشد.')
+        if (/VN|neutral/i.test(kitFormat) && unit !== 'VN') throw new Error('روش انتخاب‌شده خنثی‌سازی (VN) است؛ واحد تحلیل باید VN باشد.')
+        if (/ELISA/i.test(kitFormat) && unit !== 'ELISA') throw new Error('کیت انتخاب‌شده ELISA است؛ با HI یا VN در یک روند مخلوط نکنید.')
+      }
       if (mode === 'ND') {
         const input = {
           baselineHiLog2: baseline.trim() ? numbers(baseline) : undefined,
@@ -242,6 +251,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
       </div>}
 
       <div className="sample-count-note" role="status"><strong>کنترل حجم نمونه · n = {reportedSampleCount || '—'}</strong><p>{sampleCountWarning}</p><small>این هشدار جایگزین تعیین حجم نمونه بر اساس هدف، شیوع مورد انتظار، دقت، سطح اطمینان، طراحی خوشه‌ای و دستورالعمل کیت نیست.</small></div>
+      {selectedKit && <div className="sample-count-note"><strong>کیت/روش انتخاب‌شده</strong><p>{selectedKit.brand}{selectedKit.catalog ? ' · '+selectedKit.catalog : ''} — {selectedKit.assay} ({selectedKit.format})</p><small>منبع: {selectedKit.sourceUrl || 'ثبت دستی'} · وضعیت مستندات: {selectedKit.evidenceStatus}. این انتخاب در سابقه ثبت می‌شود؛ فقط در موتورهای سازگار نقش ورودی محاسباتی دارد.</small></div>}
       <button className="button primary" onClick={run}>اجرای موتور پایش</button>
       {err && <p className="error">{err}</p>}
       {savedMessage && <p className="cloud-message" role="status">{savedMessage}</p>}
