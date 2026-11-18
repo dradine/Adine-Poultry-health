@@ -78,13 +78,13 @@ export const REFERENCE_BASELINES: ReferenceBaseline[] = [
 
 export const UNPARSED_REFERENCE_DOCUMENTS = [
   {
-    id: 'idvet-poultry-general-baselines-2026',
+    id: 'idvet-poultry-general-baselines-june2025',
     vendor: 'Innovative Diagnostics / IDvet',
     title: 'IDvet Poultry General Baselines',
-    version: 'March 2026, English (doc17201); Russian version also listed (doc17202)',
-    status: 'Listed in official distributor Pro access portal; full PDF payload was not retrievable in this review session, so numeric tables have NOT been transcribed or activated.',
+    version: 'June 2025, English (doc16346, 724 KB); Russian version (doc16347, 819 KB)',
+    status: 'The indexed official Pro Access page lists the June 2025 English PDF (doc16346, 724 KB) and Russian PDF (doc16347, 819 KB). The PDF payload could not be retrieved in this session; numeric tables have NOT been transcribed or activated. A March 2026 entry previously recorded in this project was not found in the currently indexed page and is not treated as verified.',
     sourceUrl: 'https://www.innovative-diagnostics.com/pro-access-en/',
-    requiredNextStep: 'Obtain the original PDF from IDvet/distributor and transcribe each row with disease, kit code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, region/population, and every footnote. Independent double-entry verification required.',
+    requiredNextStep: 'Obtain the official June 2025 PDF from IDvet/distributor and transcribe each row with disease, kit code, bird type, age, vaccine type/program, post-vaccination interval, titre scale, sample size, region/population, and every footnote. Independent double-entry verification required.',
   },
   {
     id: 'idvet-avian-kit-matrices',
