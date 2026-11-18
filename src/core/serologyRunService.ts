@@ -41,14 +41,14 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
  const sourceReferences=[...(assay?[{kind:'manufacturer-assay-catalog',citation:assay.source,manufacturer:assay.manufacturer,catalog:assay.catalog||null,status:assay.status,note:assay.note}]:[]),...(draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[]),...(draft.input.rawFileImported===true&&draft.input.readerImportMeta&&typeof draft.input.readerImportMeta==='object'?[{kind:'parsed-raw-reader-import',fileName:(draft.input.readerImportMeta as Record<string,unknown>).fileName||null,delimiter:(draft.input.readerImportMeta as Record<string,unknown>).delimiter||null,rawRowCount:Array.isArray((draft.input.readerImportMeta as Record<string,unknown>).rawRows)?((draft.input.readerImportMeta as Record<string,unknown>).rawRows as unknown[]).length:0,headers:(draft.input.readerImportMeta as Record<string,unknown>).headers||[],mapping:(draft.input.readerImportMeta as Record<string,unknown>).mapping||null,qcCriteria:(draft.input.readerImportMeta as Record<string,unknown>).controlCriteria||null,qcStatus:(draft.input.readerImportMeta as Record<string,unknown>).qcStatus||'pending'}]:[]),...(typeof draft.output.bioChekVI==='number'?[{kind:'manufacturer-interpretation-manual',citation:'https://www.biochek.com/wp-content/uploads/2025/11/BioChek-Poultry-ELISA-Interpretation-Manual-RevB-2025.pdf',version:'RevB 2025',formula:'VI = AMT / %CV'}]:[])]
  await saveLocalModelRun({
   id,flock_id:draft.flock.id,disease_code:draft.diseaseCode,
-  model_version:'serology-longitudinal-0.2.0',model_family:'serology-longitudinal-round',
+  model_version:'serology-longitudinal-0.3.0',model_family:'serology-longitudinal-round',
   input_snapshot:draft.input,output_snapshot:draft.output,
   confidence_level:'insufficient',
   decision_status:'review_required',limitations,
   qc_summary:{enteredByUser:true,rawLabFileImported:draft.input.rawFileImported===true,qcStatus:draft.input.qcStatus||'pending',automaticallyEvaluatedFromRawFile:Boolean((draft.input.readerImportMeta as Record<string,unknown>|undefined)?.qcStatus==='pass'||(draft.input.readerImportMeta as Record<string,unknown>|undefined)?.qcStatus==='fail'),rawControlRows:Array.isArray((draft.input.readerImportMeta as Record<string,unknown>|undefined)?.controlRows)?((draft.input.readerImportMeta as Record<string,unknown>).controlRows as unknown[]).length:0,rawTableRows:Array.isArray((draft.input.readerImportMeta as Record<string,unknown>|undefined)?.rawRows)?((draft.input.readerImportMeta as Record<string,unknown>).rawRows as unknown[]).length:0,controlSummary:(draft.input.readerImportMeta as Record<string,unknown>|undefined)?.controlSummary||[],controlCriteria:(draft.input.readerImportMeta as Record<string,unknown>|undefined)?.controlCriteria||null,independentlyVerified:false},
-  model_assumptions:{interpretation:'descriptive-only',noProtectionInference:true,unpairedGroupTrend:true},
+  model_assumptions:{interpretation:'evidence-gated-descriptive',noProtectionInference:true,rawReaderProvenanceRetained:draft.input.rawFileImported===true,rawQcCannotBeManuallyOverridden:draft.input.rawFileImported===true,pairedAnalysisRequiresStableUniqueBirdIds:true},
   source_references:sourceReferences,
-  input_schema_version:'serology-longitudinal-v2',created_at:now
+  input_schema_version:'serology-longitudinal-v3',created_at:now
  })
  notifyLocalDataChanged()
  return id
