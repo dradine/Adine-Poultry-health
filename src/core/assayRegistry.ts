@@ -53,5 +53,7 @@ export const ASSAY_CATALOG:AssayCatalogEntry[]=[
 {id:'biochek-ai-ck401',disease:'AIV',manufacturer:'BioChek',name:'Multispecies Influenza A Antibody Test Kit',catalog:'CK401',method:'ELISA',status:'documented',source:'https://www.biochek.com/products/multispecies-influenza-a-antibody-test-kit/',note:'Official product page: competitive ELISA for antibodies to all type A influenza strains in serum of multiple species including poultry; S/N ratio is the assay scale per BioChek RevB 2025. Not subtype-specific HI and not automatic DIVA.'}
 ,
 {id:'idvet-ibd-ibds-yolk',disease:'IBD',manufacturer:'IDvet',name:'ID Screen IBD (IBDS) — Egg-yolk version',catalog:'IBDS egg-yolk',method:'ELISA',status:'catalog-only',source:'https://www.innovative-diagnostics.com/pro-access-en/',note:'Separate official egg-yolk insert Insert_IBDS_ver0416+egg yolk and corresponding matrix are listed. Use only with egg-yolk samples and the exact IFU/matrix version; do not substitute serum calibration.'}
+,
+{id:'idvet-aiv-flunps-yolk',disease:'AIV',manufacturer:'IDvet',name:'ID Screen Influenza NP (FLUNPS) — Egg-yolk version',catalog:'FLUNPS egg-yolk',method:'ELISA',status:'catalog-only',source:'https://www.innovative-diagnostics.com/pro-access-en/',note:'The official portal lists FLUNPS ver0620 egg-yolk inserts in French, Spanish and Russian and a separate FLUNPS matrix. No English ver0620 insert was located in this review; use only with the corresponding egg-yolk IFU and matrix, not serum.'}
 ];
 export const findAssayCatalogEntry=(id:string)=>ASSAY_CATALOG.find(x=>x.id===id);
