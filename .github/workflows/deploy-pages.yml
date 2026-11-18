@@ -23,7 +23,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+      - name: Install dependencies and reconcile optional platform packages
+        run: npm install --no-audit --no-fund
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Build for GitHub Pages project path
