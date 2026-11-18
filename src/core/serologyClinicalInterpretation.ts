@@ -20,18 +20,6 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const gmt=log.length?2**logMean:null,disease=run.disease_code
  const method=str(i,'method'),purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
- const vaccinationEvents=Array.isArray(i.vaccinationEvents)?(i.vaccinationEvents as O[]).filter(e=>e&&typeof e==='object'):[]
- const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
- const relevantVaccines=vaccinationEvents.filter(e=>str(e,'disease')===disease).sort((a,b)=>str(a,'date').localeCompare(str(b,'date')))
- const latestVaccine=relevantVaccines.filter(e=>str(e,'date')&&str(e,'date')<=samplingDate).at(-1)
- const daysFromLatestEvent=latestVaccine?dayDiff(samplingDate,str(latestVaccine,'date')):null
- const clinicalSignText=str(clinical,'signs').toLowerCase()
- const respiratorySigns=/تنفس|سرفه|عطسه|خرخر|ترشح بینی|ترشح چشم|کیسه هوایی/.test(clinicalSignText)
- const neurologicalSigns=/عصبی|پیچش گردن|فلجی|لرزش|آتاکسی/.test(clinicalSignText)
- const entericSigns=/اسهال|مدفوع آبکی|خون در مدفوع|روده/.test(clinicalSignText)
- const bursalSigns=/بورس|فابریسیوس|بورسیت/.test(clinicalSignText)
- const clinicalStatus=str(clinical,'status'),clinicalSigns=str(clinical,'signs'),mortalityTrend=str(clinical,'mortalityTrend')
- const numericClinical=(key:string)=>{const raw=Number(str(clinical,key));return str(clinical,key)&&Number.isFinite(raw)?raw:null}
  const qcMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{}
  const qc=i.rawFileImported===true?str(qcMeta,'qcStatus'):str(i,'qcStatus')
  const demo=i.demo===true||qc==='demo'
@@ -58,19 +46,6 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  if(hasClinical)add(observations,'وضعیت بالینی ثبت‌شده',[signs?('علائم: '+signs):'',str(clinical,'necropsy')?('کالبدگشایی: '+str(clinical,'necropsy')):'',str(clinical,'directTests')?('آزمون مستقیم: '+str(clinical,'directTests')):'',str(clinical,'clinicalCourse')?('سیر بیماری: '+str(clinical,'clinicalCourse')):''].filter(Boolean).join('؛ '),'caution')
  if(str(clinical,'waterIntake')||str(clinical,'feedIntake')||str(clinical,'productionChange'))add(observations,'تغییرات عملکردی','آب: '+(str(clinical,'waterIntake')||'ثبت نشده')+'؛ دان: '+(str(clinical,'feedIntake')||'ثبت نشده')+'؛ عملکرد: '+(str(clinical,'productionChange')||'ثبت نشده'),'neutral')
  if(Number.isFinite(mortality))add(observations,'تلفات تجمعی ثبت‌شده','تلفات تجمعی '+mortality+'٪ گزارش شده است. تفسیر آن باید با سن گله، خط پایه فارم، روند روزانه و شواهد کالبدگشایی انجام شود؛ این مقدار به‌تنهایی علت را مشخص نمی‌کند.',highMortality?'risk':'neutral')
- if(relevantVaccines.length){
-  const eventSummary=relevantVaccines.map(e=>[str(e,'date'),str(e,'product'),str(e,'platform'),str(e,'strain'),str(e,'route')].filter(Boolean).join(' / ')).join('؛ ')
-  add(observations,'خط زمانی واکسن‌های همین بیماری',eventSummary,'neutral')
-  const poor=relevantVaccines.filter(e=>['poor','uncertain'].includes(str(e,'administrationQuality')))
-  if(latestVaccine&&daysFromLatestEvent!==null)add(observations,'فاصله آخرین نوبت واکسن تا نمونه‌گیری',daysFromLatestEvent+' روز؛ '+str(latestVaccine,'product')+' ('+str(latestVaccine,'platform')+'). این فاصله به‌تنهایی برای قضاوت درباره پاسخ کافی نیست.','neutral')
-    if(poor.length)add(observations,'کیفیت اجرای واکسن نیازمند بازبینی',poor.length+' نوبت با کیفیت اجرا نامطمئن/نامناسب ثبت شده است؛ این داده گزارش‌شده کاربر است و مستقلاً راستی‌آزمایی نشده.','caution')
- }else if(vaccinationEvents.length)limitations.push('تاریخچه واکسن وارد شده اما رویداد متناظر با بیماری انتخاب‌شده در آن وجود ندارد.')
- if(clinicalStatus&&clinicalStatus!=='unknown')add(observations,'وضعیت بالینی ثبت‌شده',({normal:'گله بدون علامت گزارش شده',clinical:'علائم بالینی گزارش شده',recovering:'گله در حال بهبود گزارش شده',problem:'افت عملکرد/مشکل گله گزارش شده'} as Record<string,string>)[clinicalStatus]||clinicalStatus,'neutral')
- if(clinicalSigns)add(observations,'علائم ثبت‌شده',clinicalSigns,'caution')
- if(mortalityTrend==='increasing')add(observations,'روند تلفات افزایشی','افزایش تلفات یک هشدار بالینی مهم است؛ باید با سن، مقدار تلفات روزانه، کالبدگشایی و آزمون مستقیم تطبیق داده شود.','risk')
- for(const [key,title] of [['morbidityPercent','ابتلا'],['mortalityPercent','تلفات تجمعی'],['feedChangePercent','تغییر مصرف دان'],['waterChangePercent','تغییر مصرف آب'],['productionChangePercent','تغییر عملکرد']] as const){const value=numericClinical(key);if(value!==null)add(observations,title,value+'٪ طبق گزارش فارم؛ مقدار ثبت‌شده مستقل تأیید نشده است.',key==='mortalityPercent'&&value>0?'caution':'neutral')}
- if(str(clinical,'necropsy'))add(observations,'یافته کالبدگشایی',str(clinical,'necropsy'),'caution')
- if(str(clinical,'directTests'))add(observations,'آزمون‌های مستقیم ثبت‌شده',str(clinical,'directTests'),'neutral')
  if(!purpose)limitations.push('هدف نمونه‌گیری (پایش واکسن، MDA، غربالگری یا بررسی بیماری) ثبت نشده است.')
  if(!vaccinationEvents.length&&!str(i,'vaccineProgram')&&!str(i,'vaccinationHistory'))limitations.push('تاریخچه ساختاریافته واکسیناسیون (تاریخ/سن، بیماری، محصول، سویه، پلتفرم، مسیر و پوشش) در دسترس نیست.')
  if(!hasClinical&&!highMortality)limitations.push('اطلاعات بالینی، تلفات، مصرف آب/دان، عملکرد، کالبدگشایی و آزمون‌های مستقیم ثبت نشده‌اند.')
