@@ -88,6 +88,10 @@ function hasComparableBiologicalContext(i:Record<string,unknown>):boolean{
  if(i.vaccinePlatform==='unvaccinated')return true
  return ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'].every(k=>typeof i[k]==='string'&&String(i[k]).trim()!==''&&!['unknown','نامشخص','نامعلوم'].includes(String(i[k]).trim().toLowerCase()))
 }
+function vaccinationHistoryKey(i:Record<string,unknown>):string{
+ const events=Array.isArray(i.vaccinationEvents)?i.vaccinationEvents.filter(x=>x&&typeof x==='object').map(x=>{const e=x as Record<string,unknown>;return {date:e.date??null,ageDays:e.ageDays??null,disease:e.disease??'',product:e.product??'',strain:e.strain??'',platform:e.platform??'',route:e.route??'',dose:e.dose??'',coveragePercent:e.coveragePercent??null}}):[]
+ return JSON.stringify(events)
+}
 function comparisonFieldsForRound(r:SerologyRoundIdentity):string[]{
   return r.input.method==='HI'?[...commonComparisonFields,...hiComparisonFields]:commonComparisonFields
 }
@@ -107,7 +111,7 @@ export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):b
 }
 export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
   if(!hasCompleteSerologyComparisonMetadata(r)) return null
-  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed,...(r.input.method==='ELISA'&&r.input.scale==='kit-titer'?[r.input.fourFoldComparisonSource??'']:[])])])
+  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed,vaccinationHistoryKey(r.input),...(r.input.method==='ELISA'&&r.input.scale==='kit-titer'?[r.input.fourFoldComparisonSource??'']:[])])])
 }
 export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
   const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
@@ -129,6 +133,7 @@ export function areComparableFlockRounds(a:SerologyRoundIdentity,b:SerologyRound
   if(!Number.isFinite(ax)||!Number.isFinite(ay)||Math.abs(ax-ay)>1)return false
   if(typeof x.samplingPurpose!=='string'||!x.samplingPurpose||x.samplingPurpose!==y.samplingPurpose||x.randomSamplingConfirmed!==true||y.randomSamplingConfirmed!==true)return false
   if(typeof x.vaccinePlatform!=='string'||!x.vaccinePlatform||x.vaccinePlatform!==y.vaccinePlatform||x.vaccinePlatform==='unknown')return false
+  if(vaccinationHistoryKey(x)!==vaccinationHistoryKey(y))return false
   if(x.vaccinePlatform==='unvaccinated')return true
   for(const k of ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'])if(typeof x[k]!=='string'||!String(x[k]).trim()||x[k]!==y[k])return false
   const dx=daysBetween(x.samplingDate,x.vaccineDate),dy=daysBetween(y.samplingDate,y.vaccineDate)
