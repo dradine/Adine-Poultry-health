@@ -297,3 +297,9 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
  .clinical-scenario>summary span{text-align:right}
  .clinical-actions article{align-items:flex-start}
 }
+
+.clinical-context-list{display:grid;gap:7px}
+.clinical-context-list>div{display:grid;grid-template-columns:minmax(100px,150px) 1fr;gap:12px;padding:11px 13px;border:1px solid #e1e9e3;border-radius:10px;background:#fff}
+.clinical-context-list b{font-size:11px;color:#365743}
+.clinical-context-list span{font-size:12px;line-height:1.9;color:#56675c;white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:600px){.clinical-context-list>div{grid-template-columns:1fr;gap:4px}}
