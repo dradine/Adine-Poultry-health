@@ -18,7 +18,7 @@ export default function BaselineLibrary() {
             <p><b>برنامه واکسن:</b> {item.vaccineProgram}</p>
             <p><b>روش تعیین محدوده:</b> {item.numericRange?.method}</p>
             <p><b>واحد:</b> {item.numericRange?.unit}</p>
-            <div><b>راهنمای نمونه‌گیری و ساخت baseline</b><ul>{item.sampleGuidance.map(x=><li key={x}>{x}</li>)}</ul></div>
+            <div><b>راهنمای نمونه‌گیری و ساخت baseline</b><ul>{(item.sampleGuidance ?? []).map(x=><li key={x}>{x}</li>)}</ul></div>
             <div><b>محدودیت‌ها</b><ul>{item.limitations.map(x=><li key={x}>{x}</li>)}</ul></div>
             <p><b>سند:</b> {item.sourceTitle} · {item.sourceVersion} · {item.sourcePage}</p>
             <a href={item.sourceUrl} target="_blank" rel="noreferrer">مشاهده سند اصلی سازنده ↗</a>
