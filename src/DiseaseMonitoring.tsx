@@ -4,6 +4,7 @@ import { analyzeIbvTrend } from './core/ibvTrend'
 import { assessAivEvidence } from './core/aivEvidence'
 import { listLocalModelRuns, notifyLocalDataChanged, type LocalModelRun } from './core/localFirstDb'
 import { saveMonitorRunToLocal } from './core/syncService'
+import type { DiagnosticKit } from './data/diagnosticKitCatalog'
 
 type Mode = 'ND' | 'IBV' | 'AIV'
 type FlockOption = { id: string; flockName: string; placementDate: string; savedAt?: string }
@@ -19,9 +20,9 @@ type AivInput = {
   mortalityIncrease: boolean
   officialProgramConfirmed: boolean
 }
-type Props = { profiles: FlockOption[]; initialMode?: Mode; hideDiseaseSelector?: boolean }
+type Props = { profiles: FlockOption[]; initialMode?: Mode; hideDiseaseSelector?: boolean; selectedKit?: DiagnosticKit }
 
-export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSelector = false }: Props) {
+export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSelector = false, selectedKit }: Props) {
   const [mode, setMode] = useState<Mode>(initialMode || 'ND')
   const [flockId, setFlockId] = useState('')
   const [baseline, setBaseline] = useState('')
@@ -52,6 +53,11 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
     setFlockId(current => profiles.some(profile => profile.id === current) ? current : profiles[0]?.id || '')
   }, [profiles])
   useEffect(() => { if (initialMode) setMode(initialMode) }, [initialMode])
+  useEffect(() => {
+    if (!selectedKit) return
+    const label = selectedKit.brand + (selectedKit.catalog ? ' · ' + selectedKit.catalog : '') + ' — ' + selectedKit.assay
+    if (mode === 'IBV' && !ibAssay.trim()) setIbAssay(label)
+  }, [selectedKit, mode, ibAssay])
 
   useEffect(() => {
     let active = true
@@ -85,6 +91,7 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
           postHiLog2: numbers(post),
           assayAntigen: assay,
           vaccineProduct: product,
+          selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null,
           route,
           samplingDaysAfterDose: Number(days),
           responseThresholdLog2: threshold === '' ? undefined : Number(threshold),
@@ -97,13 +104,14 @@ export default function DiseaseMonitoring({ profiles, initialMode, hideDiseaseSe
           const [day, value] = line.split(/[:;,]/)
           return { day: Number(day), value: Number(value) }
         })
-        const input = { observations, assay: ibAssay, unit }
+        const input = { observations, assay: ibAssay, unit, selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null }
         const result = analyzeIbvTrend(input)
         setLastInput(input as unknown as Record<string, unknown>)
         setOut(result)
       } else {
-        const result = assessAivEvidence(aiv)
-        setLastInput(aiv as unknown as Record<string, unknown>)
+        const input = { ...aiv, selectedKit: selectedKit ? { brand:selectedKit.brand, catalog:selectedKit.catalog, assay:selectedKit.assay, format:selectedKit.format, sample:selectedKit.sample, source:selectedKit.sourceUrl, evidenceStatus:selectedKit.evidenceStatus } : null }
+        const result = assessAivEvidence(input)
+        setLastInput(input as unknown as Record<string, unknown>)
         setOut(result)
       }
     } catch (cause) {
