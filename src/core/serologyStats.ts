@@ -32,23 +32,24 @@ function percentile(sorted:number[],p:number):number {
 export function summarizeSerology(values:number[],scale:SerologyScale):SerologySummary {
   if(scale==='unspecified') throw new Error('مقیاس آزمون ELISA باید دقیقاً از روی IFU یا خروجی آزمایشگاه انتخاب شود.')
   if(values.length<2) throw new Error('برای خلاصه آماری حداقل دو نمونه لازم است.')
-  if(values.some(v=>!Number.isFinite(v)||v<=0)) throw new Error('همه مقادیر باید مثبت و عددی باشند؛ نتیجه زیر حد تشخیص باید جداگانه و با روش سانسور ثبت شود.')
+  const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
+  if(values.some(v=>!Number.isFinite(v)||(isTitre?v<=0:v<0))) throw new Error(isTitre?'تیترهای ratio-scale باید مثبت باشند؛ نتیجه صفر/زیر حد تشخیص باید با روش سانسور معتبر مدیریت شود.':'نتایج ELISA باید عددی و غیرمنفی باشند.')
   const sorted=[...values].sort((a,b)=>a-b),n=values.length
   const arithmeticMean=values.reduce((s,v)=>s+v,0)/n
   const median=n%2?sorted[(n-1)/2]:(sorted[n/2-1]+sorted[n/2])/2
   const sampleSd=Math.sqrt(values.reduce((s,v)=>s+(v-arithmeticMean)**2,0)/(n-1))
   const cvPercent=arithmeticMean?sampleSd/arithmeticMean*100:0
-  const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
-  const logs=isTitre?values.map(Math.log2):[]
-  const log2Mean=isTitre?logs.reduce((s,v)=>s+v,0)/n:null
-  const log2Sd=isTitre&&n>1?Math.sqrt(logs.reduce((s,v)=>s+(v-(log2Mean as number))**2,0)/(n-1)):null
-  const geometricMean=isTitre?2**(log2Mean as number):null
+  const hasPositiveTitre=isTitre&&values.every(v=>v>0)
+  const logs=hasPositiveTitre?values.map(Math.log2):[]
+  const log2Mean=hasPositiveTitre?logs.reduce((s,v)=>s+v,0)/n:null
+  const log2Sd=hasPositiveTitre&&n>1?Math.sqrt(logs.reduce((s,v)=>s+(v-(log2Mean as number))**2,0)/(n-1)):null
+  const geometricMean=hasPositiveTitre?2**(log2Mean as number):null
   return {
     n,arithmeticMean,median,sampleSd,cvPercent,geometricMean,log2Mean,log2Sd,
     minimum:sorted[0],maximum:sorted[n-1],p5:percentile(sorted,.05),p25:percentile(sorted,.25),
     p75:percentile(sorted,.75),p90:percentile(sorted,.90),
-    trendValue:isTitre?(log2Mean as number):arithmeticMean,
-    trendScale:isTitre?'log2-titre':'arithmetic',
+    trendValue:hasPositiveTitre?(log2Mean as number):arithmeticMean,
+    trendScale:hasPositiveTitre?'log2-titre':'arithmetic',
   }
 }
 export function parseSampleIds(raw:string):string[] {
