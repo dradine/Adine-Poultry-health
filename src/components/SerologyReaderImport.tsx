@@ -35,15 +35,19 @@ export default function SerologyReaderImport({method,onApply}:{method:'ELISA'|'H
    <label>ستون نتیجه<select value={result} onChange={e=>setResult(Number(e.target.value))}><option value={-1}>انتخاب کنید</option>{options}</select></label>
    <label>ستون شناسه نمونه (اختیاری)<select value={sampleId} onChange={e=>setSampleId(Number(e.target.value))}><option value={-1}>بدون شناسه</option>{options}</select></label>
    <label>ستون تفکیک نمونه/کنترل (اختیاری)<select value={role} onChange={e=>setRole(Number(e.target.value))}><option value={-1}>همه ردیف‌ها نمونه هستند</option>{options}</select></label>
-   {role>=0&&
-   <label>مقدار دقیق ردیف نمونه<input value={sampleRoleValue} onChange={e=>setSampleRoleValue(e.target.value)}/></label>
-   <label>مقدار دقیق کنترل مثبت<select value={positiveRole} onChange={e=>setPositiveRole(e.target.value)}><option value="">انتخاب کنترل مثبت</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
-   <label>مقدار دقیق کنترل منفی<select value={negativeRole} onChange={e=>setNegativeRole(e.target.value)}><option value="">انتخاب کنترل منفی</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
-   <label>کنترل مرجع (اختیاری)<select value={referenceRole} onChange={e=>setReferenceRole(e.target.value)}><option value="">بدون کنترل مرجع</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
-   <label>حداقل میانگین کنترل مثبت<input value={positiveMin} onChange={e=>setPositiveMin(e.target.value)} inputMode="decimal"/></label><label>حداکثر میانگین کنترل مثبت<input value={positiveMax} onChange={e=>setPositiveMax(e.target.value)} inputMode="decimal"/></label><label>حداکثر میانگین کنترل منفی<input value={negativeMax} onChange={e=>setNegativeMax(e.target.value)} inputMode="decimal"/></label>
-   {referenceRole&&<><label>حداقل کنترل مرجع<input value={referenceMin} onChange={e=>setReferenceMin(e.target.value)} inputMode="decimal"/></label><label>حداکثر کنترل مرجع<input value={referenceMax} onChange={e=>setReferenceMax(e.target.value)} inputMode="decimal"/></label></>}
-   <label>حداکثر CV تکرارهای کنترل (اختیاری)<input value={maxControlCv} onChange={e=>setMaxControlCv(e.target.value)} inputMode="decimal"/></label><label className="wide-label">منبع و نسخه معیارهای QC از IFU<input value={qcSource} onChange={e=>setQcSource(e.target.value)} placeholder="نام کیت، نسخه IFU، بخش و صفحه"/></label>
-  </div><p className="srs-note">QC فقط زمانی به‌صورت محاسبه‌شده قبول می‌شود که کنترل مثبت، منفی و محدوده‌های دقیق IFU مشخص باشند. کنترل مرجع و حد CV فقط در صورت الزام IFU وارد شوند؛ معیار IDEXX یا BioChek را به کیت دیگر تعمیم ندهید.</p>
+   {role>=0&&<>
+    <label>مقدار دقیق ردیف نمونه<input value={sampleRoleValue} onChange={e=>setSampleRoleValue(e.target.value)}/></label>
+    <label>مقدار دقیق کنترل مثبت<select value={positiveRole} onChange={e=>setPositiveRole(e.target.value)}><option value="">انتخاب کنترل مثبت</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
+    <label>مقدار دقیق کنترل منفی<select value={negativeRole} onChange={e=>setNegativeRole(e.target.value)}><option value="">انتخاب کنترل منفی</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
+    <label>کنترل مرجع (اختیاری)<select value={referenceRole} onChange={e=>setReferenceRole(e.target.value)}><option value="">بدون کنترل مرجع</option>{table.rows.map(r=>r[role]).filter((v,i,a)=>v&&a.indexOf(v)===i).map(v=><option key={v} value={v}>{v}</option>)}</select></label>
+    <label>حداقل میانگین کنترل مثبت<input value={positiveMin} onChange={e=>setPositiveMin(e.target.value)} inputMode="decimal"/></label>
+    <label>حداکثر میانگین کنترل مثبت<input value={positiveMax} onChange={e=>setPositiveMax(e.target.value)} inputMode="decimal"/></label>
+    <label>حداکثر میانگین کنترل منفی<input value={negativeMax} onChange={e=>setNegativeMax(e.target.value)} inputMode="decimal"/></label>
+    {referenceRole&&<><label>حداقل کنترل مرجع<input value={referenceMin} onChange={e=>setReferenceMin(e.target.value)} inputMode="decimal"/></label><label>حداکثر کنترل مرجع<input value={referenceMax} onChange={e=>setReferenceMax(e.target.value)} inputMode="decimal"/></label></>}
+    <label>حداکثر CV تکرارهای کنترل (اختیاری)<input value={maxControlCv} onChange={e=>setMaxControlCv(e.target.value)} inputMode="decimal"/></label>
+    <label className="wide-label">منبع و نسخه معیارهای QC از IFU<input value={qcSource} onChange={e=>setQcSource(e.target.value)} placeholder="نام کیت، نسخه IFU، بخش و صفحه"/></label>
+    <p className="srs-note">QC فقط زمانی به‌صورت محاسبه‌شده قبول می‌شود که کنترل مثبت، منفی و محدوده‌های دقیق IFU مشخص باشند. کنترل مرجع و حد CV فقط در صورت الزام IFU وارد شوند؛ معیار IDEXX یا BioChek را به کیت دیگر تعمیم ندهید.</p>
+   </>}
   </div><div className="srs-table-wrap"><table className="srs-table"><thead><tr>{table.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{table.rows.slice(0,8).map((r,i)=><tr key={i}>{table!.headers.map((h,j)=><td key={h}>{r[j]}</td>)}</tr>)}</tbody></table></div><small>نمایش {Math.min(8,table.rows.length)} ردیف از {table.rows.length} ردیف؛ جداکننده: {table.delimiter==='\t'?'Tab':table.delimiter}</small><button type="button" className="button secondary" onClick={apply}>تطبیق و انتقال نتایج به فرم</button></>}
   {notice&&<p className="muted" role="status">{notice}</p>}{error&&<p className="muted" role="alert">{error}</p>}
  </section>
