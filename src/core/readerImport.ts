@@ -26,7 +26,7 @@ export function normalizeReaderNumber(raw:string,method:'ELISA'|'HI',decimalComm
  if(method==='HI'&&/^1[:/]\d+(?:\.\d+)?$/.test(x))x=x.slice(2)
  if(decimalComma&&x.includes(',')&&!x.includes('.'))x=x.replace(',','.')
  const n=Number(x)
- if(!Number.isFinite(n)||n<=0)throw new Error('نتیجه باید عددی و مثبت باشد.')
+ if(!Number.isFinite(n)||(method==='HI'?n<=0:n<0))throw new Error(method==='HI'?'تیتر HI باید عددی و مثبت باشد.':'نتیجه ELISA باید عددی و غیرمنفی باشد.')
  return n
 }
 export function validateReaderScale(columnName:string,method:'ELISA'|'HI',scale:string):void{
