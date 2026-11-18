@@ -1,7 +1,6 @@
 import type { LocalFlock,LocalModelRun } from '../core/localFirstDb'
 import { areComparableFlockRounds } from '../core/serologyStats'
 import { geometricMeanConfidenceInterval,meanConfidenceInterval } from '../core/serologyAdvancedStats'
-type O=Record<string,unknown>
 const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number'&&Number.isFinite(x))?v as number[]:[]
 const f=(v:number)=>v.toLocaleString('fa-IR',{maximumFractionDigits:1})
 export default function SerologyFlockComparison({run,runs,flocks}:{run:LocalModelRun;runs:LocalModelRun[];flocks:LocalFlock[]}){
