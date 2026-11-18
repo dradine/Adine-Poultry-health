@@ -55,7 +55,59 @@ export function interpretSerologyRound(disease:string,input:Input):SerologyInter
  if(str(input,'samplingPurpose')==='outbreak')items.push({level:'warning',title:'محدودیت سرولوژی در بررسی چالش/بیماری فعال',detail:'آنتی‌بادی ممکن است حاصل واکسیناسیون یا مواجهه قبلی باشد و به‌تنهایی عفونت فعال را اثبات نمی‌کند؛ تفسیر باید با علائم، کالبدگشایی و آزمون مستقیم مناسب مانند PCR/آنتی‌ژن تلفیق شود.'})
  if(str(input,'samplingPurpose')==='pre-vaccination')items.push({level:'info',title:'پایش پیش از واکسیناسیون',detail:'این داده می‌تواند وضعیت آنتی‌بادی پیش از واکسن را توصیف کند؛ انتخاب زمان واکسیناسیون به مدل اختصاصی کیت/واکسن، آستانه معتبر و شرایط گله نیاز دارد.'})
  if(str(input,'samplingPurpose')==='mda'&&disease==='IBD')items.push({level:'warning',title:'تحلیل MDA هنوز کامل نیست',detail:'برای برآورد زمان افت آنتی‌بادی مادری، سن دقیق نمونه، نمونه روز هچ/روز اول، نیمه‌عمر مستند و BTT اختصاصی واکسن/کیت لازم است. این گزارش بدون این ورودی‌ها زمان واکسیناسیون را محاسبه نمی‌کند.'})
-  if(disease==='IBD'){
+  // Disease-specific clinical pattern interpretation: descriptive signals, ranked hypotheses, and discriminating next steps.
+ if(n>=2 && method==='HI' && scale==='hi-reciprocal' && (disease==='ND'||disease==='AIV')){
+  const logs=values.filter(v=>v>0).map(Math.log2),logMean=logs.length?logs.reduce((a,b)=>a+b,0)/logs.length:0
+  const logSd=logs.length>1?Math.sqrt(logs.reduce((a,b)=>a+(b-logMean)**2,0)/(logs.length-1)):0
+  const sortedLogs=[...logs].sort((a,b)=>a-b),gaps=sortedLogs.slice(1).map((v,i)=>({gap:v-sortedLogs[i],at:sortedLogs[i]})).sort((a,b)=>b.gap-a.gap)
+  const low=values.filter(v=>v<=4).length,high=values.filter(v=>v>=16).length
+  const pct=(x:number)=>Math.round(x/n*100)
+  const age=Number(input.samplingAgeDays),vDate=str(input,'vaccineDate'),sDate=str(input,'samplingDate')
+  const days=vDate&&sDate?Math.round((Date.parse(sDate+'T00:00:00Z')-Date.parse(vDate+'T00:00:00Z'))/86400000):NaN
+  const program=(str(input,'vaccineProgram')+' '+str(input,'vaccine')).toLowerCase()
+  const platform=str(input,'vaccinePlatform').toLowerCase()
+  const vaccineLive=/live|زنده/.test(program+' '+platform),vaccineKilled=/killed|inactiv|کشته|غیرفعال/.test(program+' '+platform)
+  const haUnits=Number(str(input,'hiHAU'))
+  const thresholdEligible=method==='HI'&&Number.isFinite(haUnits)&&haUnits===4
+  if(disease==='ND'){
+   const spread=logSd>=1.5
+   const clustered=gaps.length>0&&gaps[0].gap>=2
+   if(spread||clustered){
+    items.push({level:'warning',title:'الگوی پاسخ نیوکاسل ناهمگون است',detail:'پراکندگی در مقیاس log₂ برابر '+logSd.toFixed(2)+' است؛ '+low+' از '+n+' نمونه ('+pct(low)+'٪) تیتر حداکثر ۱:۴ و '+high+' نمونه ('+pct(high)+'٪) تیتر حداقل ۱:۱۶ دارند. '+(clustered?'بین دو بخش توزیع، فاصله‌ای دست‌کم دو رقت دوبرابری دیده می‌شود. ':'')+'این الگو با پاسخ/دریافت غیریکنواخت واکسن، تفاوت آنتی‌بادی مادری یا وضعیت ایمنی پرندگان، نمونه‌گیری ناهمگون و نیز مواجهه‌های متفاوت با آنتی‌ژن سازگار است؛ هیچ‌کدام از این علت‌ها با یک نوبت HI اثبات نمی‌شود.'})
+    items.push({level:'info',title:'فرضیه‌های اولویت‌دار برای بررسی نیوکاسل',detail:'۱) اگر واکسن زنده از آب یا اسپری داده شده: یکنواختی توزیع، مصرف آب، آماده‌سازی، کلر/ضدعفونی‌کننده، زنجیره سرد و پوشش سالن را ممیزی کنید. ۲) اگر واکسن کشته تزریق شده: درصد پرندگان واقعاً تزریق‌شده، دوز کامل، محل تزریق، کیفیت امولسیون و نگهداری را بررسی کنید؛ واکسن کشته از پرنده به پرنده منتقل نمی‌شود. ۳) سابقه MDA، بیماری/استرس و تفاوت سالن‌ها را بررسی کنید. ۴) اگر افزایش تیتر غیرمنتظره یا علائم وجود دارد، مواجهه میدانی را با نمونه‌گیری جفتی و آزمون مستقیم مناسب بررسی کنید.'})
+   }else{
+    items.push({level:'info',title:'پراکندگی تیتر نیوکاسل در این نوبت',detail:'SD مقیاس log₂ برابر '+logSd.toFixed(2)+' است و '+low+' از '+n+' نمونه در محدوده تیترهای حداکثر ۱:۴ قرار دارند. نبود خوشه‌بندی واضح در این نمونه کوچک، یکنواختی کل گله را اثبات نمی‌کند؛ توزیع سالن‌به‌سالن و طرح نمونه‌گیری باید دیده شود.'})
+   }
+   if(n<20)items.push({level:'warning',title:'حجم نمونه برای قضاوت کل گله محدود است',detail:'n='+n+' برای توصیف همین نمونه‌ها مفید است، اما برای برآورد مطمئن وضعیت کل گله، به‌ویژه وقتی چند سالن/منبع نمونه وجود دارد، نمونه‌گیری تصادفی طبقه‌بندی‌شده و تعداد کافی‌تر لازم است.'})
+   if(thresholdEligible){
+    const count=values.filter(v=>v>=16).length
+    items.push({level:'info',title:'طبقه‌بندی روش‌محور HI نیوکاسل',detail:count+' از '+n+' نمونه ('+pct(count)+'٪) در حداقل ۱:۱۶ یا بالاتر قرار دارند. این فقط طبقه‌بندی آزمایشگاهی در شرط ۴ HAU است؛ مثبت بودن سرولوژیک معادل حفاظت بالینی یا پوشش واکسیناسیون مؤثر نیست.'})
+   }else{
+    items.push({level:'warning',title:'آستانه مثبت HI نیوکاسل قابل تعیین نیست',detail:'برای طبقه‌بندی معتبر ۱:۱۶ باید مشخص باشد آزمون با ۴ HAU و روش استاندارد متناظر اجرا شده است. چون HAU/شرایط آزمون ثبت نشده، برنامه عمداً درصد مثبت یا درصد محافظت اعلام نمی‌کند.'})
+    nextData.push('HAU واقعی آنتی‌ژن در آزمون HI و تأیید روش ۴ HAU')
+   }
+   if(Number.isFinite(days)&&days>=0){
+    items.push({level:'info',title:'تفسیر زمان‌بندی پس از آخرین واکسن ثبت‌شده',detail:'فاصله ثبت‌شده تا نمونه‌گیری '+days+' روز است. اگر این تاریخ مربوط به نوبت زنده روز ۲۱ و نمونه‌گیری روز ۳۰ باشد، تنها ۹ روز گذشته است؛ این فاصله برای نتیجه‌گیری نهایی درباره پاسخ تقویتی زنده زودهنگام است. بااین‌حال، تیترهای پایین را نمی‌توان فقط به این فاصله نسبت داد، زیرا نوبت‌های قبلی نیز باید در نظر گرفته شوند.'})
+   }
+   if(/every|هر\s*دو|14\s*day|۱۴\s*روز|دو\s*هفته/.test(program)){
+    items.push({level:'warning',title:'تکرار مکرر واکسن زنده؛ بررسی برنامه و کیفیت take ضروری است',detail:'فواصل کوتاه و تکرار واکسن به‌تنهایی تضمین‌کننده پاسخ بهتر نیست. تاریخ، سویه، مسیر و کیفیت اجرای هر نوبت را ثبت کنید و از روی یک تیتر پایین، تکرار زودهنگام یا تغییر خودسرانه برنامه را توصیه نکنید.'})
+   }
+  }
+  if(disease==='AIV'){
+   if(days>=0){
+    items.push({level:days<14?'warning':'info',title:'زمان نمونه‌گیری نسبت به واکسن آنفلوانزا',detail:'از تاریخ واکسن ثبت‌شده تا نمونه‌گیری '+days+' روز گذشته است. در اغلب برنامه‌ها، پاسخ قابل‌اندازه‌گیری پس از واکسیناسیون طی حدود ۲ تا ۴ هفته ظاهر می‌شود؛ بنابراین اگر کمتر از دو هفته باشد، نمونه‌گیری ممکن است زودهنگام باشد. اگر حدود سه هفته یا بیشتر گذشته و تیترها همچنان پایین‌اند، کیفیت/دوز/تزریق واکسن و تطابق آنتی‌ژن HI باید با اولویت بررسی شوند.'})
+   }
+   const target=str(input,'antigen')||'ثبت نشده'
+   items.push({level:'warning',title:'تطابق آنتی‌ژن H9 با واکسن یک نقطه کلیدی است',detail:'HI فقط آنتی‌بادی‌هایی را خوب می‌سنجد که با HA آنتی‌ژن آزمون واکنش مهاری دارند. اگر آنتی‌ژن آزمایش با سویه واکسن H9 از نظر آنتی‌ژنی فاصله داشته باشد، تیتر پایین می‌تواند بازتاب عدم تطابق باشد، نه الزاماً فقدان پاسخ به واکسن. آنتی‌ژن/سویه آزمون فعلی: '+target+'. برای ارزیابی پاسخ واکسن، آنتی‌ژن همولوگ یا نزدیک به واکسن و برای بررسی مواجهه، آنتی‌ژن مرتبط با ویروس میدانی پرسش متفاوتی را پاسخ می‌دهد.'})
+   if(n<20)items.push({level:'warning',title:'حجم نمونه محدود است',detail:'این تعداد نمونه برای توصیف مقدماتی مفید است، اما برای برآورد پوشش کل گله و مقایسه سالن‌ها کافی نیست؛ نمونه‌گیری تصادفی طبقه‌بندی‌شده را در نظر بگیرید.'})
+   if(vaccineKilled){
+    items.push({level:'warning',title:'پاسخ پایین پس از واکسن کشته: مسیر تزریق و کیفیت واکسن را ممیزی کنید',detail:'واکسن غیرفعال/کشته برخلاف واکسن زنده از پرنده‌ای به پرنده دیگر منتشر نمی‌شود؛ جاافتادن تزریق، دوز ناقص، تزریق نامناسب، نگهداری یا اختلال در زنجیره سرد می‌تواند بخشی از گله را با پاسخ پایین باقی بگذارد. همچنین سن تزریق و سطح MDA در زمان تزریق باید بررسی شود.'})
+   }else if(!vaccineKilled&&!vaccineLive){
+    nextData.push('نوع واکسن آنفلوانزا (کشته/غیرفعال، وکتور یا سایر) و مسیر/سن تزریق')
+   }
+  }
+ }
+ if(disease==='IBD'){
   if(str(input,'assayId')==='idvet-ibd-vp2'){
    const platform=str(input,'vaccinePlatform').toLowerCase()
    if(!/vp2|recombinant|vector|hvt/.test(platform))items.push({level:'warning',title:'عدم تطابق یا ابهام هدف آزمون IBD-VP2',detail:'این آزمون VP2-labelled است. پیش از تفسیر پاسخ واکسن باید پلتفرم دقیق واکسن نوترکیب VP2 و IFU همان ماتریس تأیید شود؛ نتیجه را با ELISA معمول IBD ادغام نکنید.'})
