@@ -6,7 +6,7 @@ describe('structured flock context',()=>{
   expect(x[0].date).toBe('2026-10-21');expect(x[0].ageDays).toBe(1);expect(x[0].coveragePercent).toBe(98)
  })
  it('parses explicit date and derives age from hatch date',()=>{
-  const x=parseVaccinationTimeline(' | 2026-11-10 | IBD | vaccine X | immune-complex | in-ovo | 100','','2026-10-20')
+  const x=parseVaccinationTimeline(' | 2026-11-10 | IBD | vaccine X | immune-complex | in-ovo | 100','2026-10-20')
   expect(x[0].ageDays).toBe(21)
  })
  it('rejects malformed or incomplete vaccine events',()=>{
