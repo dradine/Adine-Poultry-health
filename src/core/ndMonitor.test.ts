@@ -12,6 +12,12 @@ describe('ND HI monitor',()=>{
   expect(result.responderPercent).toBeCloseTo(66.666)
   expect(result.pairedN).toBe(3)
  })
+ it('rejects fractional individual HI endpoints',()=>{
+  expect(()=>monitorNdHi({...base,postHiLog2:[2,3.5]})).toThrow(/endpoint صحیح/)
+ })
+ it('requires paired post-values to belong to the post-vaccination cohort',()=>{
+  expect(()=>monitorNdHi({...base,postHiLog2:[4,5],pairedObservations:[{birdId:'A',baselineHiLog2:2,postHiLog2:6}]})).toThrow(/در مجموعه نتایج/)
+ })
  it('rejects duplicate paired bird identifiers',()=>{
   expect(()=>monitorNdHi({...base,postHiLog2:[2,3],pairedObservations:[{birdId:'A',baselineHiLog2:1,postHiLog2:2},{birdId:'A',baselineHiLog2:2,postHiLog2:3}]})).toThrow()
  })
