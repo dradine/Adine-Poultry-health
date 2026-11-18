@@ -157,7 +157,6 @@ export default function App() {
     setView('workflow')
     if (next > 1 && (!flockName.trim() || !placementDate)) { setError('برای ادامه، نام گله و تاریخ جوجه‌ریزی را در مرحله اول وارد کنید.'); setWizardStep(1); return }
     if (next > 2 && !diseaseChosen) { setError('در مرحله دوم، بیماری موردنظر را انتخاب کنید.'); setWizardStep(2); return }
-    if (next > 3 && !selectedDiagnosticKitId) { setError('در مرحله سوم، کیت یا روش آزمون را انتخاب یا ثبت کنید.'); setWizardStep(3); return }
     setWizardStep(next)
   }
 
@@ -763,7 +762,7 @@ export default function App() {
       <div className="workflow-bottom"><button className="button secondary" onClick={()=>setView('home')}>بازگشت به صفحه اصلی</button>{wizardStep<4&&<button className="button primary" onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>ادامه</button>}</div>
       </>}
       {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
-      {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>
+      {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
