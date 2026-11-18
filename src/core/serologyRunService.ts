@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { normalizeDigits } from './ibd'
+import { findAssayCatalogEntry } from './assayRegistry'
 import { getSyncMeta, setSyncMeta, listLocalFlocks, saveLocalFlock, saveLocalModelRun, notifyLocalDataChanged } from './localFirstDb'
 
 export type SerologyRoundDraft = {
@@ -36,16 +37,19 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
   'اعتبار کنترل‌های آزمون در این نسخه به‌صورت اظهاری ثبت می‌شود و از روی فایل خام دستگاه به‌طور مستقل ممیزی نمی‌شود.'
  ]
  const id=crypto.randomUUID(),now=new Date().toISOString()
+ const assayId=typeof draft.input.assayId==='string'?draft.input.assayId:''
+ const assay=assayId&&assayId!=='manual'?findAssayCatalogEntry(assayId):undefined
+ const sourceReferences=[...(assay?[{kind:'manufacturer-assay-catalog',citation:assay.source,manufacturer:assay.manufacturer,catalog:assay.catalog||null,status:assay.status,note:assay.note}]:[]),...(draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[])]
  await saveLocalModelRun({
   id,flock_id:draft.flock.id,disease_code:draft.diseaseCode,
-  model_version:'serology-longitudinal-0.1.0',model_family:'serology-longitudinal-round',
+  model_version:'serology-longitudinal-0.2.0',model_family:'serology-longitudinal-round',
   input_snapshot:draft.input,output_snapshot:draft.output,
   confidence_level:'insufficient',
   decision_status:'review_required',limitations,
   qc_summary:{enteredByUser:true,rawLabFileImported:false,qcStatus:draft.input.qcStatus||'pending',independentlyVerified:false},
   model_assumptions:{interpretation:'descriptive-only',noProtectionInference:true,unpairedGroupTrend:true},
-  source_references:draft.input.source?[{kind:'user-entered-assay-source',citation:draft.input.source}]:[],
-  input_schema_version:'serology-longitudinal-v1',created_at:now
+  source_references:sourceReferences,
+  input_schema_version:'serology-longitudinal-v2',created_at:now
  })
  notifyLocalDataChanged()
  return id
