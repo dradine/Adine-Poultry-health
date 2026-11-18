@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { listLocalModelRuns, type LocalModelRun } from '../core/localFirstDb'
 type O=Record<string,unknown>
 const f=(v:unknown,d=2)=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString('fa-IR',{maximumFractionDigits:d}):'—'
