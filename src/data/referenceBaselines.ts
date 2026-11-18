@@ -13,6 +13,10 @@ export type ReferenceBaseline = {
   numericRange?: { low: number; high: number; unit: string; method: string }
   sampleGuidance?: string[]
   limitations: string[]
+  method?: 'ELISA' | 'HI' | 'VN'
+  catalog?: string
+  assayVersion?: string
+  numericComparisonEligible?: boolean
   evidence: 'manufacturer-manual' | 'manufacturer-document-listed-unparsed'
   sourceTitle: string
   sourceVersion: string
@@ -30,6 +34,8 @@ export const REFERENCE_BASELINES: ReferenceBaseline[] = [
     population: 'Broiler flocks classified N (normal/healthy), database sample code N',
     ageWindow: '35–45 days at sampling',
     vaccineProgram: 'Worked example: vaccination program 123 Broilers',
+    method: 'ELISA',
+    numericComparisonEligible: false,
     numericRange: { low: 7000, high: 14000, unit: 'BioChek kit-specific titre', method: 'Worked example using mean ± 1.96 SD (95% interval), rounded by the manual to 7,000–14,000' },
     sampleGuidance: [
       'For quantitative flock mean/profile or baseline creation: target at least 23 birds per flock; the manual describes 18 as a minimum in its interpretation checklist, not an ideal target.',
@@ -58,6 +64,8 @@ export const REFERENCE_BASELINES: ReferenceBaseline[] = [
     population: 'Broiler flocks classified N (normal/healthy), database sample code N',
     ageWindow: '35–45 days at sampling',
     vaccineProgram: 'Worked example: vaccination program 123 Broilers',
+    method: 'ELISA',
+    numericComparisonEligible: false,
     numericRange: { low: 8500, high: 14000, unit: 'BioChek kit-specific titre', method: 'Alternative narrower example: lower = mean − 1 SD; upper = mean + 1.96 SD' },
     sampleGuidance: [
       'Baseline construction: 20–30 qualifying flocks if between-flock CV <40%; ideally >100 if CV ≥40%.',
