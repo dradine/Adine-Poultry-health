@@ -3,14 +3,6 @@ name: Deploy test app to GitHub Pages
 on:
   push:
     branches: [feature/ibd-first-mvp]
-  paths:
-    - 'src/**'
-    - 'public/**'
-    - 'index.html'
-    - 'vite.config.ts'
-    - 'package.json'
-    - 'package-lock.json'
-    - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
