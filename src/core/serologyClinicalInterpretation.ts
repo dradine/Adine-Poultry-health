@@ -37,8 +37,10 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const diseaseNames:Record<string,string>={ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو'}
  const relevantEvents=vaccinationEvents.filter(e=>{const d=str(e,'disease').toUpperCase();return d===disease||diseaseNames[disease]===d||diseaseNames[disease]?.includes(d)||d.includes(diseaseNames[disease]||'###')})
  const relevantVaccines=relevantEvents
- const lastRelevant=relevantEvents.filter(e=>!str(e,'date')||str(e,'date')<=samplingDate).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).at(-1)
- const lastVaxDays=lastRelevant?dayDiff(samplingDate,str(lastRelevant,'date')):null
+ const eventDaysBeforeSample=(e:O)=>{const eventDate=str(e,'date');if(eventDate)return dayDiff(samplingDate,eventDate);const sampleAge=Number(i.samplingAgeDays),eventAge=Number(e.ageDays);return Number.isFinite(sampleAge)&&Number.isFinite(eventAge)?sampleAge-eventAge:null}
+ const datedRelevant=relevantEvents.map(event=>({event,days:eventDaysBeforeSample(event)})).filter(x=>x.days!==null&&x.days>=0).sort((a,b)=>(a.days as number)-(b.days as number))
+ const lastRelevant=datedRelevant[0]?.event
+ const lastVaxDays=datedRelevant[0]?.days??null
  const signs=clinicalSigns,mortality=numericClinical('mortalityPercent')??NaN,hasClinical=Boolean(signs||str(clinical,'necropsy')||str(clinical,'directTests')||str(clinical,'onsetDate'))
  const highMortality=clinical.mortalityTrend==='increasing'
  const observations:ClinicalCard[]=[],scenarios:ClinicalInterpretation['scenarios']=[],outlook:ClinicalCard[]=[],actions:ClinicalInterpretation['actions']=[],limitations:string[]=[]
