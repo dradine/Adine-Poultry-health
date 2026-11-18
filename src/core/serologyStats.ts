@@ -82,6 +82,12 @@ export function calculateBioChekVI(arithmeticMean:number,cvPercent:number):numbe
 export type SerologyRoundIdentity={flockId:string;diseaseCode:string;input:Record<string,unknown>}
 const commonComparisonFields=['population','method','assayId','kit','catalog','assayVersion','antigen','unit','scale','sampleMatrix','laboratory','readerModel','protocolVersion','kitLot']
 const hiComparisonFields=['hiHAU','antigenPretreatment','serumPretreatment','dilutionFactor','rbcSource','rbcLot','rbcConcentration']
+const biologicalComparisonFields=['samplingPurpose','vaccinePlatform','vaccine','vaccineStrain','vaccineProgram','vaccineDate']
+function hasComparableBiologicalContext(i:Record<string,unknown>):boolean{
+ if(typeof i.samplingPurpose!=='string'||!i.samplingPurpose.trim()||typeof i.vaccinePlatform!=='string'||!i.vaccinePlatform.trim()||['unknown','نامشخص','نامعلوم'].includes(i.vaccinePlatform.trim().toLowerCase())||typeof i.randomSamplingConfirmed!=='boolean')return false
+ if(i.vaccinePlatform==='unvaccinated')return true
+ return ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'].every(k=>typeof i[k]==='string'&&String(i[k]).trim()!==''&&!['unknown','نامشخص','نامعلوم'].includes(String(i[k]).trim().toLowerCase()))
+}
 function comparisonFieldsForRound(r:SerologyRoundIdentity):string[]{
   return r.input.method==='HI'?[...commonComparisonFields,...hiComparisonFields]:commonComparisonFields
 }
@@ -93,6 +99,7 @@ export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):b
   const rawQcValid=i.rawFileImported!==true||readerMeta?.qcStatus==='pass'
   const realQc=i.demo!==true&&i.qcStatus==='pass'&&rawQcValid
   if((!demoQc&&!realQc)||typeof i.qcEvidence!=='string'||!i.qcEvidence.trim()) return false
+  if(!demoQc&&!hasComparableBiologicalContext(i))return false
   return comparisonFieldsForRound(r).every(k=>{
     const v=i[k]
     return typeof v==='string'&&v.trim().length>0&&!['unknown','نامشخص','نامعلوم','not provided','n/a','na'].includes(v.trim().toLowerCase())
@@ -100,7 +107,7 @@ export function hasCompleteSerologyComparisonMetadata(r:SerologyRoundIdentity):b
 }
 export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
   if(!hasCompleteSerologyComparisonMetadata(r)) return null
-  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k])])
+  return JSON.stringify([r.flockId,r.diseaseCode,...comparisonFieldsForRound(r).map(k=>r.input[k]),...(r.input.demo===true?[]:[...biologicalComparisonFields.map(k=>r.input[k]),r.input.randomSamplingConfirmed])])
 }
 export function areComparableSerologyRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
   const ka=serologyComparisonKey(a),kb=serologyComparisonKey(b)
@@ -120,10 +127,10 @@ export function areComparableFlockRounds(a:SerologyRoundIdentity,b:SerologyRound
   if(!commonComparisonFields.every(k=>typeof x[k]==='string'&&typeof y[k]==='string'&&String(x[k]).trim()!==''&&String(x[k])===String(y[k])))return false
   const ax=Number(x.samplingAgeDays),ay=Number(y.samplingAgeDays)
   if(!Number.isFinite(ax)||!Number.isFinite(ay)||Math.abs(ax-ay)>1)return false
-  if(typeof x.samplingPurpose!=='string'||!x.samplingPurpose||x.samplingPurpose!==y.samplingPurpose)return false
+  if(typeof x.samplingPurpose!=='string'||!x.samplingPurpose||x.samplingPurpose!==y.samplingPurpose||x.randomSamplingConfirmed!==true||y.randomSamplingConfirmed!==true)return false
   if(typeof x.vaccinePlatform!=='string'||!x.vaccinePlatform||x.vaccinePlatform!==y.vaccinePlatform||x.vaccinePlatform==='unknown')return false
   if(x.vaccinePlatform==='unvaccinated')return true
-  for(const k of ['vaccine','vaccineStrain','vaccineProgram'])if(typeof x[k]!=='string'||!String(x[k]).trim()||x[k]!==y[k])return false
+  for(const k of ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'])if(typeof x[k]!=='string'||!String(x[k]).trim()||x[k]!==y[k])return false
   const dx=daysBetween(x.samplingDate,x.vaccineDate),dy=daysBetween(y.samplingDate,y.vaccineDate)
   return dx!==null&&dy!==null&&dx>=0&&dy>=0&&Math.abs(dx-dy)<=2
 }
