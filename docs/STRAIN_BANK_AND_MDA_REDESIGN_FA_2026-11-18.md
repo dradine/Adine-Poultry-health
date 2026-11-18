@@ -44,3 +44,9 @@
 - 4/91 و 793B و CR88 معمولاً نام‌های مرتبط/مترادف برای GI-13 (793B-type) lineage هستند؛ بنابراین در فهرست به یک پیشنهاد واحد تبدیل شدند تا به‌صورت سویه‌های مستقل و متفاوت نمایش داده نشوند.
 - QX-like (GI-19) یک field lineage/reference است؛ QXL87 به‌صورت جداگانه و product-specific vaccine reference ثبت شده است و نباید با تمام QX field isolates یکسان فرض شود.
 - References: https://pmc.ncbi.nlm.nih.gov/articles/PMC10221305/ ; https://doi.org/10.1080/03079457.2023.2177140
+
+### سویه‌های تکمیلی ثبت‌شده در بانک
+- IBDV: G1 classic، G2 variant، G3 vvIBDV، G4 distinct، G5 recombinant/Mexican، G6 Italian، G7 Australian؛ نام‌گذاری تاریخی G1–G7 است و با سیستم‌های جدیدتر A/B segment یا genogroupهای بازنگری‌شده ممکن است تفاوت داشته باشد.
+- IBV: Q1، Taiwan-I/GI-7، CR88121، 1212B و B48 نیز افزوده شدند. GI-13/793B-type (4/91/CR88) و GI-19/QX-type جداگانه ثبت شده‌اند؛ QX-like field lineage با QXL87 vaccine reference یکسان فرض نمی‌شود.
+- ND: سویه‌های رایج واکسنی مانند LaSota، B1، Clone 30، VG/GA و Ulster 2C، همراه با field genotypes، ثبت شده‌اند. ژنوتیپ VII vaccine reference تنها با برچسب دقیق محصول قابل انتخاب است.
+- منبع IBV lineage review: https://pmc.ncbi.nlm.nih.gov/articles/PMC10221305/ ; https://doi.org/10.1080/03079457.2023.2177140 ; review vaccine strains: https://doi.org/10.3390/ani10112058
