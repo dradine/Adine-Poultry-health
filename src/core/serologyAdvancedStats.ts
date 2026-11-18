@@ -9,7 +9,9 @@ export type PairedAnalysis = {
 const T95=[0,12.706,4.303,3.182,2.776,2.571,2.447,2.365,2.306,2.262,2.228,2.201,2.179,2.160,2.145,2.131,2.120,2.110,2.101,2.093,2.086,2.080,2.074,2.069,2.064,2.060,2.056,2.052,2.048,2.045,2.042]
 export function tCritical95(df:number):number {
   if(!Number.isInteger(df)||df<1) throw new Error('درجه آزادی باید عدد صحیح مثبت باشد.')
-  return T95[df]??1.96
+  if(df<=30)return T95[df]
+  const z=1.959963984540054,nu=df,z2=z*z,z3=z2*z,z5=z3*z2,z7=z5*z2
+  return z+(z3+z)/(4*nu)+(5*z5+16*z3+3*z)/(96*nu**2)+(3*z7+19*z5+17*z3-15*z)/(384*nu**3)
 }
 export function meanConfidenceInterval(values:number[],confidenceLevel=0.95):MeanInterval|null {
   if(!Number.isFinite(confidenceLevel)||confidenceLevel!==0.95) throw new Error('در این نسخه فقط فاصله اطمینان ۹۵٪ پیاده‌سازی شده است.')
