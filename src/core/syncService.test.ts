@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { listLocalFlocks, listLocalModelRuns, listOutbox } from './localFirstDb'
-import { saveMonitorRunToLocal } from './syncService'
+import { saveMonitorRunToLocal, saveMdaRunToLocal } from './syncService'
 
 describe('persisted disease monitor runs', () => {
   it('stores ND output linked to a flock and queues both records for sync', async () => {
@@ -20,6 +20,15 @@ describe('persisted disease monitor runs', () => {
     expect(run?.decision_status).toBe('review_required')
     expect((await listLocalFlocks()).some(item => item.id === flock.id)).toBe(true)
     expect((await listOutbox()).filter(item => item.recordId === flock.id || item.recordId === id)).toHaveLength(2)
+  })
+
+  it('preserves hatch date when an MDA run creates its missing local flock record', async () => {
+    const flock = { id:crypto.randomUUID(), flockName:'Farm MDA test', placementDate:'2026-11-16', hatchDate:'2026-11-14', savedAt:'2026-11-16T10:00:00.000Z' }
+    const id = await saveMdaRunToLocal({ flock, diseaseCode:'IBD', input:{sampleAgeDays:2,sampleTiters:[1000],unit:'kit titre'}, output:{estimatedHatchTiter:1587} })
+    const savedFlock = (await listLocalFlocks()).find(item=>item.id===flock.id)
+    const run = (await listLocalModelRuns()).find(item=>item.id===id)
+    expect(savedFlock?.hatch_date).toBe('2026-11-14')
+    expect(run?.model_family).toBe('maternal-antibody-decay-exploratory')
   })
 
   it('preserves IBV and AIV disease identifiers in local history', async () => {
