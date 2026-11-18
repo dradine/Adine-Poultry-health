@@ -84,8 +84,12 @@ const commonComparisonFields=['population','method','assayId','kit','catalog','a
 const hiComparisonFields=['hiHAU','antigenPretreatment','serumPretreatment','dilutionFactor','rbcSource','rbcLot','rbcConcentration']
 const biologicalComparisonFields=['samplingPurpose','vaccinePlatform','vaccine','vaccineStrain','vaccineProgram','vaccineDate']
 function hasComparableBiologicalContext(i:Record<string,unknown>):boolean{
- if(typeof i.samplingPurpose!=='string'||!i.samplingPurpose.trim()||typeof i.vaccinePlatform!=='string'||!i.vaccinePlatform.trim()||['unknown','نامشخص','نامعلوم'].includes(i.vaccinePlatform.trim().toLowerCase())||typeof i.randomSamplingConfirmed!=='boolean')return false
- if(i.vaccinePlatform==='unvaccinated')return true
+ if(typeof i.samplingPurpose!=='string'||!i.samplingPurpose.trim()||typeof i.randomSamplingConfirmed!=='boolean')return false
+ const hasEvents=Array.isArray(i.vaccinationEvents)&&i.vaccinationEvents.length>0
+ const platform=typeof i.vaccinePlatform==='string'?i.vaccinePlatform.trim().toLowerCase():''
+ if(platform==='unvaccinated')return !hasEvents
+ if(hasEvents)return true
+ if(!platform||['unknown','نامشخص','نامعلوم'].includes(platform))return false
  return ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'].every(k=>typeof i[k]==='string'&&String(i[k]).trim()!==''&&!['unknown','نامشخص','نامعلوم'].includes(String(i[k]).trim().toLowerCase()))
 }
 function vaccinationHistoryKey(i:Record<string,unknown>):string{
@@ -142,8 +146,11 @@ export function areComparableFlockRounds(a:SerologyRoundIdentity,b:SerologyRound
   const ax=Number(x.samplingAgeDays),ay=Number(y.samplingAgeDays)
   if(!Number.isFinite(ax)||!Number.isFinite(ay)||Math.abs(ax-ay)>1)return false
   if(typeof x.samplingPurpose!=='string'||!x.samplingPurpose||x.samplingPurpose!==y.samplingPurpose||x.randomSamplingConfirmed!==true||y.randomSamplingConfirmed!==true)return false
-  if(typeof x.vaccinePlatform!=='string'||!x.vaccinePlatform||x.vaccinePlatform!==y.vaccinePlatform||x.vaccinePlatform==='unknown')return false
+  if(!hasComparableBiologicalContext(x)||!hasComparableBiologicalContext(y))return false
   if(vaccinationHistoryKey(x)!==vaccinationHistoryKey(y))return false
+  const hasEvents=Array.isArray(x.vaccinationEvents)&&x.vaccinationEvents.length>0
+  if(hasEvents)return true
+  if(x.vaccinePlatform!==y.vaccinePlatform)return false
   if(x.vaccinePlatform==='unvaccinated')return true
   for(const k of ['vaccine','vaccineStrain','vaccineProgram','vaccineDate'])if(typeof x[k]!=='string'||!String(x[k]).trim()||x[k]!==y[k])return false
   const dx=daysBetween(x.samplingDate,x.vaccineDate),dy=daysBetween(y.samplingDate,y.vaccineDate)
