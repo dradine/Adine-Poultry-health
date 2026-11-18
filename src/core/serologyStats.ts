@@ -1,5 +1,5 @@
 export type SerologyMethod = 'ELISA' | 'HI'
-export type SerologyScale = 'kit-titer' | 'od' | 'sp' | 'sn' | 'hi-reciprocal'
+export type SerologyScale = 'unspecified' | 'kit-titer' | 'od' | 'sp' | 'sn' | 'hi-reciprocal'
 export type SerologySummary = {
   n:number; arithmeticMean:number; median:number; sampleSd:number; cvPercent:number
   geometricMean:number|null; log2Mean:number|null; log2Sd:number|null
@@ -30,6 +30,7 @@ function percentile(sorted:number[],p:number):number {
   return sorted[Math.max(0,Math.ceil(p*sorted.length)-1)]
 }
 export function summarizeSerology(values:number[],scale:SerologyScale):SerologySummary {
+  if(scale==='unspecified') throw new Error('مقیاس آزمون ELISA باید دقیقاً از روی IFU یا خروجی آزمایشگاه انتخاب شود.')
   if(values.length<2) throw new Error('برای خلاصه آماری حداقل دو نمونه لازم است.')
   if(values.some(v=>!Number.isFinite(v)||v<=0)) throw new Error('همه مقادیر باید مثبت و عددی باشند؛ نتیجه زیر حد تشخیص باید جداگانه و با روش سانسور ثبت شود.')
   const sorted=[...values].sort((a,b)=>a-b),n=values.length
