@@ -8,7 +8,7 @@ import {
 
 const PROFILE_KEY = 'adine-vaccine-timing-profiles-v1'
 const ANALYSIS_KEY = 'adine-vaccine-timing-analyses-v1'
-type LegacyProfile = { id: string; flockName: string; placementDate: string; savedAt: string }
+type LegacyProfile = { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt: string }
 type LegacyAnalysis = {
   id: string; flockName: string; placementDate: string; samplingAge: string
   kitName: string; vaccineName: string; bttSource: string; halfLifeSource: string
@@ -99,7 +99,7 @@ async function migrateLegacyLocalDataOnce(): Promise<{ flocks: number; analyses:
     if (!profile.id || !profile.flockName || !profile.placementDate || byId.has(profile.id)) continue
     const row: Omit<LocalFlock, 'syncState'> = {
       id: profile.id, flock_name: profile.flockName, species: 'broiler',
-      placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
+      hatch_date: profile.hatchDate || null, placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
       created_at: profile.savedAt || new Date().toISOString(),
       updated_at: profile.savedAt || new Date().toISOString(),
     }
@@ -136,7 +136,7 @@ export async function saveProfileToLocal(profile: LegacyProfile): Promise<void> 
   await bindLocalDataToSession(true)
   const row: Omit<LocalFlock, 'syncState'> = {
     id: profile.id, flock_name: profile.flockName, species: 'broiler',
-    placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
+    hatch_date: profile.hatchDate || null, placement_date: dateOnly(profile.placementDate), timezone: 'Asia/Tehran',
     created_at: profile.savedAt, updated_at: profile.savedAt,
   }
   await saveLocalFlock(row)
