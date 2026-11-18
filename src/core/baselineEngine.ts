@@ -12,22 +12,20 @@ export type BaselineContext = {
 export type BaselineAssessment = {
  status:'exact-match'|'reference-only'|'no-match'; usableForNumericComparison:boolean;
  baselineId:string|null; explanationFa:string; reasonsFa:string[]; source:string|null;
- sourceVersion:string|null; numericRange:ReferenceBaseline['numericRange']|null
+ sourceVersion:string|null; sourceUrl:string|null; numericRange:ReferenceBaseline['numericRange']|null
 }
 const norm=(s:string)=>s.trim().toLocaleLowerCase('en-US').replace(/\s+/g,' ')
 const present=(s:string|undefined)=>Boolean(s&&s.trim())
+const empty=(status:BaselineAssessment['status'],explanationFa:string,reasonsFa:string[]):BaselineAssessment=>({
+ status,usableForNumericComparison:false,baselineId:null,explanationFa,reasonsFa,
+ source:null,sourceVersion:null,sourceUrl:null,numericRange:null
+})
 function assess(disease:BaselineDisease,context:BaselineContext):BaselineAssessment {
- if(context.disease!==disease)return {status:'no-match',usableForNumericComparison:false,baselineId:null,
- explanationFa:'کد بیماری انتخاب‌شده با موتور درخواست‌شده یکسان نیست؛ مقایسه متوقف شد.',
- reasonsFa:['ناسازگاری شناسه بیماری بین ورودی و موتور.'],source:null,sourceVersion:null,numericRange:null}
+ if(context.disease!==disease)return empty('no-match','کد بیماری انتخاب‌شده با موتور درخواست‌شده یکسان نیست؛ مقایسه متوقف شد.',['ناسازگاری شناسه بیماری بین ورودی و موتور.'])
  const refs=REFERENCE_BASELINES.filter(x=>x.disease===disease)
- if(!refs.length)return {status:'no-match',usableForNumericComparison:false,baselineId:null,
- explanationFa:'برای این بیماری Baseline عددی تأییدشده‌ای ثبت نشده است؛ هیچ محدوده‌ای برای مقایسه انتخاب نشد.',
- reasonsFa:['نبود مرجع عددی تأییدشده برای این بیماری.'],source:null,sourceVersion:null,numericRange:null}
+ if(!refs.length)return empty('no-match','برای این بیماری Baseline عددی تأییدشده‌ای در کتابخانه ثبت نشده است؛ هیچ محدوده‌ای برای مقایسه انتخاب نشد.',['نبود مرجع عددی تأییدشده برای این بیماری.'])
  const missing=(['vendor','assayOrKit','method','unit','population','ageWindow','vaccineProgram'] as const).filter(k=>!present(context[k]))
- if(missing.length)return {status:'reference-only',usableForNumericComparison:false,baselineId:null,
- explanationFa:'اطلاعات لازم برای تطبیق کامل Baseline وارد نشده است؛ مرجع فقط برای مطالعه نمایش داده می‌شود و در تفسیر عددی استفاده نمی‌شود.',
- reasonsFa:['اطلاعات تطبیق ناقص است: '+missing.join('، ')],source:null,sourceVersion:null,numericRange:null}
+ if(missing.length)return empty('reference-only','اطلاعات لازم برای تطبیق کامل Baseline وارد نشده است؛ مرجع فقط برای مطالعه نمایش داده می‌شود و در تفسیر عددی استفاده نمی‌شود.',['اطلاعات تطبیق ناقص است: '+missing.join('، ')])
  const exact=refs.find(x=>{
   const m=x as ReferenceBaseline & {method?:string;catalog?:string;assayVersion?:string;unit?:string}
   return norm(x.vendor)===norm(context.vendor)&&norm(x.assayOrKit)===norm(context.assayOrKit)
@@ -37,17 +35,19 @@ function assess(disease:BaselineDisease,context:BaselineContext):BaselineAssessm
    &&(present(m.catalog) ? present(context.catalog)&&norm(m.catalog!)===norm(context.catalog!) : !present(context.catalog))
    &&(present(m.assayVersion) ? present(context.assayVersion)&&norm(m.assayVersion!)===norm(context.assayVersion!) : !present(context.assayVersion))
  })
- if(!exact)return {status:'reference-only',usableForNumericComparison:false,baselineId:null,
- explanationFa:'Baseline این بیماری در کتابخانه وجود دارد، اما تطابق دقیق سازنده، آزمون، روش، مقیاس، جمعیت، سن و برنامه واکسن احراز نشد. مقایسه عددی مسدود است.',
- reasonsFa:['هیچ مرجعی تمام مشخصات این نمونه را صریح و کامل پوشش نمی‌دهد.','شباهت نام کیت یا بیماری برای تطبیق کافی نیست.'],
- source:null,sourceVersion:null,numericRange:null}
- if(exact.numericComparisonEligible !== true || !exact.numericRange || !present(exact.numericRange.unit))return {status:'reference-only',usableForNumericComparison:false,baselineId:exact.id,
- explanationFa:'مشخصات مرجع با ورودی منطبق است، اما سند فقط یک مثال/راهنمای مرجع است و اجازه مقایسه عددی فعال را نمی‌دهد؛ عددها صرفاً برای مطالعه نمایش داده می‌شوند.',
- reasonsFa:['پرچم numericComparisonEligible فعال نیست یا محدوده عددی/واحد قابل استناد برای این مرجع ثبت نشده است.','مثال سازنده را نمی‌توان بدون تأیید کیت، کالیبراسیون و کاربرد به مقایسه عددی تبدیل کرد.'],
- source:exact.sourceTitle,sourceVersion:exact.sourceVersion,numericRange:null}
+ if(!exact)return empty('reference-only','Baseline این بیماری در کتابخانه وجود دارد، اما تطابق دقیق سازنده، آزمون، روش، مقیاس، جمعیت، سن و برنامه واکسن احراز نشد. مقایسه عددی مسدود است.',['هیچ مرجعی تمام مشخصات این نمونه را صریح و کامل پوشش نمی‌دهد.','شباهت نام کیت یا بیماری برای تطبیق کافی نیست.'])
+ const range=exact.numericRange
+ const validRange=Boolean(range&&Number.isFinite(range.low)&&Number.isFinite(range.high)&&range.low<=range.high&&present(range.unit))
+ const sourceComplete=present(exact.sourceTitle)&&present(exact.sourceVersion)&&present(exact.sourceUrl)
+ if(exact.numericComparisonEligible!==true||!validRange||!sourceComplete)return {
+  status:'reference-only',usableForNumericComparison:false,baselineId:exact.id,
+  explanationFa:'مشخصات مرجع با ورودی منطبق است، اما مجوز مقایسه عددی فعال نیست یا محدوده/ردیابی منبع کامل و معتبر نیست؛ اعداد صرفاً برای مطالعه نمایش داده می‌شوند.',
+  reasonsFa:['پرچم numericComparisonEligible، محدوده عددی معتبر (حد پایین ≤ حد بالا و واحد مشخص) و اطلاعات کامل منبع همگی باید برقرار باشند.','مثال سازنده را نمی‌توان بدون تأیید کیت، کالیبراسیون و کاربرد به مقایسه عددی تبدیل کرد.'],
+  source:exact.sourceTitle,sourceVersion:exact.sourceVersion,sourceUrl:exact.sourceUrl,numericRange:null
+ }
  return {status:'exact-match',usableForNumericComparison:true,baselineId:exact.id,
  explanationFa:'تطابق مشخصات با مرجع ثبت‌شده برقرار است. این مقایسه فقط توصیفی و در محدوده کاربرد سند است؛ Baseline به‌تنهایی معیار حفاظت یا تشخیص نیست.',
- reasonsFa:[],source:exact.sourceTitle,sourceVersion:exact.sourceVersion,numericRange:exact.numericRange||null}
+ reasonsFa:[],source:exact.sourceTitle,sourceVersion:exact.sourceVersion,sourceUrl:exact.sourceUrl,numericRange:range}
 }
 export const assessIbdBaseline=(c:BaselineContext)=>assess('IBD',c)
 export const assessIbvBaseline=(c:BaselineContext)=>assess('IBV',c)
