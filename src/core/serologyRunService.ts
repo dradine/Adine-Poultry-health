@@ -2,7 +2,7 @@ import { supabase } from './supabase'
 import { getSyncMeta, setSyncMeta, listLocalFlocks, saveLocalFlock, saveLocalModelRun } from './localFirstDb'
 
 export type SerologyRoundDraft = {
- flock:{id:string;flockName:string;placementDate:string;hatchDate?:string;flockType?:string;flockSize?:string;houseName?:string}
+ flock:{id:string;flockName:string;placementDate:string;hatchDate?:string;flockType?:string;flockSize?:string;houseName?:string;hatchery?:string;vaccinationHistory?:string}
  diseaseCode:'IBD'|'ND'|'IBV'|'AIV'
  input:Record<string,unknown>
  output:Record<string,unknown>
