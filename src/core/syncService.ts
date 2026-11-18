@@ -241,7 +241,7 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
 }
 export type MdaRunDraft = {
   id?: string
-  flock: { id: string; flockName: string; placementDate: string; savedAt?: string }
+  flock: { id: string; flockName: string; placementDate: string; hatchDate?: string; savedAt?: string }
   diseaseCode: 'IBD' | 'IBV' | 'ND' | 'AIV'
   input: Record<string, unknown>
   output: Record<string, unknown>
@@ -254,6 +254,7 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
       id: draft.flock.id,
       flockName: draft.flock.flockName,
       placementDate: draft.flock.placementDate,
+      hatchDate: draft.flock.hatchDate,
       savedAt: draft.flock.savedAt || new Date().toISOString(),
     })
   }
