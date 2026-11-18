@@ -1,5 +1,5 @@
 /** AIV surveillance evidence gate; intentionally no diagnosis/protection score. */
-export type AivEvidenceInput={vaccinationStatus:'vaccinated'|'unvaccinated'|'unknown';vaccinePlatform:'inactivated'|'vector'|'other'|'unknown';subtype:string;antigenMatch:'documented'|'uncertain'|'not-assessed';serologyResult:'positive'|'negative'|'inconclusive'|'not-tested';divaValidated:boolean;rtPcrResult:'positive'|'negative'|'not-tested';clinicalSigns:boolean;mortalityIncrease:boolean;officialProgramConfirmed:boolean}
+export type AivEvidenceInput={divaAssay?:string;divaProtocolSource?:string;vaccinationStatus:'vaccinated'|'unvaccinated'|'unknown';vaccinePlatform:'inactivated'|'vector'|'other'|'unknown';subtype:string;antigenMatch:'documented'|'uncertain'|'not-assessed';serologyResult:'positive'|'negative'|'inconclusive'|'not-tested';divaValidated:boolean;rtPcrResult:'positive'|'negative'|'not-tested';clinicalSigns:boolean;mortalityIncrease:boolean;officialProgramConfirmed:boolean}
 export type AivEvidenceOutput={status:'urgent-veterinary-review'|'surveillance-follow-up'|'insufficient-evidence';signals:string[];limitations:string[]}
 export function assessAivEvidence(i:AivEvidenceInput):AivEvidenceOutput{
  const signals:string[]=[]
@@ -11,6 +11,6 @@ export function assessAivEvidence(i:AivEvidenceInput):AivEvidenceOutput{
  const urgent=i.rtPcrResult==='positive'||i.clinicalSigns||i.mortalityIncrease
  return {status:urgent?'urgent-veterinary-review':i.serologyResult==='positive'||i.serologyResult==='inconclusive'?'surveillance-follow-up':'insufficient-evidence',signals,
  limitations:['این ابزار تشخیص آنفلوانزا، تعیین سویه/زیرتیپ یا اثبات حفاظت نیست.','نتیجه باید توسط دامپزشک و آزمایشگاه مرجع و طبق مقررات رسمی تفسیر شود.','HI/ELISA به‌تنهایی عفونت فعال، دفع یا انتقال را ثابت/رد نمی‌کند.',
- ...(i.divaValidated?['علامت DIVA یک اظهار اپراتور است؛ نام آزمون، آنتی‌ژن، نسخه IFU و شواهد اعتبارسنجی در این فرم ثبت نشده‌اند و باید خارج از برنامه بررسی شوند.']:[]),
+ ...(i.divaValidated?['DIVA به ترکیب دقیق واکسن، آنتی‌ژن هدف، آزمون همراه و پروتکل معتبر وابسته است؛ ثبت اطلاعات توسط کاربر به‌معنی تأیید مستقل برنامه نیست.']:[]),
  ...(i.subtype.trim()?[]:['زیرتیپ/آنتی‌ژن ثبت نشده است؛ تفسیر زیرتیپ‌محور ممکن نیست.']),...(i.vaccinationStatus==='unknown'?['وضعیت واکسیناسیون نامعلوم است؛ تفسیر DIVA/سرولوژی محدود می‌شود.']:[]),...(i.antigenMatch!=='documented'?['تطابق آنتی‌ژنی مستند نیست؛ ادعای اثربخشی واکسن مجاز نیست.']:[]),...(i.officialProgramConfirmed?[]:['برنامه رسمی منطقه/کشور در ورودی تأیید نشده است.'])]}
 }
