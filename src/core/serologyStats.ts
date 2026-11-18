@@ -30,7 +30,7 @@ function percentile(sorted:number[],p:number):number {
   return sorted[Math.max(0,Math.ceil(p*sorted.length)-1)]
 }
 export function summarizeSerology(values:number[],scale:SerologyScale):SerologySummary {
-  if(scale==='unspecified') throw new Error('مقیاس آزمون ELISA باید دقیقاً از روی IFU یا خروجی آزمایشگاه انتخاب شود.')
+  // Unspecified ELISA values remain eligible for arithmetic descriptive statistics only.
   if(values.length<2) throw new Error('برای خلاصه آماری حداقل دو نمونه لازم است.')
   const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
   if(values.some(v=>!Number.isFinite(v)||(isTitre?v<=0:v<0))) throw new Error(isTitre?'تیترهای ratio-scale باید مثبت باشند؛ نتیجه صفر/زیر حد تشخیص باید با روش سانسور معتبر مدیریت شود.':'نتایج ELISA باید عددی و غیرمنفی باشند.')
