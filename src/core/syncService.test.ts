@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { listLocalFlocks, listLocalModelRuns, listOutbox } from './localFirstDb'
-import { saveMonitorRunToLocal, saveMdaRunToLocal, saveProfileToLocal } from './syncService'
+import { legacyFromCloud, saveMonitorRunToLocal, saveMdaRunToLocal, saveProfileToLocal } from './syncService'
 
 describe('full flock metadata persistence', () => {
   it('stores flock type, bird count, house, hatchery, sample date and vaccination history', async () => {
@@ -55,4 +55,15 @@ describe('persisted disease monitor runs', () => {
     expect(rows.find(item => item.id === aivId)?.disease_code).toBe('AIV')
     expect(rows.find(item => item.id === aivId)?.confidence_level).toBe('insufficient')
   })
+})
+
+describe('legacy cache separation',()=>{
+ it('does not reinterpret longitudinal IBD serology reports as legacy vaccine-timing analyses',()=>{
+  const flockId=crypto.randomUUID()
+  const serology={id:crypto.randomUUID(),flock_id:flockId,disease_code:'IBD',model_family:'serology-longitudinal-round',input_snapshot:{flockName:'Serology flock',placementDate:'2026-11-01',samplingDate:'2026-11-18',titers:[1000,1200]},output_snapshot:{n:2},created_at:'2026-11-18T10:00:00.000Z',deleted:false}
+  const ibd={id:crypto.randomUUID(),flock_id:flockId,disease_code:'IBD',model_family:'ibd-vaccine-timing',input_snapshot:{flockName:'Legacy flock',placementDate:'2026-11-01',sampleCount:20},output_snapshot:{estimatedVaccinationAgeDays:14,percentileTiter:500},created_at:'2026-11-18T09:00:00.000Z',deleted:false}
+  const result=legacyFromCloud([], [serology,ibd] as never[])
+  expect(result.analyses).toHaveLength(1)
+  expect(result.analyses[0].flockName).toBe('Legacy flock')
+ })
 })
