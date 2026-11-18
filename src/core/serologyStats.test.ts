@@ -54,3 +54,12 @@ describe('strict longitudinal assay compatibility',()=>{
   expect(serologyComparisonKey(a)).toBeNull()
  })
 })
+
+ it('allows explicitly labelled synthetic demo rounds for UI-only trend demonstration without claiming real QC',()=>{
+  const demo={...base,demo:true,qcStatus:'demo',qcEvidence:'fictional demo only'}
+  const a=round(demo,'DEMO-FLOCK','ND'),b=round({...demo},'DEMO-FLOCK','ND')
+  expect(hasCompleteSerologyComparisonMetadata(a)).toBe(true)
+  expect(areComparableSerologyRounds(a,b)).toBe(true)
+  expect(hasCompleteSerologyComparisonMetadata(round({...base,demo:true,qcStatus:'pass'},'DEMO-FLOCK','ND'))).toBe(false)
+  expect(hasCompleteSerologyComparisonMetadata(round({...base,qcStatus:'demo'},'FLOCK-REAL','ND'))).toBe(false)
+ })
