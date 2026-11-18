@@ -1,4 +1,5 @@
-import type { LocalModelRun } from '../core/localFirstDb'
+import type { LocalFlock,LocalModelRun } from '../core/localFirstDb'
+import SerologyFlockComparison from './SerologyFlockComparison'
 import { areComparableSerologyRounds } from '../core/serologyStats'
 import { analyzePairedRounds, calculateSeropositivity, geometricMeanConfidenceInterval, meanConfidenceInterval } from '../core/serologyAdvancedStats'
 type O=Record<string,unknown>
@@ -8,7 +9,7 @@ const ids=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='string')?v as st
 const fa=(v:number,d=2)=>v.toLocaleString('fa-IR',{maximumFractionDigits:d})
 const pct=(v:number)=>fa(v)+'٪'
 function Metric({label,value,detail}:{label:string;value:string;detail?:string}){return <div className="srs-metric"><small>{label}</small><b>{value}</b>{detail&&<span>{detail}</span>}</div>}
-export default function SerologyAdvancedAnalysis({run,runs}:{run:LocalModelRun;runs:LocalModelRun[]}){
+export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalModelRun;runs:LocalModelRun[];flocks:LocalFlock[]}){
  const input=run.input_snapshot,values=nums(input.titers),scale=str(input,'scale')
  const isTitre=scale==='kit-titer'||scale==='hi-reciprocal'
  const ci=isTitre?geometricMeanConfidenceInterval(values):meanConfidenceInterval(values)
@@ -32,6 +33,7 @@ export default function SerologyAdvancedAnalysis({run,runs}:{run:LocalModelRun;r
    <Metric label="افزایش / کاهش / ثابت" value={fa(paired.increased,0)+' / '+fa(paired.decreased,0)+' / '+fa(paired.unchanged,0)}/>
    {isTitre?<><Metric label="میانگین نسبت تیتر پس/پیش" value={paired.geometricMeanFoldChange===null?'—':fa(paired.geometricMeanFoldChange)+'×'}/><Metric label="CI ۹۵٪ نسبت هندسی" value={paired.foldChangeInterval?fa(paired.foldChangeInterval.lower)+' تا '+fa(paired.foldChangeInterval.upper)+'×':'—'}/><Metric label="افزایش حداقل ۴ برابری" value={paired.fourFoldOrGreater===null?'—':fa(paired.fourFoldOrGreater,0)+' / '+fa(paired.n,0)}/><Metric label="کاهش حداقل ۴ برابری" value={paired.quarterOrLess===null?'—':fa(paired.quarterOrLess,0)+' / '+fa(paired.n,0)}/></>:<Metric label="میانگین تغییر جفت‌شده" value={paired.meanDifference===null?'—':fa(paired.meanDifference)+' '+str(input,'unit')} detail={paired.differenceInterval?'CI ۹۵٪: '+fa(paired.differenceInterval.lower)+' تا '+fa(paired.differenceInterval.upper):''}/>}
   </div><p className="srs-note">این تحلیل تغییر در پرندگان جفت‌شده را توصیف می‌کند؛ به‌تنهایی پاسخ محافظتی، اثربخشی واکسن یا معنی‌داری بالینی را اثبات نمی‌کند.</p></>:<p className="srs-note">{demo?'تحلیل جفت‌شده برای داده نمایشی غیرفعال است.':previous?'شناسه‌های پایدار معتبر و مشترک برای جفت‌سازی کافی نیستند.':'نوبت قبلی هم‌شرایط و قابل‌مقایسه برای تحلیل جفت‌شده پیدا نشد.'}</p>}
+  <SerologyFlockComparison run={run} runs={runs} flocks={flocks}/>
   <p className="srs-footnote">درصد مثبت فقط در صورت ثبت آستانه، جهت تفسیر و منبع معتبر همان کیت/IFU نمایش داده می‌شود. هیچ cutoff عمومی بین کیت‌ها فرض نشده است.</p>
  </section>
 }
