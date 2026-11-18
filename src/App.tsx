@@ -9,6 +9,7 @@ import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import DiseaseMonitoring from './DiseaseMonitoring'
+import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCatalog'
 import CloudSyncPanel from './components/CloudSyncPanel'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
@@ -113,6 +114,12 @@ export default function App() {
   const [selectedVaccineProductId, setSelectedVaccineProductId] = useState('')
   const [analyses, setAnalyses] = useState<SavedAnalysis[]>(readAnalyses)
   const [error, setError] = useState('')
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1)
+  const [selectedDisease, setSelectedDisease] = useState<DiagnosticKit['disease']>('IBD')
+  const [selectedDiagnosticKitId, setSelectedDiagnosticKitId] = useState('')
+  const [customKits, setCustomKits] = useState<DiagnosticKit[]>(() => { try { return JSON.parse(localStorage.getItem('adine-custom-diagnostic-kits-v1') || '[]') as DiagnosticKit[] } catch { return [] } })
+  const [customKitDraft, setCustomKitDraft] = useState({ brand:'', catalog:'', assay:'', format:'ELISA', sample:'Serum', intendedUse:'', sourceUrl:'', notes:'' })
+  useEffect(() => { try { localStorage.setItem('adine-custom-diagnostic-kits-v1', JSON.stringify(customKits)) } catch { setError('ذخیره کیت دستی در مرورگر ناموفق بود.') } }, [customKits])
 
   useEffect(() => {
     let active = true
@@ -467,7 +474,15 @@ export default function App() {
         واکسن، BTT و تأیید پروتکل، نباید به‌عنوان برنامه قطعی واکسیناسیون استفاده شود.
       </div>
 
-      <section className="panel">
+      
+      <div className="wizard-stepper" aria-label="مراحل تحلیل">
+        {[1,2,3,4].map((step) => <button type="button" key={step} className={wizardStep===step ? 'wizard-step active' : wizardStep>step ? 'wizard-step complete' : 'wizard-step'} onClick={() => setWizardStep(step as 1|2|3|4)}><b>{step}</b><span>{['اطلاعات گله','بیماری','کیت و روش','تحلیل'][step-1]}</span></button>)}
+      </div>
+      <section className="panel wizard-nav-panel"><div className="panel-heading"><div><h3>فرایند تحلیل مرحله‌ای</h3></div><span className="tag">گام {wizardStep} از ۴</span></div><p className="muted">اطلاعات مراحل قبل حفظ می‌شود. انتخاب کیت به‌تنهایی مجوز تبدیل واحد یا تفسیر محافظت ایجاد نمی‌کند.</p><div className="wizard-nav"><button className="button secondary" disabled={wizardStep===1} onClick={()=>setWizardStep((wizardStep-1) as 1|2|3|4)}>مرحله قبل</button><button className="button primary" disabled={wizardStep===4} onClick={()=>setWizardStep((wizardStep+1) as 1|2|3|4)}>مرحله بعد</button></div></section>
+      {wizardStep===2 && <section className="panel"><div className="panel-heading"><div><span className="step">۲</span><h3>انتخاب بیماری</h3></div></div><div className="disease-grid">{([{code:'IBD',title:'گامبورو',desc:'MDA، زمان‌بندی واکسن و Deventer-style'},{code:'ND',title:'نیوکاسل',desc:'HI و پایش پاسخ سرولوژیک'},{code:'IBV',title:'برونشیت عفونی',desc:'روند سرولوژی و مقایسه دوره‌ای'},{code:'AIV',title:'آنفلوانزا',desc:'شواهد سرولوژی، PCR و مسیر surveillance'}] as const).map(item=><button type="button" key={item.code} className={selectedDisease===item.code?'disease active':'disease'} onClick={()=>{setSelectedDisease(item.code);setSelectedDiagnosticKitId('')}}><b>{item.title} · {item.code}</b><small>{item.desc}</small></button>)}</div><p className="muted">انتخاب بیماری، موتور و فهرست کیت‌های مرتبط را در مراحل بعدی تعیین می‌کند.</p></section>}
+      {wizardStep===3 && <section className="panel kit-selection"><div className="panel-heading"><div><span className="step">۳</span><h3>انتخاب کیت و روش</h3></div><span className="tag">{selectedDisease}</span></div><p className="muted">کاتالوگ شناسایی کیت؛ محاسبات فقط در موتورهای دارای روش، مقیاس و مستندات معتبر فعال می‌شوند.</p><div className="kit-list">{[...diagnosticKitCatalog.filter(k=>k.disease===selectedDisease),...customKits.filter(k=>k.disease===selectedDisease)].map(kit=><button type="button" key={kit.id} className={selectedDiagnosticKitId===kit.id?'kit-row active':'kit-row'} onClick={()=>setSelectedDiagnosticKitId(kit.id)}><span><b>{kit.brand}{kit.catalog ? ' · '+kit.catalog : ''}</b><small>{kit.assay} · {kit.format} · {kit.sample}</small></span><span className="kit-evidence">{kit.evidenceStatus==='manufacturer-source'?'منبع سازنده':kit.evidenceStatus==='manufacturer-catalog'?'کاتالوگ':'نیازمند بررسی'}</span></button>)}</div><p className="kit-selected-info">{selectedDiagnosticKitId?'کیت انتخاب شده؛ قبل از تحلیل، روش و مقیاس را با IFU همان کیت تطبیق دهید.':'هنوز کیتی انتخاب نشده است.'}</p><details className="custom-kit-accordion"><summary>＋ افزودن کیت دستی / کیت جدید</summary><div className="form-grid"><label>شرکت / برند<input value={customKitDraft.brand} onChange={e=>setCustomKitDraft({...customKitDraft,brand:e.target.value})}/></label><label>کد کاتالوگ<input value={customKitDraft.catalog} onChange={e=>setCustomKitDraft({...customKitDraft,catalog:e.target.value})}/></label><label>نام آزمون / هدف<input value={customKitDraft.assay} onChange={e=>setCustomKitDraft({...customKitDraft,assay:e.target.value})}/></label><label>روش / فرمت<input value={customKitDraft.format} onChange={e=>setCustomKitDraft({...customKitDraft,format:e.target.value})}/></label><label>نوع نمونه<input value={customKitDraft.sample} onChange={e=>setCustomKitDraft({...customKitDraft,sample:e.target.value})}/></label><label>کاربرد<input value={customKitDraft.intendedUse} onChange={e=>setCustomKitDraft({...customKitDraft,intendedUse:e.target.value})}/></label><label>لینک IFU / منبع<input value={customKitDraft.sourceUrl} onChange={e=>setCustomKitDraft({...customKitDraft,sourceUrl:e.target.value})}/></label><label>یادداشت<textarea rows={2} value={customKitDraft.notes} onChange={e=>setCustomKitDraft({...customKitDraft,notes:e.target.value})}/></label></div><div className="wizard-nav"><button className="button secondary" onClick={()=>setCustomKitDraft({brand:'',catalog:'',assay:'',format:'ELISA',sample:'Serum',intendedUse:'',sourceUrl:'',notes:''})}>پاک‌کردن فرم</button><button className="button primary" disabled={!customKitDraft.brand.trim()||!customKitDraft.assay.trim()} onClick={()=>{const kit:DiagnosticKit={id:'custom-'+crypto.randomUUID(),disease:selectedDisease,brand:customKitDraft.brand.trim(),catalog:customKitDraft.catalog.trim(),assay:customKitDraft.assay.trim(),format:customKitDraft.format.trim()||'نامشخص',sample:customKitDraft.sample.trim()||'نامشخص',intendedUse:customKitDraft.intendedUse.trim()||'ثبت دستی',documentedSource:'User-added kit',sourceUrl:customKitDraft.sourceUrl.trim(),evidenceStatus:'market-not-confirmed',iranMarket:'not-confirmed',notes:customKitDraft.notes.trim()};setCustomKits(prev=>[kit,...prev]);setSelectedDiagnosticKitId(kit.id);setCustomKitDraft({brand:'',catalog:'',assay:'',format:'ELISA',sample:'Serum',intendedUse:'',sourceUrl:'',notes:''})}}>ثبت کیت</button></div></details><div className="wizard-nav"><button className="button secondary" onClick={()=>setWizardStep(2)}>بازگشت</button><button className="button primary" onClick={()=>setWizardStep(4)}>ورود داده‌ها</button></div></section>}
+
+      {wizardStep===1 && <section className="panel">
         <div className="panel-heading">
           <div><span className="step">۱</span><h3>اطلاعات گله</h3></div>
           <span className="muted">ذخیره محلی؛ همگام‌سازی پس از ورود</span>
@@ -504,11 +519,12 @@ export default function App() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
 
-      <section className="panel">
+
+      {wizardStep===4 && selectedDisease==='IBD' && <section className="panel">
         <div className="panel-heading">
-          <div><span className="step">۲</span><h3>محاسبه مقدماتی گامبورو</h3></div>
+          <div><span className="step">۴</span><h3>تحلیل مقدماتی گامبورو</h3></div>
           <span className="tag">IBD · Deventer-style</span>
         </div>
         <div className="form-grid">
@@ -664,9 +680,9 @@ export default function App() {
         )}
       </section>
 
-      <DiseaseMonitoring profiles={profiles} />
+      {wizardStep===4 && selectedDisease!=='IBD' && <DiseaseMonitoring profiles={profiles} initialMode={selectedDisease} hideDiseaseSelector />}
 
-      <section className="panel roadmap">
+      {wizardStep===4 && <section className="panel roadmap">
         <div className="panel-heading"><div><span className="step">۳</span><h3>مسیر توسعه موتورهای بیماری</h3></div></div>
         <div className="disease-grid">
           <div className="disease active"><b>گامبورو (IBD)</b><small>نسخه اولیه در حال اعتبارسنجی</small></div>
@@ -675,6 +691,8 @@ export default function App() {
           <div className="disease"><b>آنفلوانزا (AIV)</b><small>Evidence gate فعال · ارجاع surveillance</small></div>
         </div>
       </section>
+
+      </section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>
     </main>
