@@ -135,7 +135,7 @@ export default function DiseaseMonitoring({ profiles }: Props) {
   const flockName = (id: string) => profiles.find(profile => profile.id === id)?.flockName || 'گله'
   const diseaseName = (code: string) => code === 'ND' ? 'نیوکاسل' : code === 'IBV' ? 'برونشیت' : 'آنفلوانزا'
   const autoSampleCount = mode === 'ND' ? numbers(post).filter(Number.isFinite).length
-    : mode === 'IBV' ? ibData.split('\\n').map(line => line.trim()).filter(Boolean).length : 0
+    : mode === 'IBV' ? ibData.split('\n').map(line => line.trim()).filter(Boolean).length : 0
   const reportedSampleCount = sampleCountOverride.trim() ? Number(sampleCountOverride) : autoSampleCount
   const sampleCountWarning = reportedSampleCount > 0 && reportedSampleCount < 10
     ? 'نمونه بسیار کم (کمتر از ۱۰): نتایج بسیار ناپایدارند؛ از تعمیم به کل گله یا تصمیم قطعی خودداری کنید.'
