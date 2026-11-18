@@ -12,14 +12,13 @@ const mean=(v:number[])=>v.length?v.reduce((a,b)=>a+b,0)/v.length:0
 const sd=(v:number[])=>v.length>1?Math.sqrt(v.reduce((a,x)=>a+(x-mean(v))**2,0)/(v.length-1)):0
 const pct=(x:number)=>x.toLocaleString('fa-IR',{maximumFractionDigits:1})+'٪'
 const dayDiff=(a:string,b:string)=>{if(!a||!b)return null;const x=Date.parse(a+'T00:00:00Z'),y=Date.parse(b+'T00:00:00Z');return Number.isFinite(x)&&Number.isFinite(y)?Math.round((x-y)/86400000):null}
-const dateFa=(v:string)=>v?new Date(v+'T12:00:00').toLocaleDateString('fa-IR'):'ثبت نشده'
 function add(a:ClinicalCard[],title:string,body:string,level:ClinicalCard['level']='neutral'){a.push({title,body,level})}
 export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock):ClinicalInterpretation{
  const i=run.input_snapshot as O,values=nums(i.titers),n=values.length,m=mean(values),cv=m?sd(values)/m*100:null
  const titre=['kit-titer','hi-reciprocal'].includes(str(i,'scale')),positive=values.length>0&&values.every(x=>x>0)
  const log=positive&&titre?values.map(Math.log2):[],logMean=mean(log),logSd=sd(log)
  const gmt=log.length?2**logMean:null,age=Number(i.samplingAgeDays),disease=run.disease_code
- const method=str(i,'method'),purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
+ const purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
  const qcMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{}
  const qc=i.rawFileImported===true?str(qcMeta,'qcStatus'):str(i,'qcStatus')
@@ -77,7 +76,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  }else if(disease==='IBD'){
   source('Merck Veterinary Manual – Infectious bursal disease','https://www.merckvetmanual.com/poultry/infectious-bursal-disease/infectious-bursal-disease-in-poultry')
   source('Field study – timing of IBD vaccination and MDA','https://www.tandfonline.com/doi/full/10.1080/03079450701589175')
-  const hatch=str(i,'hatchDate'),mda=purpose==='mda'||(Number.isFinite(age)&&age<=14)
+ const purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
   add(observations,'تفسیر وابسته به سن','در جوجه کم‌سن، آنتی‌بادی قابل‌اندازه‌گیری می‌تواند مادری باشد. در سن بالاتر، واکسن و مواجهه میدانی هم به زمینه تفسیر اضافه می‌شوند. بدون سن دقیق، تاریخ هچ و سابقه مادر، منشأ تیتر را تعیین نکنید.','caution')
   if(mda){
    scenarios.push({name:'غلبه آنتی‌بادی مادری (MDA)',likelihood:'در نمونه‌های هفته اول/دوم محتمل؛ باید با داده مادر تأیید شود',for:['سن پایین در زمان نمونه‌گیری','تیتر قابل توجه در روزهای اول زندگی','روند نزولی در نمونه‌های متوالی اولیه'],against:['واکسن زودهنگام یا مواجهه نیز می‌تواند بر روند اثر بگذارد','یک نمونه منفرد نیمه‌عمر را تعیین نمی‌کند'],meaning:'برای محاسبه زمان واکسن باید تیتر روز اول/نمونه نماینده، نیمه‌عمر متناسب با گله و کیت، BTT اختصاصی واکسن و درصد هدف گله مشخص باشد. فرمول Deventer بدون این ورودی‌ها نباید اجرا شود.'})
