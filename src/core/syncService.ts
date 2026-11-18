@@ -240,6 +240,7 @@ async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
   await removeOutboxItem(item)
 }
 export type MdaRunDraft = {
+  id?: string
   flock: { id: string; flockName: string; placementDate: string; savedAt?: string }
   diseaseCode: 'IBD' | 'IBV' | 'ND' | 'AIV'
   input: Record<string, unknown>
@@ -256,7 +257,7 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
       savedAt: draft.flock.savedAt || new Date().toISOString(),
     })
   }
-  const id = crypto.randomUUID()
+  const id = draft.id || crypto.randomUUID()
   await saveLocalModelRun({
     id, flock_id: draft.flock.id, disease_code: draft.diseaseCode,
     model_version: 'mda-decay-exploratory-0.1.0',
