@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, calculateIbdSensitivity, parseTiters, validateIbdRunGate } from './ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -146,5 +146,22 @@ describe('product-specific sample-size provenance', () => {
       susceptiblePercent: 75, titers: sample23, minimumSampleCount: 23,
     })
     expect(r.warnings.join(' ')).toContain('منبع حداقل تعداد نمونه ثبت نشده')
+  })
+})
+
+
+describe('IBD Deventer product platform gate', () => {
+  const valid = { diseaseCode:'IBD', platform:'live', modelFamily:'deventer_live', validationStatus:'documented', bttAssayKitId:'idexx-ibd', selectedAssayKitId:'idexx-ibd' }
+  it('accepts only documented conventional live IBD with its exact BTT assay', () => {
+    expect(validateIbdDeventerProductGate(valid)).toEqual([])
+  })
+  it.each([
+    [{...valid, platform:'immune_complex'}, 'immune-complex'],
+    [{...valid, platform:'vector_hvt', modelFamily:'hvt_vp2'}, 'HVT-VP2'],
+    [{...valid, validationStatus:'unverified'}, 'مستند'],
+    [{...valid, selectedAssayKitId:'biochek-ck113'}, 'کیت دقیق'],
+    [{...valid, diseaseCode:'IBV'}, 'IBD'],
+  ])('blocks unsupported product/assay pairing', (input) => {
+    expect(validateIbdDeventerProductGate(input).length).toBeGreaterThan(0)
   })
 })
