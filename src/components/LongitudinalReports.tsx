@@ -78,6 +78,7 @@ export default function LongitudinalReports({profiles}:{profiles:Profile[]}){
   if(selectedAssay&&['BioChek','IDEXX','AVIVAC','Pasouk'].includes(selectedAssay.manufacturer)&&sampleMatrix!=='serum'){setMessage('ماتریس نمونه این آزمون در کاتالوگ فعلی سرم است؛ برای زرده باید IFU جداگانه و کد آزمون مستقل انتخاب شود.');return}
   if(ids.length&&ids.length!==v.length){setMessage('اگر شناسه نمونه وارد می‌کنید، تعداد شناسه‌ها باید دقیقاً برابر تعداد تیترها باشد.');return}
   if(qc==='pass'&&!qcEvidence.trim()){setMessage('برای اعلام QC قابل قبول، مقادیر کنترل مثبت، منفی و مرجع و حدود پذیرش IFU را ثبت کنید.');return}
+  if(method==='HI'&&sampleMatrix!=='serum'){setMessage('این فرم HI برای نمونه سرم طراحی شده است؛ برای ماتریس دیگر باید IFU و پروتکل جداگانه تعریف شود.');return}
   if(method==='HI'&&(!hau.trim()||!Number.isFinite(Number(normalizeDigits(hau)))||Number(normalizeDigits(hau))<=0||!rbcSource.trim()||!rbcLot.trim()||!rbcConcentration.trim()||!antigenPretreatment.trim()||!serumPretreatment.trim()||!dilutionFactor.trim())){setMessage('برای HI، مقدار HAU، تیمار آنتی‌ژن، تیمار سرم، ضریب رقت، گونه/منبع و غلظت و Lot گلبول قرمز باید دقیق ثبت شود.');return}
   if(scale==='unspecified'){setMessage('مقیاس دقیق خروجی ELISA را مطابق IFU یا گزارش آزمایشگاه انتخاب کنید؛ تا آن زمان محاسبه انجام نمی‌شود.');return}
   if(method==='HI'&&scale!=='hi-reciprocal'){setMessage('برای HI فقط مقیاس تیتر معکوس قابل استفاده است.');return}
