@@ -20,6 +20,15 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const gmt=log.length?2**logMean:null,disease=run.disease_code
  const method=str(i,'method'),purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
+ const vaccinationEvents=Array.isArray(i.vaccinationEvents)?(i.vaccinationEvents as O[]).filter(e=>e&&typeof e==='object'):[]
+ const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
+ const clinicalSigns=str(clinical,'signs'),clinicalStatus=str(clinical,'status'),mortalityTrend=str(clinical,'mortalityTrend')
+ const numericClinical=(key:string)=>{const raw=str(clinical,key),match=raw.match(/-?\\d+(?:[.,]\\d+)?/);return match?Number(match[0].replace(',','.')):null}
+ const respiratorySigns=/تنفس|سرفه|عطسه|خرخر|ترشح بینی|ترشح چشم|کیسه هوایی/.test(clinicalSigns)
+ const neurologicalSigns=/عصبی|پیچش گردن|فلجی|لرزش|آتاکسی/.test(clinicalSigns)
+ const entericSigns=/اسهال|مدفوع آبکی|خون در مدفوع|روده/.test(clinicalSigns)
+ const bursalSigns=/بورس|فابریسیوس|بورسیت/.test(clinicalSigns)
+
  const qcMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{}
  const qc=i.rawFileImported===true?str(qcMeta,'qcStatus'):str(i,'qcStatus')
  const demo=i.demo===true||qc==='demo'
@@ -27,6 +36,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const vaccineContext=[vaccine,platform,str(i,'vaccineStrain'),str(i,'vaccineProgram')].filter(Boolean).join(' / ')
  const diseaseNames:Record<string,string>={ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو'}
  const relevantEvents=vaccinationEvents.filter(e=>{const d=str(e,'disease').toUpperCase();return d===disease||diseaseNames[disease]===d||diseaseNames[disease]?.includes(d)||d.includes(diseaseNames[disease]||'###')})
+ const relevantVaccines=relevantEvents
  const lastRelevant=relevantEvents.filter(e=>!str(e,'date')||str(e,'date')<=samplingDate).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))).at(-1)
  const lastVaxDays=lastRelevant?dayDiff(samplingDate,str(lastRelevant,'date')):null
  const signs=clinicalSigns,mortality=numericClinical('mortalityPercent')??NaN,hasClinical=Boolean(signs||str(clinical,'necropsy')||str(clinical,'directTests')||str(clinical,'onsetDate'))
