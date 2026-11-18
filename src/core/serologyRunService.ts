@@ -19,7 +19,7 @@ export async function saveSerologyRound(draft:SerologyRoundDraft):Promise<string
  if(!existing){
   const count=Number(String(draft.flock.flockSize||'').replace(/[^\d]/g,''))
   const now=new Date().toISOString()
-  await saveLocalFlock({id:draft.flock.id,flock_name:draft.flock.flockName,species:draft.flock.flockType||'broiler',hatch_date:draft.flock.hatchDate||null,placement_date:draft.flock.placementDate.slice(0,10),bird_count:Number.isInteger(count)&&count>0?count:null,location_label:draft.flock.houseName||null,timezone:'Asia/Tehran',created_at:now,updated_at:now})
+  await saveLocalFlock({id:draft.flock.id,flock_name:draft.flock.flockName,species:draft.flock.flockType||'broiler',hatch_date:draft.flock.hatchDate||null,placement_date:draft.flock.placementDate.slice(0,10),bird_count:Number.isInteger(count)&&count>0?count:null,location_label:draft.flock.houseName||null,notes:JSON.stringify({hatchery:draft.flock.hatchery||null,vaccinationHistory:draft.flock.vaccinationHistory||null}),timezone:'Asia/Tehran',created_at:now,updated_at:now})
  }
  const limitations=[
   'Descriptive serology monitoring only; no diagnosis, vaccine take, clinical protection or transmission inference.',
