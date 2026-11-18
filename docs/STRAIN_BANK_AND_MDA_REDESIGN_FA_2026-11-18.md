@@ -34,3 +34,8 @@
 - گزارش تحلیلی شامل histograms، scatter/trend charts، percentile/GMT/CV، paired response، QC gates و تحلیل تفکیک سالن
 - import ساختاریافته فایل خروجی BioChek II و IDEXX xChekPlus پس از دریافت نمونه واقعی export
 - پروفایل vaccine platform و مدل‌های disease-specific مستقل؛ در مرحله فعلی هیچ مدل پیش‌بینی حفاظت برای ND/IBV/AIV ایجاد نشده است.
+
+### IBDV genogroups — ثبت با احتیاط نام‌گذاری
+- G1 classical، G2 variant، G3 vvIBDV، G4 distinct، G5 Mexican/recombinant، G6 Italian، G7 Australian در بانک اولیه به‌عنوان reference molecular group پیشنهاد شده‌اند.
+- این گروه‌بندی بر اساس hvVP2 و scheme تاریخی G1–G7 است؛ طبقه‌بندی‌های جدیدتر، segment A/B، sub-lineage و genogroupهای تازه ممکن است تفاوت داشته باشند. G2/G7 نام سویه اختصاصی نیستند. برای isolate واقعی، sequence accession، segment، lineage، تاریخ/کشور و source لازم است.
+- Reference: Michel & Jackwood 2017, *Classification of infectious bursal disease virus into genogroups*, https://doi.org/10.1007/s00705-017-3500-4 . Review of updated nomenclature: https://pmc.ncbi.nlm.nih.gov/articles/PMC13386920/ .
