@@ -18,7 +18,7 @@ export function buildClinicalInterpretation(run:LocalModelRun,flock?:LocalFlock)
  const titre=['kit-titer','hi-reciprocal'].includes(str(i,'scale')),positive=values.length>0&&values.every(x=>x>0)
  const log=positive&&titre?values.map(Math.log2):[],logMean=mean(log),logSd=sd(log)
  const gmt=log.length?2**logMean:null,disease=run.disease_code
- const method=str(i,'method'),purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
+ const purpose=str(i,'samplingPurpose'),vaccine=str(i,'vaccine'),platform=str(i,'vaccinePlatform'),vaccineDate=str(i,'vaccineDate'),samplingDate=str(i,'samplingDate')
  const sinceVaccine=dayDiff(samplingDate,vaccineDate)
  const vaccinationEvents=Array.isArray(i.vaccinationEvents)?(i.vaccinationEvents as O[]).filter(e=>e&&typeof e==='object'):[]
  const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
