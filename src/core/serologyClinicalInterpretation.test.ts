@@ -45,6 +45,22 @@ describe('disease-specific clinical interpretation',()=>{
   expect(x.observations.some(o=>o.title.includes('تلفات تجمعی'))).toBe(true)
   expect(x.actions.some(a=>a.task.includes('وضعیت بالینی'))).toBe(true)
  })
+ it('does not treat a null vaccine age as day zero',()=>{
+  const x=buildClinicalInterpretation(run('ND',{...base,vaccinationEvents:[{date:null,ageDays:null,disease:'ND',product:'unknown',platform:'unknown',route:'water'}]}))
+  expect(x.observations.some(o=>o.title==='خط زمانی واکسیناسیون'&&o.body.includes('آخرین نوبت مرتبط'))).toBe(false)
+ })
+ it('does not apply generic reciprocal-HI protective cutoffs to Newcastle',()=>{
+  const x=buildClinicalInterpretation(run('ND',{...base,hiHAU:'4',titers:[2,4,8,16,32,64]}))
+  expect(x.scenarios.some(s=>s.name.includes('پاسخ همورال پایین در بخشی از نمونه‌ها'))).toBe(false)
+ })
+ it('flags AIV vector platform humoral-serology limitations',()=>{
+  const x=buildClinicalInterpretation(run('AIV',{...base,vaccinePlatform:'recombinant-vector',antigen:'HA'}))
+  expect(x.observations.some(o=>o.title.includes('محدودیت پاسخ همورال واکسن وکتوری'))).toBe(true)
+ })
+ it('flags IBD VP2 assay and non-vector vaccine mismatch',()=>{
+  const x=buildClinicalInterpretation(run('IBD',{...base,assayId:'IBD-VP2',vaccinePlatform:'live-conventional'}))
+  expect(x.observations.some(o=>o.title.includes('عدم تطابق احتمالی هدف کیت'))).toBe(true)
+ })
  it('does not issue clinical inference from demo data',()=>{
   const x=buildClinicalInterpretation(run('ND',{...base,demo:true,qcStatus:'demo'}))
   expect(x.confidence).toContain('غیرقابل')
