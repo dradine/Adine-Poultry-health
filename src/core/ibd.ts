@@ -97,7 +97,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
   if (minimumSampleCount !== undefined && titers.length < minimumSampleCount) warnings.push(`تعداد نمونه (${titers.length}) کمتر از راهنمای/حداقل ثبت‌شده این تحلیل (${minimumSampleCount}) است؛ خروجی صرفاً اکتشافی و توصیفی محسوب شود و برای تعمیم به کل گله یا تصمیم قطعی استفاده نشود.`)
-  if (minimumSampleCount === undefined) warnings.push('حداقل تعداد نمونه اختصاصی این محصول/کیت وارد نشده است؛ کفایت حجم نمونه قابل ارزیابی نیست و هیچ مقدار عمومی جایگزین نشده است.')
+  if (minimumSampleCount === undefined) warnings.push('حداقل تعداد نمونه اختصاصی این محصول/کیت وارد نشده است؛ کفایت حجم نمونه قابل ارزیابی نیست، محاسبه صرفاً اکتشافی است و هیچ مقدار عمومی جایگزین نشده است.')
   if (titers.length < 10) warnings.push('حجم نمونه بسیار کم (n<10): صدک پایین و زمان برآوردی به چند مشاهده وابسته است؛ ناپایداری و عدم‌قطعیت زیاد است. تحلیل فقط اکتشافی است.')
   else if (titers.length < 18) warnings.push('حجم نمونه محدود (n<18): برآورد تیتر و زمان واکسیناسیون ممکن است ناپایدار باشد؛ نمونه‌گیری تکمیلی توصیه می‌شود.')
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
