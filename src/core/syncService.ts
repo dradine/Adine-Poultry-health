@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { validateMdaParameterProvenance, type MdaParameterProvenance } from './maternalAntibody'
 import { normalizeDigits } from './ibd'
 import {
   listOutbox, removeOutboxItem, recordOutboxFailure, markLocalSynced,
@@ -282,6 +283,9 @@ export type MdaRunDraft = {
   output: Record<string, unknown>
 }
 export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
+  const provenance = draft.input.parameterProvenance as Partial<MdaParameterProvenance> | undefined
+  const provenanceErrors = validateMdaParameterProvenance(provenance || {})
+  if (provenanceErrors.length) throw new Error('ثبت اجرای MDA بدون provenance کامل مجاز نیست: ' + provenanceErrors.join(' '))
   await bindLocalDataToSession(true)
   const existingFlock = (await listLocalFlocks(true)).find(row => row.id === draft.flock.id)
   if (!existingFlock) {
@@ -302,7 +306,7 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
   const id = draft.id || crypto.randomUUID()
   await saveLocalModelRun({
     id, flock_id: draft.flock.id, disease_code: draft.diseaseCode,
-    model_version: 'mda-decay-exploratory-0.1.0',
+    model_version: 'mda-decay-exploratory-0.2.0',
     model_family: 'maternal-antibody-decay-exploratory',
     input_snapshot: draft.input, output_snapshot: draft.output,
     confidence_level: 'low', decision_status: 'review_required',
@@ -310,11 +314,23 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
       'Exploratory exponential decay reconstruction only; not a validated vaccine-interference or protection model.',
       'Half-life and threshold must be assay-, antigen-, population- and purpose-specific with source provenance.',
       'Observed sample titre and reconstructed hatch titre are distinct; reconstructed values include model uncertainty.',
+      'Parameter provenance is user-entered and is not independently authenticated or scientifically validated by this software.',
     ],
-    qc_summary: { enteredByUser: true, rawLabFileImported: false, assayQcIndependentlyVerified: false },
-    model_assumptions: { decayModel: 'T(t)=T0*2^(-t/halfLife)', noProtectionInference: true },
-    source_references: [{ kind: 'user-entered-parameter-source', citation: draft.input.source || null }],
-    input_schema_version: 'mda-monitor-input-v1',
+    qc_summary: { enteredByUser: true, rawLabFileImported: false, assayQcIndependentlyVerified: false, provenanceComplete: true },
+    model_assumptions: {
+      decayModel: 'T(t)=T0*2^(-t/halfLife)',
+      noProtectionInference: true,
+      parameterSelection: 'explicit-user-entered',
+      parameterOverride: false,
+      parameterProvenance: provenance,
+      parameterProvenanceIndependentlyVerified: false,
+    },
+    source_references: [
+      { kind: 'mda-half-life-parameter', citation: provenance?.halfLifeSource || null, sourceVersion: provenance?.sourceVersion || null, parameterOrigin: provenance?.parameterOrigin || null },
+      { kind: 'mda-threshold-parameter', citation: provenance?.thresholdSource || null, sourceVersion: provenance?.sourceVersion || null, parameterOrigin: provenance?.parameterOrigin || null },
+      { kind: 'mda-assay-identity', assayIdentity: provenance?.assayIdentity || null, measurementScale: provenance?.measurementScale || null },
+    ],
+    input_schema_version: 'mda-monitor-input-v2',
     created_at: new Date().toISOString(),
   })
   return id

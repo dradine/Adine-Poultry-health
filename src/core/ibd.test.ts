@@ -130,6 +130,15 @@ describe('IBD percentile and extreme input regression', () => {
 })
 
 describe('product-specific sample-size provenance', () => {
+  it('does not silently assume a universal minimum sample count when product guidance is absent', () => {
+    const r = calculateIbdWindow({
+      samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3,
+      susceptiblePercent: 75, titers: sample23,
+    })
+    expect(r.sampleCount).toBe(23)
+    expect(r.warnings.join(' ')).toContain('هیچ مقدار عمومی جایگزین نشده')
+  })
+
   it('does not apply the BioChek 23-sample guidance to a product label specifying 18 chicks', () => {
     const source = 'UK VMD product information revised June 2026; AN 00716/2026 section 8'
     const r = calculateIbdWindow({

@@ -63,12 +63,12 @@ function nearestRank(sorted: number[], percentile: number): { value: number; ran
  * Does not validate assay, product BTT, half-life, sampling or field protection. */
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
-    correctionDays = 0, minimumSampleCount = 23 } = input
+    correctionDays = 0, minimumSampleCount } = input
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری معتبر نیست.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
-  if (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2) throw new Error('حداقل تعداد نمونه باید حداقل ۲ باشد.')
+  if (minimumSampleCount !== undefined && (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2)) throw new Error('حداقل تعداد نمونه باید یک عدد صحیح حداقل ۲ باشد؛ در غیر این صورت آن را خالی بگذارید و از فرض عمومی استفاده نکنید.')
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
   if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
   if (!Array.isArray(titers) || titers.length < 2) throw new Error('برای محاسبه توصیفی حداقل دو تیتر معتبر لازم است؛ با یک نمونه تحلیل پراکندگی/صدک انجام نمی‌شود.')
@@ -96,12 +96,13 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const maximumTiter = sorted[sorted.length-1]
   const coefficientOfVariationPercent = titers.length>1 && arithmeticMean>0 ? Math.sqrt(variance)/arithmeticMean*100 : 0
   const warnings = []
-  if (titers.length < minimumSampleCount) warnings.push(`تعداد نمونه (${titers.length}) کمتر از راهنمای/حداقل ثبت‌شده این تحلیل (${minimumSampleCount}) است؛ خروجی صرفاً اکتشافی و توصیفی محسوب شود و برای تعمیم به کل گله یا تصمیم قطعی استفاده نشود.`)
+  if (minimumSampleCount !== undefined && titers.length < minimumSampleCount) warnings.push(`تعداد نمونه (${titers.length}) کمتر از راهنمای/حداقل ثبت‌شده این تحلیل (${minimumSampleCount}) است؛ خروجی صرفاً اکتشافی و توصیفی محسوب شود و برای تعمیم به کل گله یا تصمیم قطعی استفاده نشود.`)
+  if (minimumSampleCount === undefined) warnings.push('حداقل تعداد نمونه اختصاصی این محصول/کیت وارد نشده است؛ کفایت حجم نمونه قابل ارزیابی نیست، محاسبه صرفاً اکتشافی است و هیچ مقدار عمومی جایگزین نشده است.')
   if (titers.length < 10) warnings.push('حجم نمونه بسیار کم (n<10): صدک پایین و زمان برآوردی به چند مشاهده وابسته است؛ ناپایداری و عدم‌قطعیت زیاد است. تحلیل فقط اکتشافی است.')
   else if (titers.length < 18) warnings.push('حجم نمونه محدود (n<18): برآورد تیتر و زمان واکسیناسیون ممکن است ناپایدار باشد؛ نمونه‌گیری تکمیلی توصیه می‌شود.')
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
-  if (!input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ مقدار انتخابی باید با IFU/برچسب همان محصول و کیت تطبیق داده شود.')
-  else warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
+  if (minimumSampleCount !== undefined && !input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ عدد واردشده هنوز به IFU/برچسب همان محصول و کیت متصل نشده است.')
+  else if (minimumSampleCount !== undefined && input.minimumSampleCountSource?.trim()) warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
   if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ از نظر این شاخص آستانه در زمان نمونه‌گیری قبلاً حاصل شده است. اصلاح سن نمی‌تواند این مشاهده را به یک پنجره آینده تبدیل کند.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
