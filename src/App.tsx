@@ -118,7 +118,7 @@ export default function App() {
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
   const [correctionDays, setCorrectionDays] = useState('0')
-  const [minimumSampleCount, setMinimumSampleCount] = useState('23')
+  const [minimumSampleCount, setMinimumSampleCount] = useState('')
   const [minimumSampleCountSource, setMinimumSampleCountSource] = useState('')
   const [susceptiblePercent, setSusceptiblePercent] = useState('5')
   const [titersText, setTitersText] = useState('')
@@ -220,7 +220,7 @@ export default function App() {
     } else if (selectedKit.id.startsWith('custom-')) {
       setSelectedAssayId('')
       setKitName(selectedKit.brand + (selectedKit.catalog ? ' (' + selectedKit.catalog + ')' : '') + ' — ' + selectedKit.assay)
-      setMinimumSampleCount('23')
+      setMinimumSampleCount('')
       setMinimumSampleCountSource('')
     }
   }, [selectedDisease, selectedDiagnosticKitId, customKits, assayCatalog])
@@ -262,7 +262,7 @@ export default function App() {
     setBttSource('')
     setSelectedAssayId('')
     setKitName('')
-    setMinimumSampleCount(String(product.deventer_minimum_sample_count || 23))
+    setMinimumSampleCount(product.deventer_minimum_sample_count ? String(product.deventer_minimum_sample_count) : '')
     setMinimumSampleCountSource(product.deventer_sample_size_basis || '')
     const linkedAssay = findBttAssayForProduct(product, assayCatalog)
     if (!linkedAssay) {
@@ -290,6 +290,7 @@ export default function App() {
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
+    if (!minimumSampleCount.trim()) return { result: null, error: 'حداقل تعداد نمونه اختصاصی همین محصول/کیت را از IFU یا برچسب وارد کنید؛ مقدار عمومی به‌صورت خودکار فرض نمی‌شود.' }
     if (!minimumSampleCountSource.trim()) return { result: null, error: 'منبع حداقل تعداد نمونه باید از IFU یا برچسب همان محصول/کیت ثبت شود.' }
     if (selectedAssayId && (!selectedAssay || selectedAssay.status !== 'documented')) {
       return { result: null, error: 'این کیت فقط در سطح کاتالوگ/مستندات ناقص ثبت شده و تا دریافت IFU معتبر، مدل محاسباتی آن باز نمی‌شود.' }
@@ -620,7 +621,7 @@ export default function App() {
               const selected = assayCatalog.find(kit => kit.id === e.target.value)
               setSelectedAssayId(e.target.value)
               setKitName(selected ? selected.manufacturer + ' — ' + selected.name + (selected.catalog ? ' (' + selected.catalog + ')' : '') : '')
-              setMinimumSampleCount(String(selected?.minimumSampleCount || 23))
+              setMinimumSampleCount(selected?.minimumSampleCount ? String(selected.minimumSampleCount) : '')
               setMinimumSampleCountSource(selected?.minimumSampleCountSource || '')
             }}>
               <option value="">انتخاب کیت…</option>
@@ -654,10 +655,10 @@ export default function App() {
             <input value={correctionSource} onChange={(e) => setCorrectionSource(e.target.value)} placeholder="برچسب محصول یا پروتکل اعتبارسنجی‌شده؛ اگر اصلاح صفر است علت را بنویسید" />
           </label>
           <label>حداقل تعداد نمونه در این تحلیل
-            <input inputMode="numeric" value={minimumSampleCount} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setMinimumSampleCount(e.target.value); setMinimumSampleCountSource('') }} />
+            <input inputMode="numeric" value={minimumSampleCount} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_minimum_sample_count)} onChange={(e) => { setMinimumSampleCount(e.target.value); setMinimumSampleCountSource('') }} />
           </label>
           <label>منبع حداقل تعداد نمونه (IFU/برچسب همان محصول یا کیت)
-            <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
+            <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_sample_size_basis)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
           </label>
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
