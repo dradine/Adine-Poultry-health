@@ -18,7 +18,7 @@
   - base: `feature/ibd-first-mvp`
   - head: `feature/mda-provenance-validation-2026-11-20`
   - head SHA در زمان بررسی: `544ef5619d0d7d8616bbc0cc42c005ef6ac772a8`
-  - وضعیت: Open / Draft / Unmerged / mergeable=true
+  - وضعیت: Open / Draft / Unmerged؛ مقدار API مربوط به mergeability در بررسی‌های متوالی بین true و false تغییر کرد، بنابراین پیش از ادغام باید مجدداً بررسی شود.
   - ۹ فایل تغییر یافته؛ ۱۹۰ additions و ۳۰ deletions.
   - این PR را تا بررسی و تصمیم صریح مالک مخزن merge نکنید؛ `main` نباید مستقیماً تغییر کند.
 - شاخه کمکی موجود: `research/mda-provenance-and-validation-2026-11-20`
