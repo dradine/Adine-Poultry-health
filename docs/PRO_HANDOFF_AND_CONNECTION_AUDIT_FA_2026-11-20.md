@@ -64,6 +64,13 @@ Job `build` تکمیل‌شده و success بود. مراحل شامل productio
 - Health Advisor: finding گزارش نکرد.
 - هیچ داده‌ای insert/update/delete/migrate نشد؛ هیچ تنظیم Auth یا schema تغییر نکرد.
 
+### بررسی اتصال در کد و GitHub Actions
+- در `src/core/supabase.ts`، مقدار fallback آدرس Supabase به ref پروژه هدف `aekuuqvgsqnjxkobxbur` است و از publishable key عمومی استفاده می‌شود؛ هیچ service_role/secret key در این فایل دیده نشد.
+- `.env.example` و `scripts/supabase-smoke.mjs` نیز به همان پروژه هدف اشاره می‌کنند. با این حال، مقادیر environment override شده در تنظیمات خصوصی GitHub Actions/Pages از طریق اتصال GitHub قابل خواندن نبودند؛ مالک/ادامه‌دهنده باید URL واقعی build/deploy را بدون چاپ هیچ secret بررسی کند.
+- `.github/workflows/build.yml`: push روی `main` و `feature/**`، و pull_request فقط برای PRهایی که base آن‌ها `main` است. بنابراین PR #2 با base شاخه feature از مسیر push شاخه build می‌شود، نه از pull_request trigger.
+- `.github/workflows/deploy-pages.yml`: push فقط روی `feature/ibd-first-mvp` و pull_request فقط برای base برابر `main`. پس PR #2 به‌تنهایی preview Pages را deploy نمی‌کند؛ PR #1 یا push روی شاخه اصلی توسعه می‌تواند آن workflow را فعال کند.
+- اتصال GitHub دارای مجوز push/admin روی مخزن است؛ با این حال، PRها عمداً Draft نگه داشته شده‌اند و هیچ merge یا deploy دستی در این نشست انجام نشده است.
+
 ### پروژه قدیمی/مجزا
 - Project ref: `vzcczkavlopznljnnehp`
 - نام: `dradine's Project`
