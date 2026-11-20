@@ -1,3 +1,22 @@
+export type MdaParameterOrigin='manufacturer-ifu'|'peer-reviewed-study'|'local-longitudinal-data'|'expert-assumption'
+export type MdaParameterProvenance={
+ assayIdentity:string
+ measurementScale:string
+ halfLifeSource:string
+ thresholdSource:string
+ sourceVersion:string
+ parameterOrigin:MdaParameterOrigin
+}
+export function validateMdaParameterProvenance(value:Partial<MdaParameterProvenance>):string[]{
+ const errors:string[]=[]
+ if(!value.assayIdentity?.trim())errors.push('نام دقیق کیت/آزمون و آنتی‌ژن هدف ثبت نشده است.')
+ if(!value.measurementScale?.trim())errors.push('مقیاس و واحد دقیق تیتر ثبت نشده است.')
+ if(!value.halfLifeSource?.trim())errors.push('منبع اختصاصی نیمه‌عمر ثبت نشده است.')
+ if(!value.thresholdSource?.trim())errors.push('منبع اختصاصی threshold ثبت نشده است.')
+ if(!value.sourceVersion?.trim())errors.push('نسخه/صفحه/شناسه منبع پارامترها ثبت نشده است.')
+ if(!['manufacturer-ifu','peer-reviewed-study','local-longitudinal-data','expert-assumption'].includes(String(value.parameterOrigin)))errors.push('نوع منبع پارامترها مشخص نشده است.')
+ return errors
+}
 export type MdaDecayInput={sampleAgeDays:number;sampleTiter:number;halfLifeDays:number;thresholdTiter:number}
 export type MdaDecayOutput={estimatedHatchTiter:number;estimatedThresholdAgeDays:number|null;alreadyBelowThresholdAtHatch:boolean;predictedAtDays:Array<{day:number;titer:number}>;warnings:string[]}
 /** Exploratory exponential decay estimator: titer(t)=titer0*2^(-t/halfLife). Assay scale and threshold must be assay-specific. */
@@ -5,9 +24,10 @@ export function estimateMaternalAntibodyDecay(input:MdaDecayInput):MdaDecayOutpu
  const {sampleAgeDays,sampleTiter,halfLifeDays,thresholdTiter}=input
  if(!Number.isFinite(sampleAgeDays)||sampleAgeDays<0||sampleAgeDays>4)throw Error('این برآورد بازسازی تیتر زمان هچ را فقط با نمونه روز ۰ تا ۴ انجام می‌دهد؛ سن نمونه خارج از دامنه است.')
  if(!Number.isFinite(sampleTiter)||sampleTiter<=0||sampleTiter>1e9)throw Error('تیتر نمونه باید مثبت و در محدوده معتبر آزمون باشد.')
- if(!Number.isFinite(halfLifeDays)||halfLifeDays<=0||halfLifeDays>100)throw Error('نیمه‌عمر باید مثبت و مستند به همان جمعیت و assay باشد.')
+ if(!Number.isFinite(halfLifeDays)||halfLifeDays<=0)throw Error('نیمه‌عمر باید عددی مثبت و مستند به همان جمعیت و assay باشد؛ مقدار عمومی فرض نمی‌شود.')
  if(!Number.isFinite(thresholdTiter)||thresholdTiter<=0||thresholdTiter>1e9)throw Error('آستانه تداخل باید مثبت و از مطالعه/بروشور همان آزمون باشد.')
  const hatch=sampleTiter*2**(sampleAgeDays/halfLifeDays)
+ if(!Number.isFinite(hatch)||hatch<=0)throw Error('برون‌یابی تیتر روز هچ از محدوده عددی قابل محاسبه خارج شد؛ ورودی‌ها و نیمه‌عمر را بررسی کنید.')
  const below=hatch<thresholdTiter
  const crossing=below?null:halfLifeDays*Math.log2(hatch/thresholdTiter)
  return {estimatedHatchTiter:hatch,estimatedThresholdAgeDays:crossing,alreadyBelowThresholdAtHatch:below,
