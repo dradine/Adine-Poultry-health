@@ -69,7 +69,7 @@ describe('IBD Deventer-style mathematical estimator', () => {
 
 describe('future vaccination timing window', () => {
   it('returns an exact hour/minute window and an ISO target timestamp', () => {
-    const r = calculateVaccinationTiming({ currentTiter: 800, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })
+    const r = calculateVaccinationTiming({ currentTiter: 800, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })
     expect(r.status).toBe('future-window')
     expect(r.hoursUntilThreshold).toBe(216)
     expect(r.wholeHours).toBe(216)
@@ -77,19 +77,19 @@ describe('future vaccination timing window', () => {
     expect(r.targetAt).toBe('2026-12-06T08:00:00.000Z')
   })
   it('keeps fractional hours as minutes and includes a documented correction', () => {
-    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionHours: 0.5, sampledAt: '2026-11-27T08:00Z' })
+    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionHours: 0.5, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })
     expect(r.wholeHours).toBe(212)
     expect(r.remainingMinutes).toBe(16)
     expect(r.daysUntilThreshold).toBeCloseTo(8.844, 3)
   })
   it('does not create a future appointment when BTT is already reached', () => {
-    const r = calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })
+    const r = calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 14, minimumVaccinationAgeDays: 10 })
     expect(r.status).toBe('threshold-already-reached')
     expect(r.targetAt).toBeNull()
   })
   it('rejects missing timestamps and non-positive inputs', () => {
-    expect(() => calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '' })).toThrow()
-    expect(() => calculateVaccinationTiming({ currentTiter: 0, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })).toThrow()
+    expect(() => calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })).toThrow()
+    expect(() => calculateVaccinationTiming({ currentTiter: 0, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })).toThrow()
   })
 })
 

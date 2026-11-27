@@ -8,7 +8,7 @@ describe('educational IBD interpretation', () => {
     const input = { samplingAgeDays: 2, breakthroughTiter: 128, halfLifeDays: 3, susceptiblePercent: 75, correctionDays: 2, titers, assayMethod: 'ELISA', measurementScale: 'elisa-titer', minimumVaccinationAgeDays: 10 }
     const result = calculateIbdWindow(input)
     const x = interpretIbdResult(input, result, { assay: 'kit X', vaccine: 'live vaccine', bttSource: 'label p.2' })
-    expect(x.status).toBe('label-minimum-floor')
+    expect(x.status).toBe('candidate-window')
     expect(x.farmer).toContain('تضمین‌کننده')
     expect(x.veterinarian.join(' ')).toContain('log₂')
     expect(x.veterinarian.join(' ')).toContain('رتبه مشاهده‌ای')

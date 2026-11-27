@@ -75,7 +75,8 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
     : halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter) + correctionHours
   const labelMinimumHours = Math.max(0, (minimumVaccinationAgeDays - samplingAgeDays) * 24)
   const hoursUntilThreshold = Math.max(modelHours, labelMinimumHours)
-  if (!Number.isFinite(hoursUntilThreshold) || hoursUntilThreshold <= 0) {
+  if (!Number.isFinite(hoursUntilThreshold)) throw new Error('زمان برآوردی خارج از محدوده عددی قابل محاسبه است؛ ورودی‌ها و نیمه‌عمر را بازبینی کنید.')
+  if (hoursUntilThreshold <= 0) {
     return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای تولید نمی‌کند.'] }
   }
   const labelMinimumApplied = labelMinimumHours > modelHours
@@ -173,7 +174,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
   if (minimumSampleCount !== undefined && !input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ عدد واردشده هنوز به IFU/برچسب همان محصول و کیت متصل نشده است.')
   else if (minimumSampleCount !== undefined && input.minimumSampleCountSource?.trim()) warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
-  if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ از نظر این شاخص آستانه در زمان نمونه‌گیری قبلاً حاصل شده است.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
+  if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ اصلاح سن نمی‌تواند این مشاهده را به یک پنجره آینده تبدیل کند و آستانه در زمان نمونه‌گیری قبلاً حاصل شده است.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
   if (labelMinimumApplied) warnings.push('حداقل سن برچسب محصول (' + minimumVaccinationAgeDays + ' روز) از برآورد خام مدل دیرتر است؛ سن قابل اجرا پیش از این حداقل نخواهد بود.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
