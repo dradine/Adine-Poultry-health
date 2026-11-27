@@ -17,7 +17,9 @@ import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCa
 import CloudSyncPanel from './components/CloudSyncPanel'
 import BaselineLibrary from './components/BaselineLibrary'
 import LongitudinalReports from './components/LongitudinalReports'
-import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listLocalReferenceRecords, markLocalDeleted, markLocalReferenceDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { createAdineDemoFlock } from './core/demoFlock'
+import { confirmStrictDeletion } from './core/strictDelete'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
 import FlockReferencePanel from './components/FlockReferencePanel'
 
@@ -463,6 +465,30 @@ export default function App() {
       .catch(cause => setError(cause instanceof Error ? cause.message : 'ذخیره محلی پایدار انجام نشد؛ از فایل پشتیبان استفاده کنید.'))
   }
 
+  async function seedDemoFlock() {
+    setError('')
+    try {
+      const demo = await createAdineDemoFlock()
+      const next = [demo, ...profiles.filter(item => item.id !== demo.id)]
+      if (!writeLocalStorage(STORAGE_KEY, next)) throw new Error('ذخیره پروفایل گله در مرورگر ناموفق بود.')
+      setProfiles(next)
+      setSelectedFlockId(demo.id)
+      setFlockName(demo.flockName)
+      setPlacementDate(demo.placementDate)
+      setHatchDate(demo.hatchDate)
+      setFlockType(demo.flockType)
+      setFlockSize(demo.flockSize)
+      setHouseName(demo.houseName)
+      setHatchery(demo.hatchery)
+      setVaccinationHistory(demo.vaccinationHistory)
+      setView('reports')
+      notifyLocalDataChanged()
+      setError('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ساخت گله آزمایشی آدینه ناموفق بود.')
+    }
+  }
+
   function saveAnalysis() {
     setError('')
     if (!flockName.trim() || !placementDate) {
@@ -564,6 +590,8 @@ export default function App() {
   }
 
   function removeAnalysis(id: string) {
+    const record = analyses.find(item => item.id === id)
+    if (!record || !confirmStrictDeletion('گزارش تحلیل ' + record.flockName + ' · ' + formatJalaliDate(record.placementDate))) return
     const next = analyses.filter((item) => item.id !== id)
     if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('حذف سابقه انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
     setAnalyses(next)
@@ -577,11 +605,17 @@ export default function App() {
     if (!profile) return
     setError('')
     try {
-      const localRuns = await listLocalModelRuns()
-      const flockRuns = localRuns.filter(run => run.flock_id === id)
+      const [localRuns, vaccines, observations, series] = await Promise.all([
+        listLocalModelRuns(true),
+        listLocalReferenceRecords('flock_vaccination_events', id, true),
+        listLocalReferenceRecords('flock_clinical_observations', id, true),
+        listLocalReferenceRecords('flock_time_series', id, true),
+      ])
+      const flockRuns = localRuns.filter(run => run.flock_id === id && !run.deleted)
       const relatedLegacy = analyses.filter(item => item.flockName === profile.flockName && item.placementDate === profile.placementDate)
       const runIds = [...new Set([...flockRuns.map(run => run.id), ...relatedLegacy.map(run => run.id)])]
-      if (runIds.length && !window.confirm(`این گله ${runIds.length} سابقه تحلیل/پایش دارد. با حذف گله، همه سوابق وابسته نیز برای حذف محلی و ابری علامت‌گذاری می‌شوند. ادامه می‌دهید؟`)) return
+      const dependentCount = runIds.length + vaccines.filter(x => !x.deleted).length + observations.filter(x => !x.deleted).length + series.filter(x => !x.deleted).length
+      if (!confirmStrictDeletion('گله «' + profile.flockName + '» و ' + dependentCount + ' سابقه وابسته (آزمایش، واکسن، مشاهده بالینی و داده عملکردی)')) return
       const nextProfiles = profiles.filter(item => item.id !== id)
       const nextAnalyses = analyses.filter(item => !relatedLegacy.some(run => run.id === item.id))
       if (!writeLocalStorage(STORAGE_KEY, nextProfiles) || !writeLocalStorage(ANALYSIS_STORAGE_KEY, nextAnalyses)) {
@@ -591,7 +625,11 @@ export default function App() {
       setProfiles(nextProfiles)
       setAnalyses(nextAnalyses)
       for (const runId of runIds) await markLocalDeleted('model_runs', runId)
+      for (const row of vaccines.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_vaccination_events', row.id)
+      for (const row of observations.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_clinical_observations', row.id)
+      for (const row of series.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_time_series', row.id)
       await markLocalDeleted('flocks', id)
+      if (selectedFlockId === id) setSelectedFlockId('')
       notifyLocalDataChanged()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'حذف گله و سوابق وابسته انجام نشد.')
@@ -614,7 +652,7 @@ export default function App() {
         <div className="workspace-actions">
           {[{step:1,title:'اطلاعات گله',desc:'ثبت یا انتخاب پرونده گله',icon:'۱'},{step:2,title:'انتخاب بیماری',desc:'تعیین بیماری مورد بررسی',icon:'۲'},{step:3,title:'کیت و روش',desc:'انتخاب آزمون و روش آزمایش',icon:'۳'},{step:4,title:'ورود داده و تحلیل',desc:'ثبت تیترها و دریافت تفسیر',icon:'۴'}].map(item=><button key={item.step} className="workspace-action" onClick={()=>goToStep(item.step as 1|2|3|4)}><span>{item.icon}</span><b>{item.title}</b><small>{item.desc}</small></button>)}
         </div>
-        <section className="workspace-flocks"><div className="workspace-section-heading"><h3>گله‌های ثبت‌شده</h3><button className="link-button" onClick={()=>goToStep(1)}>＋ افزودن گله</button></div>
+        <section className="workspace-flocks"><div className="workspace-section-heading"><h3>گله‌های ثبت‌شده</h3><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>void seedDemoFlock()}>ایجاد گله آزمایشی آدینه</button><button className="link-button" onClick={()=>goToStep(1)}>＋ افزودن گله</button></div></div>
           {profiles.length===0?<p className="empty-result">هنوز گله‌ای ثبت نشده است. ابتدا اطلاعات گله را وارد کنید.</p>:profiles.map(profile=><div className="workspace-flock-row" key={profile.id}><div><b>{profile.flockName}</b><small>{toPersianDigits(formatJalaliDate(profile.placementDate))} · {profile.flockType==='broiler'?'گوشتی':profile.flockType==='layer'?'تخم‌گذار':profile.flockType==='breeder'?'مادر':'سایر'}{profile.flockSize?' · '+toPersianDigits(profile.flockSize)+' قطعه':''}</small></div><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setFlockName(profile.flockName);setPlacementDate(profile.placementDate);setHatchDate(profile.hatchDate||'');setFlockType(profile.flockType||'broiler');setFlockSize(profile.flockSize||'');setHouseName(profile.houseName||'');setHatchery(profile.hatchery||'');setSampleDate(profile.sampleDate||'');setVaccinationHistory(profile.vaccinationHistory||'');setWizardStep(2);setView('workflow')}}>انتخاب برای تحلیل</button><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setView('reports')}}>گزارش‌ها</button></div></div>)}
         </section>
         <details className="workspace-tools"><summary>تنظیمات، همگام‌سازی و ابزارهای جانبی</summary><CloudSyncPanel/><details><summary>کتابخانه مراجع و اطلاعات مرجع</summary><BaselineLibrary/></details><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></details>
