@@ -370,3 +370,26 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 .reference-record-row:last-child{border-bottom:0}
 .reference-record-row span{min-width:0;overflow-wrap:anywhere}
 @media(max-width:600px){.saved-row-with-actions{gap:7px;flex-wrap:wrap}.saved-row-open{flex-wrap:wrap}.saved-row-open small{margin-right:0}.reference-record-row{align-items:flex-start}}
+
+
+/* Flock readiness and data completeness report */
+.flock-readiness{display:grid;gap:14px;margin:16px 0;padding:16px;border:1px solid #dce7df;border-radius:15px;background:#fbfdfb}
+.flock-readiness-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.flock-readiness-head h3{margin:6px 0 0;font-size:15px;color:#284c35}
+.readiness-status{padding:7px 10px;border-radius:9px;background:#fff4dc;color:#805b20;font-size:11px}
+.readiness-warning{margin:0;padding:11px 13px;border:1px solid #ead6a8;border-radius:10px;background:#fff9eb;color:#795c2d;font-size:11px;line-height:1.9}
+.readiness-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.readiness-metrics article{display:grid;gap:5px;padding:11px;border:1px solid #e2ebe4;border-radius:10px;background:white}
+.readiness-metrics small{font-size:10px;color:#78867b}
+.readiness-metrics b{font-size:13px;color:#345b42}
+.flock-readiness h4{margin:3px 0 0;font-size:13px;color:#355b42}
+.readiness-diseases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.readiness-diseases article,.readiness-graph-grid article{display:grid;gap:6px;padding:12px;border:1px solid #e3ebe5;border-radius:10px;background:white}
+.readiness-diseases b,.readiness-graph-grid b{font-size:12px;color:#315a40}
+.readiness-diseases span,.readiness-diseases small,.readiness-graph-grid span{font-size:10px;line-height:1.9;color:#68786d}
+.readiness-missing{display:grid;gap:6px;margin:0;padding:0 18px 0 0;color:#6b5a36;font-size:11px;line-height:1.9}
+.readiness-graphs{padding:12px;border:1px solid #e2ebe4;border-radius:10px;background:white}
+.readiness-graphs summary{cursor:pointer;font-size:12px;font-weight:700;color:#355b42}
+.readiness-graph-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}
+.readiness-foot{margin:0;padding:11px 13px;border-radius:10px;background:#f0f5f1;color:#68786d;font-size:10px;line-height:1.9}
+@media(max-width:650px){.readiness-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.readiness-diseases,.readiness-graph-grid{grid-template-columns:1fr}.flock-readiness{padding:12px}}
