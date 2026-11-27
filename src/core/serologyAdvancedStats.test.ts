@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {analyzePairedRounds,calculateSeropositivity,geometricMeanConfidenceInterval,meanConfidenceInterval,wilsonInterval} from './serologyAdvancedStats'
+import {analyzePairedRounds,calculateSeropositivity,compareIndependentRounds,geometricMeanConfidenceInterval,meanConfidenceInterval,wilsonInterval} from './serologyAdvancedStats'
 describe('advanced serology inference',()=>{
  it('returns a t-based 95% interval for the arithmetic mean',()=>{
   const x=meanConfidenceInterval([10,10,10,10])
@@ -32,5 +32,24 @@ describe('advanced serology inference',()=>{
   expect(wilsonInterval(0,0)).toBeNull()
   expect(calculateSeropositivity([1,2,3],2,'above','IFU section 8')?.positive).toBe(2)
   expect(calculateSeropositivity([1,2,3],2,'above','') ).toBeNull()
+ })
+})
+
+
+describe('independent round comparison',()=>{
+ it('compares independent titre rounds on log2 scale and back-transforms the ratio CI',()=>{
+  const x=compareIndependentRounds([16,32,32,64],[32,64,64,128],'titre')
+  expect(x?.nPrevious).toBe(4);expect(x?.nCurrent).toBe(4)
+  expect(x?.geometricMeanFoldChange).toBeCloseTo(2)
+  expect(x?.foldChangeLower).toBeLessThan(2);expect(x?.foldChangeUpper).toBeGreaterThan(2)
+ })
+ it('does not compare undersized or invalid independent samples',()=>{
+  expect(compareIndependentRounds([1],[2,3],'continuous')).toBeNull()
+  expect(compareIndependentRounds([0,2],[4,8],'titre')).toBeNull()
+ })
+ it('compares continuous independent samples in the original scale',()=>{
+  const x=compareIndependentRounds([1,2,3],[3,4,5],'continuous')
+  expect(x?.meanDifference).toBeCloseTo(2)
+  expect(x?.lower).toBeLessThan(2);expect(x?.upper).toBeGreaterThan(2)
  })
 })

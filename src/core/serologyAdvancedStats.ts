@@ -54,3 +54,46 @@ export function calculateSeropositivity(values:number[],cutoff:number,direction:
   const interval=wilsonInterval(positive,values.length)
   return interval?{positive,total:values.length,percent:positive/values.length*100,interval:{lower:interval.lower*100,upper:interval.upper*100}}:null
 }
+
+
+export type IndependentRoundComparison = {
+  nPrevious:number; nCurrent:number
+  meanDifference:number; standardError:number; degreesFreedom:number
+  lower:number; upper:number; hedgesG:number|null
+  geometricMeanPrevious:number|null; geometricMeanCurrent:number|null
+  geometricMeanFoldChange:number|null; foldChangeLower:number|null; foldChangeUpper:number|null
+}
+/**
+ * Welch comparison for two independent rounds. Titre values are analysed on log2 scale.
+ * Intended for explicitly independent samples; this is not a paired-bird analysis.
+ */
+export function compareIndependentRounds(previous:number[],current:number[],scale:'titre'|'continuous'):IndependentRoundComparison|null {
+  if(previous.length<2||current.length<2)return null
+  const valid=(xs:number[])=>xs.every(v=>Number.isFinite(v)&&(scale==='titre'?v>0:v>=0))
+  if(!valid(previous)||!valid(current))return null
+  const transform=(xs:number[])=>scale==='titre'?xs.map(Math.log2):xs
+  const a=transform(previous),b=transform(current)
+  const mean=(xs:number[])=>xs.reduce((s,v)=>s+v,0)/xs.length
+  const variance=(xs:number[])=>xs.reduce((s,v)=>s+(v-mean(xs))**2,0)/(xs.length-1)
+  const ma=mean(a),mb=mean(b),va=variance(a),vb=variance(b)
+  const aa=va/a.length,bb=vb/b.length,se=Math.sqrt(aa+bb)
+  const denominator=(aa*aa)/(a.length-1)+(bb*bb)/(b.length-1)
+  const df=denominator>0?((aa+bb)**2)/denominator:a.length+b.length-2
+  const critical=tCritical95(Math.max(1,Math.floor(df)))
+  const difference=mb-ma,lower=difference-critical*se,upper=difference+critical*se
+  const pooledVariance=((a.length-1)*va+(b.length-1)*vb)/(a.length+b.length-2)
+  const pooledSd=Math.sqrt(pooledVariance)
+  const correction=1-3/(4*(a.length+b.length)-9)
+  const hedgesG=pooledSd>0?correction*difference/pooledSd:null
+  if(scale==='titre')return {
+    nPrevious:previous.length,nCurrent:current.length,meanDifference:difference,standardError:se,degreesFreedom:df,
+    lower,upper,hedgesG,
+    geometricMeanPrevious:2**ma,geometricMeanCurrent:2**mb,
+    geometricMeanFoldChange:2**difference,foldChangeLower:2**lower,foldChangeUpper:2**upper,
+  }
+  return {
+    nPrevious:previous.length,nCurrent:current.length,meanDifference:difference,standardError:se,degreesFreedom:df,
+    lower,upper,hedgesG,
+    geometricMeanPrevious:null,geometricMeanCurrent:null,geometricMeanFoldChange:null,foldChangeLower:null,foldChangeUpper:null,
+  }
+}

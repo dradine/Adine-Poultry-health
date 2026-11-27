@@ -3,7 +3,7 @@ import SerologyAdvancedAnalysis from './SerologyAdvancedAnalysis'
 import SerologyClinicalInterpretation from './SerologyClinicalInterpretation'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { areComparableAssayRounds } from '../core/serologyStats'
-import { listLocalFlocks, listLocalModelRuns, listLocalReferenceRecords, type LocalFlock, type LocalModelRun, type LocalVaccinationEvent } from '../core/localFirstDb'
+import { listLocalFlocks, listLocalModelRuns, listLocalReferenceRecords, type LocalFlock, type LocalModelRun, type LocalVaccinationEvent, type LocalClinicalObservation, type LocalFlockTimeSeries } from '../core/localFirstDb'
 type O=Record<string,unknown>
 const f=(v:unknown,d=2)=>typeof v==='number'&&Number.isFinite(v)?v.toLocaleString('fa-IR',{maximumFractionDigits:d}):'—'
 const s=(o:O,k:string)=>typeof o[k]==='string'?String(o[k]):''
@@ -104,8 +104,35 @@ function Trend({runs,selected,vaccinationEvents}:{runs:LocalModelRun[];selected:
  </div>
 }
 
+function ReferenceMetricChart({rows,metric,label}:{rows:LocalFlockTimeSeries[];metric:LocalFlockTimeSeries['metric'];label:string}) {
+ const values=rows.filter(x=>x.metric===metric).sort((a,b)=>a.observed_at.localeCompare(b.observed_at))
+ if(values.length<2)return null
+ const lo=Math.min(...values.map(x=>x.value)),hi=Math.max(...values.map(x=>x.value)),span=hi-lo||1
+ const pts=values.map((x,k)=>({x:35+k*450/Math.max(1,values.length-1),y:112-(x.value-lo)/span*82}))
+ return <section className="srs-chart-card"><h5>{label}</h5><svg className="srs-chart" viewBox="0 0 520 145" role="img" aria-label={label}>
+  <polyline points={pts.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#287b55" strokeWidth="3"/>
+  {pts.map((p,k)=><g key={values[k].id}><circle cx={p.x} cy={p.y} r="4" fill="#287b55"/><text x={p.x} y={p.y-9} textAnchor="middle" fontSize="10" fill="currentColor">{f(values[k].value)}</text><text x={p.x} y="135" textAnchor="middle" fontSize="9" fill="currentColor">{date(values[k].observed_at.slice(0,10))}</text></g>)}
+ </svg><p className="srs-note">واحد: {values[0].unit} · فقط داده‌های ثبت‌شده تا تاریخ نمونه‌گیری</p></section>
+}
 function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelRun;vaccinationEvents:LocalVaccinationEvent[];relatedRuns:LocalModelRun[];flock:LocalFlock|undefined}) {
  const i=run.input_snapshot as O
+ const [clinicalRecords,setClinicalRecords]=useState<LocalClinicalObservation[]>([])
+ const [timeSeries,setTimeSeries]=useState<LocalFlockTimeSeries[]>([])
+ useEffect(()=>{
+  let active=true
+  const load=async()=>{
+   const [observations,series]=await Promise.all([
+    listLocalReferenceRecords('flock_clinical_observations',run.flock_id),
+    listLocalReferenceRecords('flock_time_series',run.flock_id),
+   ])
+   if(active){setClinicalRecords(observations);setTimeSeries(series)}
+  }
+  void load().catch(()=>{if(active){setClinicalRecords([]);setTimeSeries([])}})
+  const refresh=()=>void load().catch(()=>undefined)
+  window.addEventListener('adine-cloud-data-updated',refresh)
+  window.addEventListener('adine-local-data-changed',refresh)
+  return()=>{active=false;window.removeEventListener('adine-cloud-data-updated',refresh);window.removeEventListener('adine-local-data-changed',refresh)}
+ },[run.flock_id])
  const embedded=snapshotTimelineEvents([run])
  const events=[...new Map([...vaccinationEvents.map(dbTimelineEvent),...embedded].map(e=>[[e.date,e.disease,e.product,e.strain,e.route].join('|'),e])).values()].sort((a,b)=>a.date.localeCompare(b.date))
  const ibdRun=relatedRuns.filter(x=>x.flock_id===run.flock_id&&x.disease_code==='IBD'&&x.model_family==='deventer-live-conventional').sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
@@ -113,10 +140,37 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
  const ibdAgeRaw=ibdOutput.labelConstrainedVaccinationAgeDays??ibdOutput.estimatedVaccinationAgeDays
  const ibdAge=typeof ibdAgeRaw==='number'&&Number.isFinite(ibdAgeRaw)&&ibdAgeRaw>=0&&ibdAgeRaw<=500?ibdAgeRaw:null
  const ibdDate=ibdAge!==null&&flock?.hatch_date&&/^\d{4}-\d{2}-\d{2}$/.test(flock.hatch_date)?new Date(Date.parse(flock.hatch_date+'T00:00:00Z')+ibdAge*86400000).toISOString().slice(0,10):''
- const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
+ const sampleDate=s(i,'samplingDate')
+ const observation=clinicalRecords.filter(x=>x.observed_at.slice(0,10)<=sampleDate).sort((a,b)=>b.observed_at.localeCompare(a.observed_at))[0]
+ const snapshot=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
+ const hasSnapshot=(key:string)=>snapshot[key]!==undefined&&snapshot[key]!==null&&String(snapshot[key]).trim()!==''&&!(key==='status'&&snapshot[key]==='unknown')
+ const pick=(key:string,fallback:unknown)=>hasSnapshot(key)?snapshot[key]:fallback
+ const statusLabel=(v:unknown)=>({normal:'طبیعی / بدون علامت گزارش‌شده',suspected:'مشکوک',confirmed:'تأییدشده با آزمایش',recovered:'بهبودیافته','training-only':'سناریوی آموزشی؛ مشاهده واقعی ثبت نشده',problem:'افت عملکرد / مشکل گله',clinical:'دارای علائم بالینی',recovering:'در حال بهبود',unknown:'ثبت نشده'} as Record<string,string>)[String(v)]||String(v??'ثبت نشده')
  const label=(v:string)=>({ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو',other:'سایر'} as Record<string,string>)[v]||v
  const platform=(v:string)=>({'live-conventional':'زنده متعارف',inactivated:'غیرفعال/کشته','immune-complex':'ایمنی‌کمپلکس','recombinant-vector':'وکتور نوترکیب',unknown:'نامشخص',other:'سایر'} as Record<string,string>)[v]||v
- const fields=[['وضعیت گله',clinical.status],['شروع علائم',clinical.onsetDate],['علائم',clinical.signs],['درصد ابتلا',clinical.morbidityPercent],['تلفات تجمعی',clinical.mortalityPercent],['روند تلفات',clinical.mortalityTrend],['مصرف دان',clinical.feedIntake],['مصرف آب',clinical.waterIntake],['تغییر عملکرد',clinical.productionChange],['ریسک مواجهه',clinical.exposureRisks],['سیر بالینی',clinical.clinicalCourse],['کالبدگشایی',clinical.necropsy],['آزمون مستقیم',clinical.directTests],['توضیحات سالن/اپیدمیولوژی',clinical.houseNotes]] as [string,unknown][]
+ const fields:[string,unknown][]=[
+  ['وضعیت گله',hasSnapshot('status')?statusLabel(snapshot.status):observation?statusLabel(observation.status):''],
+  ['تاریخ آخرین مشاهده بالینی تا زمان نمونه‌گیری',observation?.observed_at?.slice(0,10)||''],
+  ['شروع علائم',pick('onsetDate','')],['علائم',pick('signs',observation?.signs||'')],
+  ['درصد ابتلا',pick('morbidityPercent',observation?.morbidity_percent==null?'':observation.morbidity_percent+'٪')],
+  ['تلفات تجمعی',pick('mortalityPercent',observation?.mortality_percent==null?'':observation.mortality_percent+'٪')],
+  ['روند تلفات',pick('mortalityTrend',observation?.mortality_trend||'')],
+  ['مصرف دان',pick('feedIntake',observation?.feed_intake||'')],
+  ['مصرف آب',pick('waterIntake',observation?.water_intake||'')],
+  ['تغییر عملکرد',pick('productionChange',observation?.production_change||'')],
+  ['ریسک مواجهه',pick('exposureRisks',observation?.exposure_risks||'')],
+  ['سیر بالینی',pick('clinicalCourse',observation?.clinical_course||'')],
+  ['کالبدگشایی',pick('necropsy',observation?.necropsy||'')],
+  ['آزمون مستقیم',pick('directTests',observation?.direct_tests||'')],
+  ['داروها / مداخلات',pick('medications',observation?.medications||'')],
+  ['توضیحات سالن/اپیدمیولوژی',pick('houseNotes',observation?.notes||'')],
+ ]
+ const referenceSeries=timeSeries.filter(x=>x.observed_at.slice(0,10)<=sampleDate).sort((a,b)=>a.observed_at.localeCompare(b.observed_at))
+ const latestByMetric=new Map<string,LocalFlockTimeSeries>()
+ referenceSeries.forEach(x=>latestByMetric.set(x.metric,x))
+ const metricNames:Record<string,string>={weight:'وزن بدن',feed:'مصرف دان',water:'مصرف آب',mortality:'تلفات',egg_production:'تولید تخم‌مرغ',temperature:'دما',humidity:'رطوبت'}
+ const syntheticObservation=Boolean(observation?.source_reference?.toLowerCase().includes('simulated'))
+ const syntheticSeries=referenceSeries.some(x=>x.source_reference?.toLowerCase().includes('simulated'))
  return <div className="flock-context-report">
   <section><h4>خط زمانی واکسیناسیون · {events.length} رویداد ثبت‌شده</h4>
    {events.length?<div className="context-timeline">{events.map((e,k)=><article key={e.id||k}>
@@ -134,11 +188,23 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
      <article><small>نیوکاسل، برونشیت و آنفلوانزا</small><b>تاریخ خودکار تعیین نشده</b><span>این گزارش سرولوژی به‌تنهایی موتور معتبر تعیین روز واکسن برای این بیماری‌ها نیست.</span></article></div>
      <p className="srs-note">برآورد IBD فقط وقتی نمایش داده می‌شود که اجرای مدل اختصاصی Deventer برای همین گله ذخیره شده باشد. این مقدار تضمین حفاظت یا دستور قطعی نیست و باید با MDA واقعی، نمونه‌گیری نماینده، کیت/واحد منطبق با BTT، نسخه برچسب معتبر در بازار مربوط و حداقل سن محصول بازبینی شود. اگر تاریخ محاسبه‌شده گذشته باشد، آن را نوبت بعدی تلقی نکنید؛ مدل باید با داده تازه دوباره اجرا شود.</p></>}
   </section>
-  <section><h4>وضعیت بالینی و عملکرد گله در زمان نمونه‌گیری</h4>
+  <section><h4>وضعیت بالینی گله در زمان نمونه‌گیری</h4>
+   <p className="srs-note">گزارش برای تاریخ {date(sampleDate)} تنظیم شده است؛ فقط آخرین مشاهده ثبت‌شده در همان تاریخ یا پیش از آن در این بخش استفاده می‌شود.</p>
    <div className="context-clinical-grid">{fields.filter(([,v])=>v!==undefined&&v!==null&&String(v).trim()!=='').map(([k,v])=><article key={k}><small>{k}</small><b>{String(v)}</b></article>)}</div>
-   {fields.every(([,v])=>v===undefined||v===null||String(v).trim()==='')&&<p className="srs-note">اطلاعات بالینی برای این نوبت ثبت نشده است.</p>}
+   {fields.every(([,v])=>v===undefined||v===null||String(v).trim()==='')&&<p className="srs-note">برای این گله تا تاریخ نمونه‌گیری مشاهده بالینی ثبت نشده است؛ از اطلاعات آینده برای بازسازی گذشته استفاده نمی‌شود.</p>}
+   {syntheticObservation&&<p className="srs-demo">این مشاهده از داده آموزشی شبیه‌سازی‌شده است؛ یافته بالینی واقعی محسوب نمی‌شود.</p>}
   </section>
-  <p className="srs-note">اطلاعات بالینی و کیفیت اجرای واکسن، گزارش‌شده توسط کاربر هستند و بدون مستندات مستقل تأیید نشده‌اند.</p>
+  <section><h4>عملکرد کمی گله تا زمان نمونه‌گیری</h4>
+   {latestByMetric.size?<div className="context-clinical-grid">{[...latestByMetric.values()].map(x=><article key={x.id}><small>{metricNames[x.metric]||x.metric}</small><b>{f(x.value)} {x.unit}</b><span>{date(x.observed_at.slice(0,10))} · {Math.max(0,Math.round((Date.parse(sampleDate+'T00:00:00Z')-Date.parse(x.observed_at.slice(0,10)+'T00:00:00Z'))/86400000))} روز پیش از نمونه‌گیری</span></article>)}</div>:<p className="srs-note">تا تاریخ نمونه‌گیری داده عددی عملکردی برای این گله ثبت نشده است.</p>}
+   <div className="srs-chart-grid">
+    <ReferenceMetricChart rows={referenceSeries} metric="weight" label="روند وزن بدن"/>
+    <ReferenceMetricChart rows={referenceSeries} metric="feed" label="روند مصرف دان"/>
+    <ReferenceMetricChart rows={referenceSeries} metric="water" label="روند مصرف آب"/>
+    <ReferenceMetricChart rows={referenceSeries} metric="mortality" label="روند تلفات"/>
+   </div>
+   {syntheticSeries&&<p className="srs-demo">برخی یا همه نقاط عملکردی در این نمودارها شبیه‌سازی‌شده‌اند؛ برای ارزیابی فارم واقعی از آن‌ها استفاده نکنید.</p>}
+  </section>
+  <p className="srs-note">اطلاعات بالینی، عملکرد و کیفیت اجرای واکسن گزارش‌شده توسط فارم هستند و بدون مستندات مستقل تأیید نشده‌اند.</p>
  </div>
 }
 export default function SerologyReportStudio({initialRunId=''}:{initialRunId?:string}){const [runs,setRuns]=useState<LocalModelRun[]>([]),[allRuns,setAllRuns]=useState<LocalModelRun[]>([]),[flocks,setFlocks]=useState<LocalFlock[]>([]),[id,setId]=useState(initialRunId),[tab,setTab]=useState('summary'),[vaccinationEvents,setVaccinationEvents]=useState<LocalVaccinationEvent[]>([]);useEffect(()=>{let on=true;const load=async()=>{const [allRuns,allFlocks]=await Promise.all([listLocalModelRuns(),listLocalFlocks()]);const a=allRuns.filter(r=>r.model_family==='serology-longitudinal-round').sort((a,b)=>b.created_at.localeCompare(a.created_at));if(on){setRuns(a);setAllRuns(allRuns);setFlocks(allFlocks);setId(old=>a.some(r=>r.id===old)?old:(a[0]?.id||''))}};void load();const fn=()=>void load();window.addEventListener('adine-cloud-data-updated',fn);window.addEventListener('adine-local-data-changed',fn);return()=>{on=false;window.removeEventListener('adine-cloud-data-updated',fn);window.removeEventListener('adine-local-data-changed',fn)}},[]);const r=runs.find(x=>x.id===id);useEffect(()=>{let active=true;if(!r?.flock_id){setVaccinationEvents([]);return()=>{active=false}}void listLocalReferenceRecords('flock_vaccination_events',r.flock_id).then(rows=>{if(active)setVaccinationEvents(rows)}).catch(()=>{if(active)setVaccinationEvents([])});const onChange=()=>{void listLocalReferenceRecords('flock_vaccination_events',r.flock_id).then(rows=>{if(active)setVaccinationEvents(rows)}).catch(()=>undefined)};window.addEventListener('adine-cloud-data-updated',onChange);window.addEventListener('adine-local-data-changed',onChange);return()=>{active=false;window.removeEventListener('adine-cloud-data-updated',onChange);window.removeEventListener('adine-local-data-changed',onChange)}},[r?.flock_id]);const flock=flocks.find(x=>x.id===r?.flock_id),i=(r?.input_snapshot||{}) as O,o=(r?.output_snapshot||{}) as O,v=ns(i.titers),n=v.length,mean=avg(v),st=sd(v),q1=q(v,.25),q3=q(v,.75),iq=q3-q1,outs=v.filter(x=>x<q1-1.5*iq||x>q3+1.5*iq),isTitre=s(i,'scale')==='kit-titer'||s(i,'scale')==='hi-reciprocal',log2s=isTitre&&v.length>0&&v.every(x=>x>0)?v.map(Math.log2):[],gmt=log2s.length?2**avg(log2s):null,assay=ASSAY_CATALOG.find(a=>a.id===s(i,'assayId')),bioChekGuidance=(assay?.manufacturer==='BioChek'&&assay.status==='documented')||(!assay&&s(i,'kit').toLowerCase().includes('biochek')&&['CK113','CK116','CK119','CK121','CK401'].includes(s(i,'catalog').toUpperCase()));const importMeta=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{},rawSampleRows=Array.isArray(importMeta.sampleRows)?importMeta.sampleRows as Record<string,string>[]:[],rawHeaders=Array.isArray(importMeta.headers)?importMeta.headers.map(String):[];const csv=()=>{const rows=[['Sample ID','Result','Unit','Date','Age'],...v.map((z,k)=>[String((i.sampleIds as unknown[]|undefined)?.[k]??('S'+(k+1))),String(z),s(i,'unit'),s(i,'samplingDate'),String(i.samplingAgeDays??'')])];const blob=new Blob(['\uFEFF'+rows.map(a=>a.map(z=>'"'+z.replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='adine-serology-samples.csv';a.click();URL.revokeObjectURL(url)};const rawCsv=()=>{const m=i.readerImportMeta&&typeof i.readerImportMeta==='object'?i.readerImportMeta as O:{},headers=Array.isArray(m.headers)?m.headers.map(String):[],rawRows=Array.isArray(m.rawRows)?m.rawRows as string[][]:[];if(!headers.length||!rawRows.length)return;const rows=[headers,...rawRows],blob=new Blob(['\uFEFF'+rows.map(a=>a.map(z=>'"'+String(z??'').replace(/"/g,'""')+'"').join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='adine-reader-raw-table.csv';a.click();URL.revokeObjectURL(url)};return <section className="panel srs"><div className="panel-heading"><div><span className="step">تحلیل</span><h3>گزارش‌ساز تحلیلی سرولوژی</h3></div><span className="tag">نمای تخصصی</span></div>
