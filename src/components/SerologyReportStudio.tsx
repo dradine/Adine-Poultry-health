@@ -111,8 +111,8 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
  const ibdRun=relatedRuns.filter(x=>x.flock_id===run.flock_id&&x.disease_code==='IBD'&&x.model_family==='deventer-live-conventional').sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
  const ibdOutput=(ibdRun?.output_snapshot||{}) as O
  const ibdAgeRaw=ibdOutput.labelConstrainedVaccinationAgeDays??ibdOutput.estimatedVaccinationAgeDays
- const ibdAge=typeof ibdAgeRaw==='number'&&Number.isFinite(ibdAgeRaw)?ibdAgeRaw:null
- const ibdDate=ibdAge!==null&&flock?.hatch_date?new Date(Date.parse(flock.hatch_date+'T00:00:00Z')+ibdAge*86400000).toISOString().slice(0,10):''
+ const ibdAge=typeof ibdAgeRaw==='number'&&Number.isFinite(ibdAgeRaw)&&ibdAgeRaw>=0&&ibdAgeRaw<=500?ibdAgeRaw:null
+ const ibdDate=ibdAge!==null&&flock?.hatch_date&&/^\\d{4}-\\d{2}-\\d{2}$/.test(flock.hatch_date)?new Date(Date.parse(flock.hatch_date+'T00:00:00Z')+ibdAge*86400000).toISOString().slice(0,10):''
  const clinical=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
  const label=(v:string)=>({ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو',other:'سایر'} as Record<string,string>)[v]||v
  const platform=(v:string)=>({'live-conventional':'زنده متعارف',inactivated:'غیرفعال/کشته','immune-complex':'ایمنی‌کمپلکس','recombinant-vector':'وکتور نوترکیب',unknown:'نامشخص',other:'سایر'} as Record<string,string>)[v]||v
