@@ -9,6 +9,7 @@ import { emptyClinicalContext, resolveVaccinationEvents, validateClinicalContext
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
 import FlockReadinessReport from './FlockReadinessReport'
+import FlockReferencePanel from './FlockReferencePanel'
 import SerologyReaderImport from './SerologyReaderImport'
 import ClinicalContextEditor from './ClinicalContextEditor'
 import { calculateBioChekVI, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
@@ -108,7 +109,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   <div className="panel-heading"><div><span className="step">{mode==='reports'?'گزارش':'۴'}</span><h3>{mode==='reports'?'گزارش‌های این گله':'ثبت آزمایش و تحلیل سرولوژی'}</h3></div><span className="tag">ذخیره محلی و همگام‌سازی</span></div>
   {mode!=='entry'&&<p className="muted">هر نوبت گزارش مستقل دارد و به گله انتخاب‌شده متصل می‌شود. حساب همگام‌سازی: {accountEmail||'وارد نشده'}.</p>}
   {mode==='reports'&&<div className="form-grid report-flock-selector"><label>پرونده‌ای که گزارش آن نمایش داده می‌شود<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه پرونده‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select><small>اگر پرونده آموزشی سرولوژی را نمی‌بینید، ابتدا از پنل همگام‌سازی ابری، همگام‌سازی را اجرا کنید.</small></label></div>}
-  {mode==='reports'&&flockId&&<FlockReadinessReport flockId={flockId}/>}
+  {mode==='reports'&&flockId&&<><FlockReferencePanel flockId={flockId} flockName={fl.find(x=>x.id===flockId)?.name}/><FlockReadinessReport flockId={flockId}/></>}
   {runs.some(r=>r.input_snapshot.demo===true)&&<p className="muted" role="note">نمونه‌های دارای برچسب «شبیه‌سازی‌شده» فقط برای مشاهده امکانات گزارش و مقایسه هستند؛ داده آزمایشگاهی واقعی، QC واقعی یا مبنای تصمیم واکسیناسیون نیستند.</p>}{mode==='all'&&<div className="disease-grid">{diseases.map(x=><button type="button" key={x.code} className={disease===x.code?'disease active':'disease'} onClick={()=>{setDisease(x.code);setOpenId('')}}><b>{x.title}</b><small>{runs.filter(r=>r.disease_code===x.code&&r.model_family==='serology-longitudinal-round').length.toLocaleString('fa-IR')} نوبت</small></button>)}</div>}
   {mode==='all'&&<div className="form-grid"><label>گله<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه گله‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select></label><label>پرونده فعال<input value={title} readOnly/></label></div>}
   {mode!=='reports'&&<div className="wizard-nav"><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی سوابق</button></div>}
