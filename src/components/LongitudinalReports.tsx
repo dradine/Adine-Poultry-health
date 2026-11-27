@@ -41,6 +41,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const [qc,setQc]=useState('pending'),[qcEvidence,setQcEvidence]=useState(''),[lab,setLab]=useState(''),[source,setSource]=useState(''),[notes,setNotes]=useState('')
  const [vaccinationEvents,setVaccinationEvents]=useState<VaccinationEvent[]>([]),[clinicalContext,setClinicalContext]=useState<ClinicalContext>(emptyClinicalContext())
  const hydratedFlockRef=useRef('')
+ const autoOpenedFlockRef=useRef('')
  async function refresh(){const x=await Promise.all([listLocalFlocks(),listLocalModelRuns()]);setFlocks(x[0]);setRuns(x[1]);setHistoryLoaded(true)}
  useEffect(()=>{if(initialFlockId)setFlockId(initialFlockId)},[initialFlockId])
  useEffect(()=>{setForm(mode!=='reports')},[mode])
@@ -53,6 +54,12 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const fl=useMemo(()=>{const m=new Map<string,{id:string;name:string;placement:string}>();flocks.forEach(x=>m.set(x.id,{id:x.id,name:x.flock_name,placement:x.placement_date}));profiles.forEach(x=>{if(!m.has(x.id))m.set(x.id,{id:x.id,name:x.flockName,placement:x.placementDate})});return [...m.values()]},[flocks,profiles])
  const rows=runs.filter(x=>(mode==='reports'||x.disease_code===disease)&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
+ const latestReportId=rows[rows.length-1]?.id||''
+ useEffect(()=>{
+  if(mode!=='reports'||!flockId||!historyLoaded||autoOpenedFlockRef.current===flockId)return
+  autoOpenedFlockRef.current=flockId
+  setOpenId(latestReportId)
+ },[mode,flockId,historyLoaded,latestReportId])
  const previousFlockRun=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0]
  useEffect(()=>{if(!flockId||!historyLoaded||hydratedFlockRef.current===flockId)return;hydratedFlockRef.current=flockId;const latest=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0];if(latest){const i=latest.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext())}else{setVaccinationEvents([]);setClinicalContext(emptyClinicalContext())}},[flockId,runs,historyLoaded])
  async function deleteSerologyRun(run: LocalModelRun) {
@@ -110,6 +117,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   {mode!=='entry'&&<p className="muted">هر نوبت گزارش مستقل دارد و به گله انتخاب‌شده متصل می‌شود. حساب همگام‌سازی: {accountEmail||'وارد نشده'}.</p>}
   {mode==='reports'&&<div className="form-grid report-flock-selector"><label>پرونده‌ای که گزارش آن نمایش داده می‌شود<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه پرونده‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select><small>اگر پرونده آموزشی سرولوژی را نمی‌بینید، ابتدا از پنل همگام‌سازی ابری، همگام‌سازی را اجرا کنید.</small></label></div>}
   {mode==='reports'&&flockId&&<><FlockReferencePanel flockId={flockId} flockName={fl.find(x=>x.id===flockId)?.name}/><FlockReadinessReport flockId={flockId}/></>}
+  {mode==='reports'&&flockId&&rows.length===0&&<p className="srs-note">برای این گله هنوز نوبت سرولوژی ثبت نشده است. اگر قصد مشاهده گزارش نمونه را دارید، از فهرست بالا «آدینه — گله آموزشی سرولوژی (داده شبیه‌سازی‌شده)» را انتخاب کنید؛ این داده‌ها آموزشی‌اند و مبنای تصمیم بالینی نیستند. اگر اطلاعات واقعی را در فضای ابری ثبت کرده‌اید اما دیده نمی‌شوند، ابتدا همگام‌سازی ابری را اجرا کنید.</p>}
   {runs.some(r=>r.input_snapshot.demo===true)&&<p className="muted" role="note">نمونه‌های دارای برچسب «شبیه‌سازی‌شده» فقط برای مشاهده امکانات گزارش و مقایسه هستند؛ داده آزمایشگاهی واقعی، QC واقعی یا مبنای تصمیم واکسیناسیون نیستند.</p>}{mode==='all'&&<div className="disease-grid">{diseases.map(x=><button type="button" key={x.code} className={disease===x.code?'disease active':'disease'} onClick={()=>{setDisease(x.code);setOpenId('')}}><b>{x.title}</b><small>{runs.filter(r=>r.disease_code===x.code&&r.model_family==='serology-longitudinal-round').length.toLocaleString('fa-IR')} نوبت</small></button>)}</div>}
   {mode==='all'&&<div className="form-grid"><label>گله<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه گله‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select></label><label>پرونده فعال<input value={title} readOnly/></label></div>}
   {mode!=='reports'&&<div className="wizard-nav"><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی سوابق</button></div>}
