@@ -6,7 +6,7 @@ import DateObject from 'react-date-object'
 import { ASSAY_CATALOG, type AssayCatalogEntry } from './core/assayRegistry'
 import { fetchPublicReferenceCatalog, findBttAssayForProduct, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
-import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import { calculateSamplingAgeFromHatch } from './core/samplingAge'
 import DiseaseMonitoring from './DiseaseMonitoring'
@@ -18,6 +18,7 @@ import BaselineLibrary from './components/BaselineLibrary'
 import LongitudinalReports from './components/LongitudinalReports'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
+import FlockReferencePanel from './components/FlockReferencePanel'
 
 type SavedProfile = {
   id: string
@@ -54,6 +55,10 @@ type SavedAnalysis = {
   percentileRank: number
   sampleCount: number
   warnings?: string[]
+  samplingDate?: string
+  samplingTime?: string
+  timingTargetAt?: string | null
+  timingHours?: number | null
   plateQcAccepted: boolean
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
@@ -115,6 +120,7 @@ export default function App() {
   const [hatchery, setHatchery] = useState('')
   const [vaccinationHistory, setVaccinationHistory] = useState('')
   const [samplingAge, setSamplingAge] = useState('14')
+  const [samplingTime, setSamplingTime] = useState('')
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
   const [correctionDays, setCorrectionDays] = useState('0')
@@ -250,7 +256,7 @@ export default function App() {
       setBttSource('')
       setSelectedAssayId('')
       setKitName('')
-      setMinimumSampleCount('23')
+      setMinimumSampleCount('')
       setMinimumSampleCountSource('')
       setError('')
       return
@@ -347,6 +353,18 @@ export default function App() {
       })
     } catch { return [] }
   }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent])
+  const vaccinationTiming = useMemo(() => {
+    if (!result || !sampleDate || !samplingTime) return null
+    try {
+      return calculateVaccinationTiming({
+        currentTiter: result.percentileTiter,
+        breakthroughTiter: Number(normalizeDigits(btt)),
+        halfLifeDays: Number(normalizeDigits(halfLife)),
+        sampledAt: `${sampleDate}T${samplingTime}`,
+        correctionHours: Number(normalizeDigits(correctionDays)) * 24,
+      })
+    } catch { return null }
+  }, [result, sampleDate, samplingTime, btt, halfLife, correctionDays])
 
   async function exportBackup() {
     try {
@@ -436,6 +454,10 @@ export default function App() {
       percentileRank: result.percentileRank,
       sampleCount: result.sampleCount,
       warnings: result.warnings,
+      samplingDate: sampleDate || undefined,
+      samplingTime: samplingTime || undefined,
+      timingTargetAt: vaccinationTiming?.targetAt || null,
+      timingHours: vaccinationTiming?.hoursUntilThreshold || null,
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
@@ -583,6 +605,7 @@ export default function App() {
             ))}
           </div>
         )}
+        <FlockReferencePanel flockId={selectedFlockId} flockName={flockName} />
       </section>}
 
 
@@ -596,6 +619,10 @@ export default function App() {
         <div className="form-grid">
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
+          </label>
+          <label>ساعت دقیق نمونه‌گیری (برای پیش‌بینی ساعتی)
+            <input type="time" value={samplingTime} onChange={(e) => setSamplingTime(e.target.value)} />
+            <small>تاریخ نمونه‌گیری را در مشخصات گله وارد کنید. بدون تاریخ و ساعت، فقط سن روزانه محاسبه می‌شود.</small>
           </label>
         </div>
         <details className="custom-kit-accordion"><summary>جزئیات کیت، واکسن و پارامترهای محاسبه (اختیاری برای نمایش)</summary>
@@ -631,7 +658,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount('23'); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount(''); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
             <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
@@ -694,6 +721,14 @@ export default function App() {
             <div className="result-number">
               <strong>{result.estimatedVaccinationAgeDays === null ? '—' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1))}</strong>
               <span>{result.estimatedVaccinationAgeDays === null ? 'زمان قابل‌برآورد نیست؛ آستانه در سن نمونه‌گیری یا قبل از آن رسیده است' : 'روزگی تخمینی'}</span>
+            </div>
+            <div className="vaccination-timing-card">
+              <div className="result-heading"><span>پنجره پیشنهادی واکسیناسیون بعدی</span><span className="tag warning">برآورد مدل</span></div>
+              {!sampleDate || !samplingTime ? <p>برای نمایش تاریخ و ساعت، تاریخ نمونه‌گیری در مشخصات گله و ساعت دقیق نمونه‌گیری را وارد کنید.</p> : vaccinationTiming?.status === 'future-window' ? <>
+                <div className="result-number"><strong>{toPersianDigits(String(vaccinationTiming.wholeHours))} ساعت و {toPersianDigits(String(vaccinationTiming.remainingMinutes))} دقیقه</strong><span>فاصله مدل تا رسیدن تیتر صدک انتخابی به BTT</span></div>
+                <p><b>زمان تقویمی پیشنهادی مدل</b> {new Date(vaccinationTiming.targetAt || '').toLocaleString('fa-IR', { dateStyle: 'full', timeStyle: 'short' })}</p>
+                <p className="muted">این یک پنجره زمانی بر پایه افت log₂ آنتی‌بادی است. اجرای واکسن باید با IFU، شرایط گله، برنامه مزرعه و تأیید دامپزشک نهایی شود.</p>
+              </> : <p className="error">تیتر فعلی برابر یا پایین‌تر از BTT است؛ مدل زمان آینده‌ای برای این نقطه پیشنهاد نمی‌کند.</p>}
             </div>
             <div className="result-details">
               <div><small>تیتر صدک انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
@@ -762,7 +797,7 @@ export default function App() {
       {wizardStep===4&&<LongitudinalReports profiles={profiles} mode="entry" initialFlockId={selectedFlockId} initialDisease={selectedDisease}/>} 
       <div className="workflow-bottom"><button className="button secondary" onClick={()=>setView('home')}>بازگشت به صفحه اصلی</button>{wizardStep<4&&<button className="button primary" onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>ادامه</button>}</div>
       </>}
-      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
+      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><FlockReferencePanel flockId={selectedFlockId} flockName={profiles.find(x=>x.id===selectedFlockId)?.flockName}/><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
       {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>

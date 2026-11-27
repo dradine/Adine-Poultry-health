@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import {
   countPendingChanges, importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listOutbox,
-  markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun,
-  upsertLocalFromCloud, reconcileLocalWithCloud,
+  markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun, changeDeletion,
+  upsertLocalFromCloud, reconcileLocalWithCloud, saveLocalReferenceRecord, listLocalReferenceRecords, markLocalReferenceDeleted,
 } from './localFirstDb'
 
 const makeFlock = (id: string) => ({
@@ -88,6 +88,18 @@ describe('IndexedDB local-first persistence', () => {
     expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
     const deletion = (await listOutbox()).find(item => item.recordId === id && item.operation === 'delete')
     expect(deletion?.payload?.updated_at).toBe('2026-11-16T10:00:00.000Z')
+    expect(deletion?.mutation).toMatch(/[0-9a-f-]{36}/)
+    expect(deletion?.base).toMatch(/[0-9a-f-]{36}/)
+  })
+  it('keeps a tombstone until an explicit restore mutation is queued', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await markLocalDeleted('flocks', id)
+    expect((await listLocalFlocks()).some(row => row.id === id)).toBe(false)
+    await changeDeletion('flocks', id, false)
+    expect((await listLocalFlocks()).some(row => row.id === id)).toBe(true)
+    const item = (await listOutbox()).find(row => row.recordId === id)
+    expect(item?.operation).toBe('restore')
   })
 
   it('marks successful sync state without removing the local record', async () => {
@@ -97,6 +109,23 @@ describe('IndexedDB local-first persistence', () => {
     const row = (await listLocalFlocks()).find(item => item.id === id)
     expect(row?.syncState).toBe('synced')
     expect(await countPendingChanges()).toBeGreaterThan(0)
+  })
+
+  it('stores independent flock reference records and queues safe local operations', async () => {
+    const flockId = crypto.randomUUID()
+    const id = crypto.randomUUID()
+    await saveLocalReferenceRecord('flock_vaccination_events', {
+      id, flock_id: flockId, event_date: '2026-11-20', age_days: 14, disease_code: 'IBD',
+      product_name: 'محصول آزمون', platform: 'live', route: 'water',
+      created_at: '2026-11-20T10:00:00.000Z', updated_at: '2026-11-20T10:00:00.000Z',
+    })
+    const rows = await listLocalReferenceRecords('flock_vaccination_events', flockId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].product_name).toBe('محصول آزمون')
+    expect((await listOutbox()).find(item => item.recordId === id)?.entity).toBe('flock_vaccination_events')
+    await markLocalReferenceDeleted('flock_vaccination_events', id)
+    expect(await listLocalReferenceRecords('flock_vaccination_events', flockId)).toHaveLength(0)
+    expect((await listOutbox()).find(item => item.recordId === id)?.operation).toBe('delete')
   })
 })
 

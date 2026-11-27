@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, calculateIbdSensitivity, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -32,6 +32,32 @@ describe('IBD Deventer-style mathematical estimator', () => {
   it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
   it('accepts a documented correction for day-old sampling',()=>expect(calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:2}).estimatedVaccinationAgeDays).toBeGreaterThan(2))
   it('keeps an already-crossed BTT status even when positive age correction shifts the raw formula forward',()=>{const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:50,titers:[80,90,95],correctionDays:2});expect(r.rawCalculatedAgeDays).toBeGreaterThan(2);expect(r.thresholdAlreadyReachedAtSampling).toBe(true);expect(r.estimatedVaccinationAgeDays).toBeNull();expect(r.warnings.join(' ')).toContain('اصلاح سن نمی‌تواند')})
+})
+
+describe('future vaccination timing window', () => {
+  it('returns an exact hour/minute window and an ISO target timestamp', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 800, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })
+    expect(r.status).toBe('future-window')
+    expect(r.hoursUntilThreshold).toBe(216)
+    expect(r.wholeHours).toBe(216)
+    expect(r.remainingMinutes).toBe(0)
+    expect(r.targetAt).toBe('2026-12-06T08:00:00.000Z')
+  })
+  it('keeps fractional hours as minutes and includes a documented correction', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionHours: 0.5, sampledAt: '2026-11-27T08:00Z' })
+    expect(r.wholeHours).toBe(212)
+    expect(r.remainingMinutes).toBe(16)
+    expect(r.daysUntilThreshold).toBeCloseTo(8.844, 3)
+  })
+  it('does not create a future appointment when BTT is already reached', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })
+    expect(r.status).toBe('threshold-already-reached')
+    expect(r.targetAt).toBeNull()
+  })
+  it('rejects missing timestamps and non-positive inputs', () => {
+    expect(() => calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '' })).toThrow()
+    expect(() => calculateVaccinationTiming({ currentTiter: 0, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z' })).toThrow()
+  })
 })
 
 describe('IBD assay quality gate', () => {

@@ -1,0 +1,5 @@
+Sample ID,Role,S/P,Assay Code,Lot
+ID-001,Sample,0.85,IBD-SYN,L-SYN-03
+ID-002,Sample,1.10,IBD-SYN,L-SYN-03
+POS-01,Positive,1.90,IBD-SYN,L-SYN-03
+NEG-01,Negative,0.12,IBD-SYN,L-SYN-03

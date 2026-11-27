@@ -25,6 +25,54 @@ export type IbdOutput = {
   coefficientOfVariationPercent: number
   warnings: string[]
 }
+export type VaccinationTimingInput = {
+  currentTiter: number
+  breakthroughTiter: number
+  halfLifeDays: number
+  sampledAt: string
+  correctionHours?: number
+}
+export type VaccinationTimingOutput = {
+  status: 'future-window' | 'threshold-already-reached'
+  hoursUntilThreshold: number | null
+  wholeHours: number | null
+  remainingMinutes: number | null
+  targetAt: string | null
+  daysUntilThreshold: number | null
+  warnings: string[]
+}
+
+/**
+ * Estimates when the selected antibody titre reaches the product BTT on a
+ * log2 decay curve. This is a mathematical timing window, not a vaccination
+ * order or a claim of clinical protection.
+ */
+export function calculateVaccinationTiming(input: VaccinationTimingInput): VaccinationTimingOutput {
+  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, correctionHours = 0 } = input
+  if (!Number.isFinite(currentTiter) || currentTiter <= 0) throw new Error('تیتر فعلی باید عدد مثبت باشد.')
+  if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت باشد.')
+  if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عددی مثبت باشد.')
+  if (!Number.isFinite(correctionHours) || correctionHours < 0 || correctionHours > 96) throw new Error('اصلاح زمانی باید بین صفر تا ۹۶ ساعت باشد.')
+  const sampledTimestamp = Date.parse(sampledAt)
+  if (!Number.isFinite(sampledTimestamp)) throw new Error('تاریخ و ساعت نمونه‌گیری معتبر نیست.')
+  const warnings = [
+    'این زمان، رسیدن مدل افت آنتی‌بادی به BTT را نشان می‌دهد و به‌تنهایی دستور واکسیناسیون یا تضمین حفاظت نیست.',
+    'پیش از اجرا، IFU واکسن و کیت، وضعیت بالینی گله، سن، زنجیره سرد، مسیر اجرا و نظر دامپزشک بررسی شود.',
+  ]
+  if (currentTiter <= breakthroughTiter) {
+    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'تیتر فعلی برابر یا پایین‌تر از BTT است؛ پنجره آینده از این مدل قابل استخراج نیست.'] }
+  }
+  const decayHours = halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter)
+  const hoursUntilThreshold = decayHours + correctionHours
+  if (!Number.isFinite(hoursUntilThreshold) || hoursUntilThreshold <= 0) {
+    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'زمان محاسبه‌شده به آینده نمی‌رسد؛ ورودی‌ها و اصلاح زمانی را بازبینی کنید.'] }
+  }
+  let wholeHours = Math.floor(hoursUntilThreshold)
+  let remainingMinutes = Math.round((hoursUntilThreshold - wholeHours) * 60)
+  if (remainingMinutes === 60) { wholeHours += 1; remainingMinutes = 0 }
+  const targetAt = new Date(sampledTimestamp + hoursUntilThreshold * 60 * 60 * 1000).toISOString()
+  return { status: 'future-window', hoursUntilThreshold, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: hoursUntilThreshold / 24, warnings }
+}
 export type IbdDeventerProductGateInput = {
   diseaseCode: string
   platform: string

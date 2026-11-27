@@ -2,10 +2,12 @@ import { supabase } from './supabase'
 import { validateMdaParameterProvenance, type MdaParameterProvenance } from './maternalAntibody'
 import { normalizeDigits } from './ibd'
 import {
-  listOutbox, removeOutboxItem, recordOutboxFailure, markLocalSynced,
-  removeLocalRecord, listLocalFlocks, listLocalModelRuns, upsertLocalFromCloud,
+  listOutbox, acknowledge, recordOutboxFailure,
+  listLocalFlocks, listLocalModelRuns, upsertLocalFromCloud,
   setSyncMeta, getSyncMeta, saveLocalFlock, saveLocalModelRun, reconcileLocalWithCloud,
-  type LocalFlock, type LocalModelRun, type OutboxItem,
+  upsertLocalReferenceFromCloud, reconcileLocalReferenceWithCloud,
+  upsertLocalAuditFromCloud,
+  type LocalFlock, type LocalModelRun, type OutboxItem, type OutboxEntity,
 } from './localFirstDb'
 
 const PROFILE_KEY = 'adine-vaccine-timing-profiles-v1'
@@ -24,6 +26,7 @@ type LegacyAnalysis = {
   vaccineLabelVersion?: string | null; bttAssayKitId?: string | null
   savedAt: string
 }
+type ReferenceEntity = 'flock_vaccination_events' | 'flock_clinical_observations' | 'flock_time_series'
 function parseArray<T>(key: string): T[] {
   try {
     const value = JSON.parse(localStorage.getItem(key) || '[]')
@@ -224,56 +227,16 @@ export async function refreshLegacyCacheFromLocal(): Promise<void> {
   localStorage.setItem(ANALYSIS_KEY, JSON.stringify(legacy.analyses.slice(0, 1000)))
 }
 async function applyOutbox(item: OutboxItem, userId: string): Promise<void> {
-  const table = item.entity
-  if (item.operation === 'delete') {
-    if (item.entity === 'flocks') {
-      const [remoteRuns, localRuns] = await Promise.all([
-        supabase.from('model_runs').select('id', { count: 'exact', head: true }).eq('flock_id', item.recordId),
-        listLocalModelRuns(true),
-      ])
-      if (remoteRuns.error) throw remoteRuns.error
-      const localRunCount = localRuns.filter(run => run.flock_id === item.recordId).length
-      if ((remoteRuns.count || 0) > localRunCount) {
-        throw new Error('حذف گله متوقف شد: سوابق ابری این گله از سوابق موجود روی این دستگاه بیشتر است. ابتدا همگام‌سازی کامل سوابق را انجام دهید.')
-      }
-    }
-    if (item.entity === 'flocks' && item.payload?.updated_at) {
-      const { data: remote, error: readError } = await supabase.from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
-      if (readError) throw readError
-      const remoteTime = remote?.updated_at ? Date.parse(remote.updated_at) : 0
-      const localTime = Date.parse(String(item.payload.updated_at))
-      if (remoteTime && localTime && remoteTime > localTime + 1000) {
-        throw new Error('تعارض حذف گله: نسخه ابری پس از آخرین نسخه این دستگاه تغییر کرده است. حذف متوقف شد تا اطلاعات جدیدتر از بین نرود.')
-      }
-    }
-    const { error } = await supabase.from(table).delete().eq('id', item.recordId)
-    if (error) throw error
-    await removeLocalRecord(item.entity, item.recordId)
-  } else {
-    const payload: Record<string, unknown> = { ...(item.payload || {}), owner_id: userId }
-    if (item.entity === 'flocks') {
-      const { data: remote, error: readError } = await supabase
-        .from('flocks').select('updated_at').eq('id', item.recordId).maybeSingle()
-      if (readError) throw readError
-      const localTime = Date.parse(String(payload['updated_at'] || ''))
-      const remoteTime = remote?.updated_at ? Date.parse(remote.updated_at) : 0
-      if (remoteTime && localTime && remoteTime > localTime + 1000) {
-        throw new Error('تعارض ویرایش گله: نسخه ابری جدیدتر از نسخه این دستگاه است. تغییر محلی در صف باقی ماند و برای جلوگیری از بازنویسی اطلاعات دستگاه دیگر، ارسال متوقف شد.')
-      }
-      const { error } = await supabase.from('flocks').upsert(payload, { onConflict: 'id' })
-      if (error) throw error
-    } else {
-      const { data: existing, error: readError } = await supabase
-        .from('model_runs').select('id').eq('id', item.recordId).maybeSingle()
-      if (readError) throw readError
-      if (!existing) {
-        const { error } = await supabase.from('model_runs').insert(payload)
-        if (error) throw error
-      }
-    }
-    await markLocalSynced(item.entity, item.recordId)
-  }
-  await removeOutboxItem(item)
+  if (!item.mutation) throw new Error('تغییر قدیمی فاقد نسخه مبناست. برای حفظ ویرایش، تطبیق دستی لازم است.')
+  const {data,error} = await supabase.rpc('apply_flock_change',{
+    p_table:item.entity, p_id:item.recordId, p_base:item.base ?? null,
+    p_mutation:item.mutation, p_operation:item.operation, p_payload:item.payload || {},
+  })
+  if (error) throw new Error(error.message)
+  if (!data || data.owner_id !== userId || data.id !== item.mutation) throw new Error('رسید معتبر دریافت نشد.')
+  await upsertLocalAuditFromCloud(data)
+  await acknowledge(item,data.action === 'conflict')
+  if (data.action === 'conflict') throw new Error('تعارض نسخه ثبت شد. ویرایش محلی برای بازبینی نگهداری شد.')
 }
 export type MdaRunDraft = {
   id?: string
@@ -336,12 +299,13 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
   return id
 }
 
-async function fetchAllOwnedRows(table: 'flocks' | 'model_runs', userId: string): Promise<Record<string, unknown>[]> {
+type CloudEntity = OutboxEntity | 'flock_audit_events'
+async function fetchAllOwnedRows(table: CloudEntity, userId: string): Promise<Record<string, unknown>[]> {
   const rows: Record<string, unknown>[] = []
   const pageSize = 1000
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase.from(table).select('*')
-      .eq('owner_id', userId).order('created_at', { ascending: true })
+      .eq('owner_id', userId).order('id', { ascending: true })
       .range(offset, offset + pageSize - 1)
     if (error) throw error
     const page = (data || []) as unknown as Record<string, unknown>[]
@@ -358,6 +322,9 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
   if (boundAccount && boundAccount !== userId) {
     throw new Error('این دستگاه قبلاً به حساب دیگری متصل شده است. برای جلوگیری از انتقال داده‌های یک حساب به حساب دیگر، همگام‌سازی با حساب متفاوت مسدود شد.')
   }
+  const {data:{session}} = await supabase.auth.getSession()
+  if (session?.user.id !== userId) throw new Error('حساب همگام‌سازی با نشست مطابقت ندارد.')
+  const referenceEntities: ReferenceEntity[] = ['flock_vaccination_events','flock_clinical_observations','flock_time_series']
   const [queue, localFlocks, localRuns] = await Promise.all([listOutbox(), listLocalFlocks(), listLocalModelRuns()])
   if (!boundAccount && (queue.length > 0 || localFlocks.length > 0 || localRuns.length > 0)) {
     await setSyncMeta('bound-account', userId)
@@ -373,12 +340,21 @@ export async function syncLocalData(userId: string): Promise<SyncResult> {
       throw new Error('همگام‌سازی متوقف شد تا اطلاعات از بین نروند: ' + message)
     }
   }
-  const [cloudFlocks, cloudRuns] = await Promise.all([
+  const [cloudFlocks, cloudRuns, ...cloudReferences] = await Promise.all([
     fetchAllOwnedRows('flocks', userId),
     fetchAllOwnedRows('model_runs', userId),
+    ...referenceEntities.map(entity => fetchAllOwnedRows(entity, userId)),
   ])
+  const cloudAudit = await fetchAllOwnedRows('flock_audit_events', userId)
   for (const row of cloudFlocks) await upsertLocalFromCloud('flocks', row)
   for (const row of cloudRuns) await upsertLocalFromCloud('model_runs', row)
+  for (let index = 0; index < referenceEntities.length; index += 1) {
+    const entity = referenceEntities[index]
+    const rows = cloudReferences[index] || []
+    for (const row of rows) await upsertLocalReferenceFromCloud(entity, row)
+    await reconcileLocalReferenceWithCloud(entity, rows.map(row => String(row.id)))
+  }
+  for (const row of cloudAudit) await upsertLocalAuditFromCloud(row)
   await reconcileLocalWithCloud('flocks', cloudFlocks.map(row => String(row.id)))
   await reconcileLocalWithCloud('model_runs', cloudRuns.map(row => String(row.id)))
   const lastSyncAt = new Date().toISOString()

@@ -48,6 +48,10 @@ textarea{resize:vertical;line-height:1.9}
 .data-summary{display:flex;justify-content:space-between;align-items:center;background:#f5f8f6;padding:11px 14px;border-radius:10px;margin-top:14px;font-size:12px;color:#63736b}
 .data-summary strong{font-size:16px;color:#1c503e}
 .result-card{margin-top:16px;background:#f1f7f3;border:1px solid #dcebe1;border-radius:14px;padding:17px}
+.vaccination-timing-card{margin-top:16px;background:#fffaf0;border:1px solid #ead9b0;border-radius:14px;padding:15px}
+.vaccination-timing-card .result-number{margin:10px 0 0}
+.vaccination-timing-card .result-number strong{font-size:25px;color:#7b5412}
+.vaccination-timing-card p{line-height:1.9}
 .result-heading{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;gap:8px}
 .warning{background:#fff0d6;color:#8b6424}
 .result-number{text-align:center;padding:18px 0 14px}
@@ -172,6 +176,23 @@ footer{text-align:center;color:#89958e;font-size:11px;padding:24px 0 0}
 @media(max-width:680px){.monitor-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.monitor-dashboard{padding:11px}.monitor-metric b{font-size:13px}}
 
 .strain-kit-context{margin:10px 0;padding:12px;border:1px solid #d8e5dd;border-radius:10px;background:#fff;font-size:12px;line-height:1.8}.strain-kit-context p{margin:3px 0}.strain-kit-context small{color:#74837a}
+
+.flock-reference-panel{margin-top:18px;padding:17px;border:1px solid #d9e6dd;border-radius:16px;background:linear-gradient(180deg,#fbfefc,#f5faf7);display:grid;gap:14px}
+.flock-reference-header{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.flock-reference-header h3{margin:5px 0;font-size:15px;color:#244d38}
+.flock-reference-header p{margin:0;color:#74837a;font-size:11px;line-height:1.8}
+.flock-reference-count{padding:7px 10px;border-radius:99px;background:#e8f3ec;color:#2d654a;font-size:11px;white-space:nowrap}
+.reference-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.reference-card{border:1px solid #dce8df;border-radius:12px;background:#fff;padding:0 12px}
+.reference-card summary{padding:12px 0;cursor:pointer;color:#285940;font-weight:700;font-size:12px;list-style:none}
+.reference-card summary::-webkit-details-marker{display:none}
+.reference-card summary::after{content:'＋';float:left;color:#5c8b6d}
+.reference-card[open] summary::after{content:'−'}
+.reference-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-bottom:9px}
+.reference-form label{font-size:10px;gap:4px}.reference-form input,.reference-form select,.reference-form textarea{font-size:11px;padding:8px;border-radius:8px}.reference-card .button{width:100%;margin:0 0 12px;padding:8px;font-size:11px}
+.reference-message{margin:0;padding:8px 10px;border-radius:8px;background:#eaf6ee;color:#2a6548;font-size:11px}.reference-card .wide-label{grid-column:1/-1;margin-top:0}
+.reference-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.reference-summary div{display:grid;gap:3px;padding:9px;background:#fff;border:1px solid #e2ebe5;border-radius:9px;text-align:center}.reference-summary b{font-size:16px;color:#276248}.reference-summary small{font-size:10px;color:#78877f}.flock-reference-empty{padding:12px;border-radius:10px;background:#fff;color:#74837a;font-size:11px}
+@media(max-width:760px){.reference-grid{grid-template-columns:1fr}.flock-reference-header{flex-direction:column}.flock-reference-count{align-self:flex-start}}
 
 
 /* Focused professional workspace navigation */

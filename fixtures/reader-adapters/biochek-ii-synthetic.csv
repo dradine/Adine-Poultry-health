@@ -1,0 +1,5 @@
+Sample ID,Type,Result,Kit Lot,Sampling Date
+S-001,Sample,1200,L-SYN-01,2026-11-20
+S-002,Sample,2400,L-SYN-01,2026-11-20
+PC-01,Positive,1.5,L-SYN-01,2026-11-20
+NC-01,Negative,0.1,L-SYN-01,2026-11-20

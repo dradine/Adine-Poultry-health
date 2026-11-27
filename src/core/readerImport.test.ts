@@ -16,12 +16,27 @@ describe('reader export import',()=>{
   expect(r.values).toEqual([1200,1800]);expect(r.controlRows).toHaveLength(1)
  })
  it('rejects malformed sample rows and duplicate IDs',()=>{
-  const bad=parseDelimitedTable('ID,Result\nA1,100\nA2,NA')
+  const bad=parseDelimitedTable('ID,Result\nA1,100\nA2,not-a-number')
   expect(()=>mapReaderRows(bad,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/ردیف نمونه نامعتبر/)
   const dup=parseDelimitedTable('ID,Result\nA1,100\nA1,200')
   expect(()=>mapReaderRows(dup,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/تکراری/)
  })
  it('allows zero ELISA OD but rejects zero reciprocal HI titre',()=>{expect(normalizeReaderNumber('0','ELISA')).toBe(0);expect(()=>normalizeReaderNumber('0','HI')).toThrow()})
+ it('preserves censored and missing sample results instead of converting them to numbers',()=>{
+  const t=parseDelimitedTable('ID,Result\nA1,<LOD\nA2,>ULOQ\nA3,NA\nA4,120')
+  const r=mapReaderRows(t,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')
+  expect(r.values).toEqual([120]); expect(r.censoredRows.map(x=>x.status)).toEqual(['below_lod','above_uloq','missing'])
+ })
+ it('recognizes common censored laboratory spellings without numeric substitution',()=>{
+  const t=parseDelimitedTable('ID,Result\nA1,<10\nA2,>500\nA3,below LOD\nA4,above ULOQ\nA5,ND\nA6,1.2')
+  const r=mapReaderRows(t,{resultColumn:1,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')
+  expect(r.values).toEqual([1.2])
+  expect(r.censoredRows.map(x=>[x.value,x.status])).toEqual([['<10','below_lod'],['>500','above_uloq'],['below LOD','below_lod'],['above ULOQ','above_uloq'],['ND','missing']])
+ })
+ it('stops when control-like rows exist without an explicit role mapping',()=>{
+  const t=parseDelimitedTable('ID,Label,Result\nA1,Sample,1\nPC,Positive control,2\nA2,Sample,1.5')
+  expect(()=>mapReaderRows(t,{resultColumn:2,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/کنترل/)
+ })
  it('normalizes Persian digits and HI 1:16 notation',()=>{
   expect(normalizeReaderNumber('۱:۱۶','HI')).toBe(16)
   expect(normalizeReaderNumber('۰٫۲۵','ELISA')).toBe(0.25)
