@@ -9,6 +9,7 @@ import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
 import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import { calculateSamplingAgeFromHatch } from './core/samplingAge'
+import { getTimeZoneOffsetMinutesEast, instantToZonedDateTime, zonedDateTimeToIso } from './core/zonedTime'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import StrainSelector from './components/StrainSelector'
 import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
@@ -486,9 +487,9 @@ export default function App() {
       samplingTime: samplingTime || undefined,
       timingTargetAt: vaccinationTiming?.targetAt || null,
       timingHours: vaccinationTiming?.hoursUntilThreshold ?? null,
-      sampledAtIso: sampleDate && samplingTime ? (() => { const d = new Date(`${sampleDate}T${samplingTime}`); return Number.isFinite(d.getTime()) ? d.toISOString() : undefined })() : undefined,
-      samplingTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || undefined,
-      samplingTimeZoneOffsetMinutes: sampleDate && samplingTime ? new Date(`${sampleDate}T${samplingTime}`).getTimezoneOffset() : undefined,
+      sampledAtIso: sampleDate && samplingTime ? (zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || undefined) : undefined,
+      samplingTimeZone: sampleDate && samplingTime ? 'Asia/Tehran' : undefined,
+      samplingTimeZoneOffsetMinutes: sampleDate && samplingTime ? (() => { const iso = zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran'); return iso ? getTimeZoneOffsetMinutesEast(iso, 'Asia/Tehran') ?? undefined : undefined })() : undefined,
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
@@ -530,13 +531,11 @@ export default function App() {
     setMinimumSampleCountSource(item.minimumSampleCountSource || '')
     setSusceptiblePercent(item.susceptiblePercent)
     setTitersText(item.titersText)
-    // Restore the original instant, rendered in this device's local timezone. This avoids
-    // silently reinterpreting the old wall-clock time when an analysis is opened elsewhere.
+    // Restore the original instant in the flock's stored timezone, not the current device timezone.
     if (item.sampledAtIso && Number.isFinite(Date.parse(item.sampledAtIso))) {
-      const sampled = new Date(item.sampledAtIso)
-      const pad = (n: number) => String(n).padStart(2, '0')
-      setSampleDate(`${sampled.getFullYear()}-${pad(sampled.getMonth() + 1)}-${pad(sampled.getDate())}`)
-      setSamplingTime(`${pad(sampled.getHours())}:${pad(sampled.getMinutes())}`)
+      const sampled = instantToZonedDateTime(item.sampledAtIso, item.samplingTimeZone || 'Asia/Tehran')
+      if (sampled) { setSampleDate(sampled.date); setSamplingTime(sampled.time) }
+      else { setSampleDate(item.samplingDate || ''); setSamplingTime(item.samplingTime || '') }
     } else {
       setSampleDate(item.samplingDate || '')
       setSamplingTime(item.samplingTime || '')

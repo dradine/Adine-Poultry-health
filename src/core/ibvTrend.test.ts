@@ -47,7 +47,8 @@ describe('IBV trend', () => {
   })
   it('labels variability across time points rather than assay precision or flock CV', () => {
     const result = analyzeIbvTrend({ observations:[{day:1,value:100},{day:14,value:200},{day:28,value:150}], assay:'ELISA kit A', measurementScale:'OD450', unit:'ELISA' })
-    expect(result.warnings.join(' ')).toContain('نه CV تحلیلی کیت')
+    expect(result.warnings.join(' ')).toContain('نه SD تحلیلی کیت')
+    expect(result.warnings.join(' ')).toContain('نه CV بین پرندگان')
     expect(result.warnings.join(' ')).toContain('fold antibody')
     expect(result.temporalCvPercent).toBeNull()
     expect(result.lastToFirstRatio).toBeNull()

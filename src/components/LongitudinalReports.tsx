@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import PersianDateInput from './PersianDateInput'
 import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
@@ -96,7 +97,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
   {mode!=='reports'&&<div className="wizard-nav"><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی سوابق</button></div>}
   {message&&<p className="muted" role="status">{message}</p>}
   {mode!=='reports'&&form&&<form className="serology-entry-form" onSubmit={submit}><h4>ثبت نوبت جدید · {title}</h4><button type="button" className="button secondary" disabled={!previousAssayRun} onClick={copyPreviousAssay}>کپی مشخصات آزمون از آخرین نوبت هم‌روش</button><small>کپی‌کردن فقط برای کاهش ورود تکراری داده‌هاست؛ Lot، نسخه IFU، Reader، پروتکل و QC را در هر نوبت کنترل کنید.</small><div className="form-grid">
-   <label>تاریخ نمونه‌گیری<input type="date" value={date} onChange={e=>setDate(e.target.value)} required/></label>
+   <label>تاریخ نمونه‌گیری<PersianDateInput value={date} onChange={setDate} required /></label>
    <label>سن گله هنگام نمونه‌گیری (روز)<input value={age} onChange={e=>setAge(e.target.value)} inputMode="decimal"/><small>برای IBD نمونه‌گیری روز صفر تا ۴ نیز پذیرفته می‌شود؛ سن از تاریخ جوجه‌ریزی/هچ دقیق ثبت شود.</small></label>
    <label>جمعیت / نوع پرنده<select value={population} onChange={e=>setPopulation(e.target.value)}><option value="unknown">نامشخص</option><option value="broiler">گوشتی</option><option value="layer">تخم‌گذار</option><option value="breeder">مادر</option><option value="other">سایر</option></select></label>
    <label>هدف نمونه‌گیری<select value={purpose} onChange={e=>setPurpose(e.target.value)}><option value="mda">آنتی‌بادی مادری / هچری</option><option value="pre-vaccination">قبل از واکسیناسیون</option><option value="post-vaccination">پس از واکسیناسیون</option><option value="routine">پایش دوره‌ای</option><option value="outbreak">بررسی در شرایط مشکوک به چالش</option></select></label>\n   <label className="wide-label"><input type="checkbox" checked={randomSamplingConfirmed} onChange={e=>setRandomSamplingConfirmed(e.target.checked)}/> نمونه‌گیری تصادفی/طبقه‌بندی‌شده با پوشش سالن‌ها انجام شده است.</label>
@@ -117,7 +118,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
    {method==='HI'&&<><label>مقدار آنتی‌ژن (HAU)<input value={hau} onChange={e=>setHau(e.target.value)}/></label><label>منبع گلبول قرمز (RBC)<input value={rbcSource} onChange={e=>setRbcSource(e.target.value)} placeholder="در صورت اطلاع"/></label><label>Lot گلبول قرمز<input value={rbcLot} onChange={e=>setRbcLot(e.target.value)}/></label><label>غلظت گلبول قرمز<input value={rbcConcentration} onChange={e=>setRbcConcentration(e.target.value)} placeholder="در صورت اطلاع"/></label><label>تیمار آنتی‌ژن<input value={antigenPretreatment} onChange={e=>setAntigenPretreatment(e.target.value)} placeholder="در صورت اطلاع"/></label><label>تیمار سرم<input value={serumPretreatment} onChange={e=>setSerumPretreatment(e.target.value)} placeholder="در صورت اطلاع"/></label><label>ضریب رقت سریالی<input value={dilutionFactor} onChange={e=>setDilutionFactor(e.target.value)} placeholder="در صورت اطلاع"/></label></>}
    <label>آزمایشگاه<input value={lab} onChange={e=>setLab(e.target.value)}/></label>
    <label>واکسن / محصول (خلاصه اختیاری)<input value={vaccine} onChange={e=>setVaccine(e.target.value)}/></label>
-   <label>تاریخ واکسیناسیون<input type="date" value={vaccineDate} onChange={e=>setVaccineDate(e.target.value)}/></label>
+   <label>تاریخ واکسیناسیون<PersianDateInput value={vaccineDate} onChange={setVaccineDate} /></label>
    <label>سویه واکسن<input value={strain} onChange={e=>setStrain(e.target.value)}/></label>
    <label>پلتفرم واکسن<select value={vaccinePlatform} onChange={e=>setVaccinePlatform(e.target.value)}><option value="unknown">نامشخص / ثبت نشده</option><option value="live-conventional">زنده متعارف</option><option value="inactivated">غیرفعال / کشته</option><option value="immune-complex">Immune-complex</option><option value="recombinant-vector">وکتور نوترکیب (rHVT و غیره)</option><option value="other">سایر</option><option value="unvaccinated">بدون واکسیناسیون</option></select></label>
    <label className="wide-label">برنامه واکسیناسیون / نوبت و مسیر تجویز<input value={vaccineProgram} onChange={e=>setVaccineProgram(e.target.value)} placeholder="مثلاً روز ۱ و ۱۴، اسپری / آب آشامیدنی / تزریقی"/></label>
