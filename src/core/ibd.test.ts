@@ -248,7 +248,7 @@ describe('IBD Deventer product platform gate', () => {
   it('accepts only documented conventional live IBD with its exact BTT assay', () => {
     expect(validateIbdDeventerProductGate(valid)).toEqual([])
   })
-  it.each([
+  const invalidCases: Array<[Parameters<typeof validateIbdDeventerProductGate>[0], string]> = [
     [{...valid, platform:'immune_complex'}, 'immune-complex'],
     [{...valid, platform:'vector_hvt', modelFamily:'hvt_vp2'}, 'HVT-VP2'],
     [{...valid, validationStatus:'unverified'}, 'مستند'],
@@ -259,7 +259,8 @@ describe('IBD Deventer product platform gate', () => {
     [{...valid, minimumVaccinationAgeDays:null}, 'حداقل سن'],
     [{...valid, labelVersion:null}, 'نسخه و سند'],
     [{...valid, bttReferenceUrl:null}, 'پیوند مرجع'],
-  ])('blocks unsupported product/assay pairing', (input) => {
+  ]
+  it.each(invalidCases)('blocks unsupported product/assay pairing', (input) => {
     expect(validateIbdDeventerProductGate(input).length).toBeGreaterThan(0)
   })
 })
