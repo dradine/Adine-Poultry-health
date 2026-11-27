@@ -121,8 +121,18 @@ export function serologyComparisonKey(r:SerologyRoundIdentity):string|null{
 export function areComparableAssayRounds(a:SerologyRoundIdentity,b:SerologyRoundIdentity):boolean{
  if(a.flockId!==b.flockId||a.diseaseCode!==b.diseaseCode)return false
  const x=a.input,y=b.input
- if(x.demo===true||y.demo===true||x.qcStatus==='fail'||y.qcStatus==='fail')return false
- const rawQc=(i:Record<string,unknown>)=>i.rawFileImported!==true||(i.readerImportMeta&&typeof i.readerImportMeta==='object'&&(i.readerImportMeta as Record<string,unknown>).qcStatus==='pass')
+ const syntheticPair=x.demo===true&&y.demo===true&&x.synthetic===true&&y.synthetic===true&&
+  typeof x.demoVersion==='string'&&x.demoVersion===y.demoVersion&&
+  x.samplingPurpose==='training-only'&&y.samplingPurpose==='training-only'&&
+  x.qcStatus==='not-run-synthetic'&&y.qcStatus==='not-run-synthetic'&&
+  x.rawFileImported!==true&&y.rawFileImported!==true
+ // Synthetic rounds may only be compared with the same explicitly versioned training dataset.
+ // They are never comparable with real assay runs and never imply QC acceptance.
+ if((x.demo===true||y.demo===true)&&!syntheticPair)return false
+ if(x.qcStatus==='fail'||y.qcStatus==='fail')return false
+ const rawQc=(i:Record<string,unknown>)=>i.demo===true
+  ? i.qcStatus==='not-run-synthetic'&&i.rawFileImported!==true
+  : i.rawFileImported!==true||(i.readerImportMeta&&typeof i.readerImportMeta==='object'&&(i.readerImportMeta as Record<string,unknown>).qcStatus==='pass')
  if(!rawQc(x)||!rawQc(y))return false
  const fields=[...commonComparisonFields,...(x.method==='HI'||y.method==='HI'?hiComparisonFields:[])]
  return fields.every(k=>(x[k]??'')===(y[k]??''))&&x.method===y.method&&x.scale===y.scale
