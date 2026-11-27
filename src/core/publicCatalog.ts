@@ -65,13 +65,21 @@ export function readCachedPublicCatalog(): PublicReferenceCatalog | null {
   } catch { return null }
 }
 export function mapPublicAssayToEntry(row: PublicAssayRecord): AssayCatalogEntry {
-  const disease = row.disease_code === 'IB' ? 'IBV' : row.disease_code
-  const method = ['ELISA', 'HI', 'VN', 'AGID', 'PCR'].includes(row.assay_type)
-    ? row.assay_type as AssayCatalogEntry['method'] : 'ELISA'
-  const status = ['documented', 'catalog-only', 'local-validation-required'].includes(row.validation_status)
+  const knownDiseases = ['IBD', 'ND', 'IBV', 'AIV', 'AE', 'ALV', 'MG', 'MS', 'REO']
+  const disease = row.disease_code === 'IB' ? 'IBV' : knownDiseases.includes(row.disease_code) ? row.disease_code : 'UNKNOWN'
+  const knownMethods = ['ELISA', 'HI', 'VN', 'AGID', 'PCR']
+  const method = knownMethods.includes(row.assay_type) ? row.assay_type as AssayCatalogEntry['method'] : 'UNKNOWN'
+  const rawScale = typeof row.formula_spec?.measurement_scale === 'string' ? row.formula_spec.measurement_scale.toLowerCase() : ''
+  const measurementScale: AssayCatalogEntry['measurementScale'] = ['elisa-titer', 'od', 's-p', 'unknown'].includes(rawScale)
+    ? rawScale as AssayCatalogEntry['measurementScale']
+    : (row.id === 'biochek-ck113-ibd' || row.id === 'idexx-ibd-9909260' ? 'elisa-titer' : 'unknown')
+  const knownStatus = ['documented', 'catalog-only', 'local-validation-required'].includes(row.validation_status)
+  const status = knownStatus && method !== 'UNKNOWN' && disease !== 'UNKNOWN'
     ? row.validation_status as AssayCatalogEntry['status'] : 'local-validation-required'
   const notes = [
     row.protocol_version,
+    method === 'UNKNOWN' ? 'نوع آزمون در بانک شناخته‌شده نیست؛ این رکورد نباید به ELISA/HI یا مدل محاسباتی دیگری تعبیر شود.' : '',
+    disease === 'UNKNOWN' ? 'کد بیماری در بانک شناخته‌شده نیست؛ رکورد تا اصلاح کد بیماری غیرقابل استفاده است.' : '',
     row.source_version,
     row.minimum_sample_count ? 'راهنمای نمونه: حداقل ' + row.minimum_sample_count + ' نمونه برای این پروتکل ثبت شده است.' : '',
     typeof row.formula_spec?.cross_kit_conversion === 'string' ? row.formula_spec.cross_kit_conversion : '',
@@ -84,6 +92,7 @@ export function mapPublicAssayToEntry(row: PublicAssayRecord): AssayCatalogEntry
     name: row.kit_name,
     catalog: row.catalog_number || undefined,
     method,
+    measurementScale,
     status,
     source: row.reference_url || row.source_document || '',
     note: notes.join(' · '),

@@ -31,6 +31,9 @@ describe('IBV trend', () => {
     })
     expect(result.lastToFirstRatio).toBe(4)
   })
+  it('rejects fractional individual HI-log2 endpoints',()=>{
+    expect(()=>analyzeIbvTrend({observations:[{day:1,value:1.5},{day:14,value:2}],assay:'HI antigen X',measurementScale:'log2 endpoint',unit:'HI-log2'})).toThrow(/endpoint صحیح و گسسته/)
+  })
   it('rejects duplicate days', () => {
     expect(() => analyzeIbvTrend({
       observations: [{ day: 1, value: 2 }, { day: 1, value: 3 }],

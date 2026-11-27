@@ -4,6 +4,8 @@ export type IbdInput = {
   halfLifeDays: number
   susceptiblePercent: number
   titers: number[]
+  assayMethod?: string
+  measurementScale?: string
   correctionDays?: number
   minimumSampleCount?: number
   minimumSampleCountSource?: string
@@ -112,6 +114,8 @@ function nearestRank(sorted: number[], percentile: number): { value: number; ran
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
     correctionDays = 0, minimumSampleCount } = input
+  if (input.assayMethod !== 'ELISA') throw new Error('مدل Deventer فقط برای آزمون ELISA قابل استفاده است؛ HI، VN و روش‌های دیگر مجاز نیستند.')
+  if (input.measurementScale !== 'elisa-titer') throw new Error('ورودی باید تیتر محاسبه‌شده با فرمول/نرم‌افزار همان کیت باشد؛ OD، S/P و S/N خام قابل استفاده نیستند.')
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری معتبر نیست.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')

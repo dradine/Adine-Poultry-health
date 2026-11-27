@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
+import { calculateIbdWindow as calculateIbdWindowCore, calculateIbdSensitivity, calculateVaccinationTiming, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
+const calculateIbdWindow = (input: Parameters<typeof calculateIbdWindowCore>[0]) => calculateIbdWindowCore({ assayMethod: 'ELISA', measurementScale: 'elisa-titer', ...input })
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -29,6 +30,11 @@ describe('IBD Deventer-style mathematical estimator', () => {
   })
   it('accepts Persian digits',()=>expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128,256]))
   it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
+  it('rejects non-ELISA methods and non-standardized titre scales', () => {
+    const input = { samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3, susceptiblePercent: 75, titers: sample23 }
+    expect(() => calculateIbdWindow({ ...input, assayMethod: 'HI' })).toThrow(/ELISA/)
+    expect(() => calculateIbdWindow({ ...input, measurementScale: 's-p' })).toThrow(/OD/)
+  })
   it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
   it('accepts a documented correction for day-old sampling',()=>expect(calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:2}).estimatedVaccinationAgeDays).toBeGreaterThan(2))
   it('keeps an already-crossed BTT status even when positive age correction shifts the raw formula forward',()=>{const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:50,titers:[80,90,95],correctionDays:2});expect(r.rawCalculatedAgeDays).toBeGreaterThan(2);expect(r.thresholdAlreadyReachedAtSampling).toBe(true);expect(r.estimatedVaccinationAgeDays).toBeNull();expect(r.warnings.join(' ')).toContain('اصلاح سن نمی‌تواند')})
@@ -91,7 +97,7 @@ describe('published Deventer reference example', () => {
 
 describe('Deventer sensitivity analysis', () => {
   it('shows distinct vaccination ages for different directly receptive flock fractions', () => {
-    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18})
+    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18,assayMethod:'ELISA',measurementScale:'elisa-titer'})
     expect(r.map(x=>x.susceptiblePercent)).toEqual([5,25,75,90])
     expect(r.every(x => x.vaccinationAgeDays !== null)).toBe(true)
     expect(r[0].vaccinationAgeDays!).toBeLessThan(r[1].vaccinationAgeDays!)

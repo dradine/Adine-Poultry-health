@@ -44,8 +44,11 @@ export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'EL
  if(mapping.roleColumn!==null&&(mapping.roleColumn<0||mapping.roleColumn>=table.headers.length))throw new Error('ستون نوع ردیف نامعتبر است.')
  const sampleRows:Record<string,string>[]=[],controlRows:Record<string,string>[]=[],invalidRows:ReaderImport['invalidRows']=[],censoredRows:ReaderImport['censoredRows']=[]
  const values:number[]=[],sampleIds:string[]=[]
- const controlLike=/^(?:positive|negative|reference|control|pc|nc|blank|کنترل|مثبت|منفی|مرجع)$/i
- if(mapping.roleColumn===null && table.rows.some(row=>row.some(cell=>controlLike.test(cell.trim()))))throw new Error('این فایل ردیف کنترل دارد اما ستون تفکیک نمونه/کنترل انتخاب نشده است؛ ورود متوقف شد تا کنترل‌ها وارد نمونه‌ها نشوند.')
+ const isControlLabel=(cell:string)=>{
+  const normalized=cell.trim().toLocaleLowerCase().replace(/[\s_\-#]+/g,'')
+  return /^(?:(?:positive|negative|reference)(?:control|ctrl)?|(?:control|ctrl)(?:positive|negative|reference)?|pc|nc|blank|کنترل|مثبت|منفی|مرجع)\d*$/.test(normalized)
+ }
+ if(mapping.roleColumn===null && table.rows.some(row=>row.some(isControlLabel)))throw new Error('این فایل ردیف کنترل دارد اما ستون تفکیک نمونه/کنترل انتخاب نشده است؛ ورود متوقف شد تا کنترل‌ها وارد نمونه‌ها نشوند.')
  table.rows.forEach((cells,index)=>{
   const record=Object.fromEntries(table.headers.map((h,i)=>[h,cells[i]??'']))
   const role=mapping.roleColumn===null?'':cells[mapping.roleColumn]??''

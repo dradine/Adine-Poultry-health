@@ -22,6 +22,12 @@ describe('public assay catalog mapping', () => {
     expect(result.note).toContain('No cross-kit conversion.')
   })
 
+  it('fails closed for unknown assay methods and disease codes instead of guessing ELISA or IBD',()=>{
+    const base:PublicAssayRecord={id:'u',disease_code:'UNKNOWN',manufacturer:'X',kit_name:'X',catalog_number:null,assay_type:'OTHER',protocol_version:'v1',source_document:null,source_version:null,validation_status:'documented',minimum_sample_count:null,reference_url:null,formula_spec:null}
+    const result=mapPublicAssayToEntry(base)
+    expect(result.method).toBe('UNKNOWN');expect(result.disease).toBe('UNKNOWN');expect(result.status).toBe('local-validation-required')
+  })
+
   it('downgrades unknown validation status instead of treating it as documented', () => {
     const row: PublicAssayRecord = {
       id: 'x', disease_code: 'IBD', manufacturer: 'Unknown', kit_name: 'Unknown kit',
@@ -30,7 +36,18 @@ describe('public assay catalog mapping', () => {
       minimum_sample_count: null, reference_url: null, formula_spec: null,
     }
     expect(mapPublicAssayToEntry(row).status).toBe('local-validation-required')
-    expect(mapPublicAssayToEntry(row).method).toBe('ELISA')
+    expect(mapPublicAssayToEntry(row).method).toBe('UNKNOWN')
+  })
+  it('only assigns an ELISA-titre scale to exact documented IBD kits or an explicit formula specification', () => {
+    const base: PublicAssayRecord = {
+      id: 'other-ibd-kit', disease_code: 'IBD', manufacturer: 'Other', kit_name: 'Other IBD',
+      catalog_number: null, assay_type: 'ELISA', protocol_version: 'v1',
+      source_document: null, source_version: null, validation_status: 'documented',
+      minimum_sample_count: null, reference_url: null, formula_spec: null,
+    }
+    expect(mapPublicAssayToEntry({ ...base, id: 'biochek-ck113-ibd' }).measurementScale).toBe('elisa-titer')
+    expect(mapPublicAssayToEntry(base).measurementScale).toBe('unknown')
+    expect(mapPublicAssayToEntry({ ...base, formula_spec: { measurement_scale: 's-p' } }).measurementScale).toBe('s-p')
   })
 })
 

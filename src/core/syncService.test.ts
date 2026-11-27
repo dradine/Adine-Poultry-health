@@ -42,7 +42,7 @@ describe('persisted disease monitor runs', () => {
 
   it('preserves hatch date when an MDA run creates its missing local flock record', async () => {
     const flock = { id:crypto.randomUUID(), flockName:'Farm MDA test', placementDate:'2026-11-16', hatchDate:'2026-11-14', savedAt:'2026-11-16T10:00:00.000Z' }
-    const parameterProvenance = {assayIdentity:'BioChek CK113 IBD ELISA / VP2',measurementScale:'kit-specific ELISA titer',halfLifeSource:'Peer-reviewed longitudinal study; methods section',thresholdSource:'Product-specific IFU; threshold definition',sourceVersion:'IFU RevB 2025; p. 6',parameterOrigin:'peer-reviewed-study' as const}
+    const parameterProvenance = {assayIdentity:'BioChek CK113 IBD ELISA / VP2',measurementScale:'kit-specific ELISA titer',halfLifeSource:'Peer-reviewed longitudinal study; methods section',thresholdSource:'Product-specific IFU; threshold definition',halfLifeSourceVersion:'Study DOI; methods section',thresholdSourceVersion:'IFU RevB 2025; p. 6',halfLifeOrigin:'peer-reviewed-study' as const,thresholdOrigin:'manufacturer-ifu' as const}
     const id = await saveMdaRunToLocal({ flock, diseaseCode:'IBD', input:{sampleAgeDays:2,sampleTiters:[1000],unit:'kit titre',parameterProvenance,modelVersion:'mda-decay-exploratory-0.2.0',parameterOverride:false}, output:{estimatedHatchTiter:1587} })
     const savedFlock = (await listLocalFlocks()).find(item=>item.id===flock.id)
     const run = (await listLocalModelRuns()).find(item=>item.id===id)

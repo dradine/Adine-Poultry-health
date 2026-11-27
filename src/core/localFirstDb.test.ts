@@ -24,23 +24,29 @@ describe('IndexedDB local-first persistence', () => {
     expect(queue[0].operation).toBe('upsert')
   })
 
-  it('keeps only the newest queued upsert when a flock is edited repeatedly', async () => {
+  it('preserves ordered base revisions for repeated offline edits', async () => {
     const id = crypto.randomUUID()
     await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه اول' })
+    const first = (await listOutbox()).find(item => item.recordId === id)!
     await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه دوم', updated_at: '2026-11-16T11:00:00.000Z' })
     const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
-    expect(queue).toHaveLength(1)
-    expect(queue[0].operation).toBe('upsert')
-    expect(queue[0].payload?.flock_name).toBe('نسخه دوم')
+    expect(queue).toHaveLength(2)
+    expect(queue.map(item => item.operation)).toEqual(['upsert', 'upsert'])
+    expect(queue[0].base).toBeNull()
+    expect(queue[1].base).toBe(first.mutation)
+    expect(queue[1].payload?.flock_name).toBe('نسخه دوم')
   })
 
-  it('replaces a queued flock upsert with a delete tombstone', async () => {
+  it('queues deletion after an unsynced create so both operations apply in order', async () => {
     const id = crypto.randomUUID()
     await saveLocalFlock(makeFlock(id))
+    const create = (await listOutbox()).find(item => item.recordId === id)!
     await markLocalDeleted('flocks', id)
     const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
-    expect(queue).toHaveLength(1)
-    expect(queue[0].operation).toBe('delete')
+    expect(queue).toHaveLength(2)
+    expect(queue[0].operation).toBe('upsert')
+    expect(queue[1].operation).toBe('delete')
+    expect(queue[1].base).toBe(create.mutation)
     expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
   })
 
@@ -98,8 +104,9 @@ describe('IndexedDB local-first persistence', () => {
     expect((await listLocalFlocks()).some(row => row.id === id)).toBe(false)
     await changeDeletion('flocks', id, false)
     expect((await listLocalFlocks()).some(row => row.id === id)).toBe(true)
-    const item = (await listOutbox()).find(row => row.recordId === id)
-    expect(item?.operation).toBe('restore')
+    const items = (await listOutbox()).filter(row => row.recordId === id)
+    expect(items).toHaveLength(3)
+    expect(items[items.length - 1]?.operation).toBe('restore')
   })
 
   it('marks successful sync state without removing the local record', async () => {

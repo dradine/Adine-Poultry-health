@@ -34,8 +34,10 @@ describe('reader export import',()=>{
   expect(r.censoredRows.map(x=>[x.value,x.status])).toEqual([['<10','below_lod'],['>500','above_uloq'],['below LOD','below_lod'],['above ULOQ','above_uloq'],['ND','missing']])
  })
  it('stops when control-like rows exist without an explicit role mapping',()=>{
-  const t=parseDelimitedTable('ID,Label,Result\nA1,Sample,1\nPC,Positive control,2\nA2,Sample,1.5')
+  const t=parseDelimitedTable('ID,Label,Result\nA1,Sample,1\nPC1,Positive Control 1,2\nA2,Sample,1.5')
   expect(()=>mapReaderRows(t,{resultColumn:2,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/کنترل/)
+  const negative=parseDelimitedTable('ID,Label,Result\nA1,Sample,1\nNC1,Negative Control 1,0.1')
+  expect(()=>mapReaderRows(negative,{resultColumn:2,sampleIdColumn:0,roleColumn:null,sampleRoleValue:''},'ELISA')).toThrow(/کنترل/)
  })
  it('normalizes Persian digits and HI 1:16 notation',()=>{
   expect(normalizeReaderNumber('۱:۱۶','HI')).toBe(16)

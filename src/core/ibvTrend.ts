@@ -6,7 +6,7 @@ const median=(v:number[])=>{const s=[...v].sort((a,b)=>a-b);return s.length%2?s[
 export function analyzeIbvTrend(input:IbvTrendInput):IbvTrendOutput{
  const observations=[...input.observations].sort((a,b)=>a.day-b.day)
  if(observations.length<2)throw Error('برای تحلیل روند حداقل دو مشاهده در زمان‌های متفاوت لازم است.')
- if(observations.some(({day,value})=>!Number.isFinite(day)||day<0||day>365||!Number.isFinite(value)||(input.unit==='HI-log2'?value<0:value<=0)))throw Error('روز باید ۰ تا ۳۶۵ و مقدار آزمون معتبر باشد؛ HI-log2 می‌تواند صفر باشد و سایر مقیاس‌ها باید مثبت باشند.')
+ if(observations.some(({day,value})=>!Number.isFinite(day)||day<0||day>365||!Number.isFinite(value)||(input.unit==='HI-log2'?(!Number.isInteger(value)||value<0):value<=0)))throw Error('روز باید ۰ تا ۳۶۵ و مقدار آزمون معتبر باشد؛ HI-log2 باید endpoint صحیح و گسسته (صفر یا بیشتر) باشد و سایر مقیاس‌ها باید مثبت باشند.')
  if(new Set(observations.map(o=>o.day)).size!==observations.length)throw Error('برای هر روز فقط یک مقدار وارد کنید یا نتایج تکراری را طبق SOP تجمیع کنید.')
  if(!input.assay.trim())throw Error('نام آزمون و کیت الزامی است.')
  if(!input.measurementScale.trim())throw Error('مقیاس دقیق عددی را مشخص کنید؛ برای ELISA بین OD، S/P و تیتر محاسبه‌شده تفاوت وجود دارد و این مقیاس‌ها نباید مخلوط شوند. برای VN نیز رقت معکوس یا log2 endpoint را صریح ثبت کنید.')

@@ -289,8 +289,8 @@ export async function saveMdaRunToLocal(draft: MdaRunDraft): Promise<string> {
       parameterProvenanceIndependentlyVerified: false,
     },
     source_references: [
-      { kind: 'mda-half-life-parameter', citation: provenance?.halfLifeSource || null, sourceVersion: provenance?.sourceVersion || null, parameterOrigin: provenance?.parameterOrigin || null },
-      { kind: 'mda-threshold-parameter', citation: provenance?.thresholdSource || null, sourceVersion: provenance?.sourceVersion || null, parameterOrigin: provenance?.parameterOrigin || null },
+      { kind: 'mda-half-life-parameter', citation: provenance?.halfLifeSource || null, sourceVersion: provenance?.halfLifeSourceVersion || null, parameterOrigin: provenance?.halfLifeOrigin || null },
+      { kind: 'mda-threshold-parameter', citation: provenance?.thresholdSource || null, sourceVersion: provenance?.thresholdSourceVersion || null, parameterOrigin: provenance?.thresholdOrigin || null },
       { kind: 'mda-assay-identity', assayIdentity: provenance?.assayIdentity || null, measurementScale: provenance?.measurementScale || null },
     ],
     input_schema_version: 'mda-monitor-input-v2',

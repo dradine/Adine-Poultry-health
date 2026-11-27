@@ -5,11 +5,17 @@ import { saveRawImport } from '../core/localFirstDb'
 type Meta={fileName:string;fileSize:number;fileSha256:string;rawImportId:string;delimiter:string;headers:string[];rawRows:string[][];sampleRows:Record<string,string>[];mapping:{resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string};controlRows:Record<string,string>[];censoredRows:{row:number;sampleId:string;value:string;status:'below_lod'|'above_uloq'|'missing'}[];controlCriteria:{positiveRole:string;negativeRole:string;referenceRole:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin:number|null;referenceMax:number|null;maxReplicateCvPercent:number|null;maxReplicatePercentDifference:number|null;source:string};qcStatus:'pass'|'fail'|'pending';qcApprovalStatus:'unapproved'|'operator_attested'|'reviewed';qcOperator:string;qcReviewer:string;qcEvidence:string;controlSummary:PlateControlGroup[]}
 const numOrNull=(v:string):number|null=>{if(!v.trim())return null;const x=v.replace(/[۰-۹٠-٩]/g,c=>{const i='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(i>=0?i:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}).replace(/\u066B/g,'.').replace(/[٬،]/g,'');const n=Number(x);return Number.isFinite(n)?n:null}
 async function sha256(file:File):Promise<string>{const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,'0')).join('')}
-export default function SerologyReaderImport({method,scale,onApply}:{method:'ELISA'|'HI';scale:string;onApply:(values:string,ids:string,meta:Meta)=>void}){
+export default function SerologyReaderImport({method,scale,onApply,onFileChange}:{method:'ELISA'|'HI';scale:string;onApply:(values:string,ids:string,meta:Meta)=>void;onFileChange?:()=>void}){
  const [table,setTable]=useState<ReaderTable|null>(null),[sourceText,setSourceText]=useState(''),[fileName,setFileName]=useState(''),[currentFile,setCurrentFile]=useState<{size:number;sha256:string;mimeType:string}|null>(null),[currentRawBytes,setCurrentRawBytes]=useState<ArrayBuffer|null>(null),[adapterProfileId,setAdapterProfileId]=useState('generic-delimited'),[result,setResult]=useState(-1),[sampleId,setSampleId]=useState(-1),[role,setRole]=useState(-1),[sampleRoleValue,setSampleRoleValue]=useState('Sample'),[error,setError]=useState(''),[notice,setNotice]=useState('')
  const [positiveRole,setPositiveRole]=useState(''),[negativeRole,setNegativeRole]=useState(''),[referenceRole,setReferenceRole]=useState(''),[positiveMin,setPositiveMin]=useState(''),[positiveMax,setPositiveMax]=useState(''),[negativeMax,setNegativeMax]=useState(''),[referenceMin,setReferenceMin]=useState(''),[referenceMax,setReferenceMax]=useState(''),[maxControlCv,setMaxControlCv]=useState(''),[maxControlDiff,setMaxControlDiff]=useState(''),[qcSource,setQcSource]=useState(''),[qcOperator,setQcOperator]=useState(''),[qcReviewer,setQcReviewer]=useState('')
  async function read(file?:File){
-  setError('');setNotice('');setTable(null);if(!file)return
+  // A newly selected file invalidates every previous mapping, QC threshold and parent result.
+  onFileChange?.()
+  setError('');setNotice('');setTable(null);setSourceText('');setFileName('');setCurrentFile(null);setCurrentRawBytes(null)
+  setResult(-1);setSampleId(-1);setRole(-1);setSampleRoleValue('Sample');setAdapterProfileId('generic-delimited')
+  setPositiveRole('');setNegativeRole('');setReferenceRole('');setPositiveMin('');setPositiveMax('');setNegativeMax('')
+  setReferenceMin('');setReferenceMax('');setMaxControlCv('');setMaxControlDiff('');setQcSource('');setQcOperator('');setQcReviewer('')
+  if(!file)return
   if(file.size>5*1024*1024){setError('حداکثر اندازه فایل ۵ مگابایت است.');return}
   try{
    const [text,hash,bytes]=await Promise.all([file.text(),sha256(file),file.arrayBuffer()])

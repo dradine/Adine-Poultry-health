@@ -124,21 +124,20 @@ function recordStore(entity: OutboxEntity): StoreName {
   if (entity === 'model_runs') return 'modelRuns'
   return referenceStore(entity)
 }
-function queueMutation(tx: IDBTransaction, entity: OutboxEntity, record: Record<string, unknown>, operation: OutboxItem['operation'], previous?: Record<string, unknown>) {
+function queueMutation(tx: IDBTransaction, entity: OutboxEntity, record: Record<string, unknown>, operation: OutboxItem['operation'], previous?: Record<string, unknown>): void {
   const mutation = crypto.randomUUID()
+  // Keep the complete ordered mutation chain. A pending row's revision is the
+  // preceding mutation id, not yet the server revision; later edits/deletes
+  // must follow it rather than replacing the queued create/update.
   const base = typeof previous?.revision === 'string' ? previous.revision : null
   const payload = stripLocalFields(record)
   const deleted = operation === 'delete'
   const now = new Date().toISOString()
   tx.objectStore(recordStore(entity)).put({ ...record, deleted, deleted_at: deleted ? now : null, revision: mutation, syncState: 'pending' })
-  const outbox = tx.objectStore('outbox')
-  const request = outbox.index('entity').getAll(entity)
-  request.onsuccess = () => {
-    for (const old of request.result as OutboxItem[]) {
-      if (old.recordId === String(record.id) && old.id !== undefined) outbox.delete(old.id)
-    }
-    outbox.add({ entity, operation, recordId: String(record.id), mutation, base, payload, createdAt: now, attempts: 0 } satisfies OutboxItem)
-  }
+  tx.objectStore('outbox').add({
+    entity, operation, recordId: String(record.id), mutation, base, payload,
+    createdAt: now, attempts: 0,
+  } satisfies OutboxItem)
 }
 async function saveRecord(entity: OutboxEntity, record: Record<string, unknown>) {
   const db = await openDb()
