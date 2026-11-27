@@ -67,7 +67,7 @@ function Trend({runs,selected,vaccinationEvents}:{runs:LocalModelRun[];selected:
  })
  const validCv=stats.filter(z=>typeof z.cv==='number'&&Number.isFinite(z.cv))
  const cvLo=Math.min(...validCv.map(z=>z.cv as number)),cvHi=Math.max(...validCv.map(z=>z.cv as number)),cvSpan=cvHi-cvLo||1
- const cvPoints=validCv.map((z,k)=>({x:40+k*440/Math.max(1,validCv.length-1),y:125-(z.cv as number-cvLo)/cvSpan*90}))
+ const cvPoints=validCv.map((z,k)=>({x:40+k*440/Math.max(1,validCv.length-1),y:125-((z.cv as number)-cvLo)/cvSpan*90}))
  const vals=stats.map(z=>z.trend),lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1
  const points=stats.map((z,k)=>({x:40+k*440/Math.max(1,stats.length-1),y:125-(z.trend-lo)/span*90}))
  const diseaseName=(v:string)=>({ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو'} as Record<string,string>)[v]||v
