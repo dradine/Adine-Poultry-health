@@ -65,6 +65,7 @@ type SavedAnalysis = {
   timingTargetAt?: string | null
   timingHours?: number | null
   timingEarliestAllowedHours?: number | null
+  timingExpectedOnsetAt?: string | null
   sampledAtIso?: string
   samplingTimeZone?: string
   samplingTimeZoneOffsetMinutes?: number
@@ -401,6 +402,7 @@ export default function App() {
         minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
         sampledAt: zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || '',
         correctionDays: Number(normalizeDigits(correctionDays)),
+        onsetOfImmunityDays: selectedVaccineProduct?.onset_of_immunity_days ? Number(normalizeDigits(String(selectedVaccineProduct.onset_of_immunity_days))) : undefined,
       })
     } catch { return null }
   }, [result, sampleDate, samplingTime, samplingAge, btt, halfLife, correctionDays, selectedVaccineProduct])
@@ -502,6 +504,7 @@ export default function App() {
       timingTargetAt: vaccinationTiming?.targetAt || null,
       timingHours: vaccinationTiming?.hoursUntilThreshold ?? null,
       timingEarliestAllowedHours: vaccinationTiming?.hoursUntilEarliestAllowed ?? null,
+      timingExpectedOnsetAt: vaccinationTiming?.expectedOnsetAt ?? null,
       sampledAtIso: sampleDate && samplingTime ? (zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || undefined) : undefined,
       samplingTimeZone: sampleDate && samplingTime ? 'Asia/Tehran' : undefined,
       samplingTimeZoneOffsetMinutes: sampleDate && samplingTime ? (() => { const iso = zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran'); return iso ? getTimeZoneOffsetMinutesEast(iso, 'Asia/Tehran') ?? undefined : undefined })() : undefined,
@@ -789,6 +792,7 @@ export default function App() {
               {!sampleDate || !samplingTime ? <p>برای نمایش تاریخ و ساعت، تاریخ نمونه‌گیری در مشخصات گله و ساعت دقیق نمونه‌گیری را وارد کنید.</p> : (vaccinationTiming?.status === 'future-window' || vaccinationTiming?.status === 'label-minimum-floor') ? <>
                 <div className="result-number"><strong>{toPersianDigits(String(vaccinationTiming.wholeHours))} ساعت و {toPersianDigits(String(vaccinationTiming.remainingMinutes))} دقیقه</strong><span>{vaccinationTiming.status === 'label-minimum-floor' ? 'فاصله تا زودترین سن مجاز طبق برچسب محصول' : 'فاصله خام مدل تا رسیدن تیتر صدک انتخابی به BTT'}</span></div>
                 <p><b>{vaccinationTiming.status === 'label-minimum-floor' ? 'زودترین زمان مجاز طبق برچسب محصول' : 'زمان تقویمی برآورد خام مدل برای رسیدن به BTT'}</b> {new Date(vaccinationTiming.targetAt || '').toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}</p>
+                {vaccinationTiming.expectedOnsetAt && <p><b>شروع ایمنی طبق برچسب محصول (برآورد تقویمی):</b> {new Date(vaccinationTiming.expectedOnsetAt).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}<small className="muted">این تاریخ از فاصله شروع ایمنی درج‌شده در برچسب محاسبه شده است و تضمین حفاظت گله نیست.</small></p>}
                 {vaccinationTiming.status === 'label-minimum-floor'
                   ? <p className="muted">{vaccinationTiming.hoursUntilThreshold === null ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT بوده است؛ تاریخ بالا فقط حداقل سن مجاز برچسب را نشان می‌دهد و پیش‌بینی آینده رسیدن به BTT نیست.' : 'برآورد خام رسیدن به BTT زودتر از حداقل سن برچسب محصول است؛ تاریخ بالا فقط زودترین زمان مجاز طبق برچسب را نشان می‌دهد، نه زمان خام مدل.'} نمایش ساعت و دقیقه صرفاً تفکیک محاسباتی است و دقت زیستی در حد دقیقه ندارد.</p>
                   : <p className="muted">این زمان از مدل افت log₂ آنتی‌بادی به دست آمده است. نمایش ساعت و دقیقه فقط تفکیک عددی محاسبه است و به معنی دقت زیستی در حد دقیقه نیست؛ تغییرپذیری MDA، نیمه‌عمر، BTT، نمونه‌گیری و شرایط گله می‌تواند زمان واقعی را جابه‌جا کند.</p>}
