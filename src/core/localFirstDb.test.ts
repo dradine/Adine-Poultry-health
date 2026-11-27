@@ -132,7 +132,8 @@ describe('IndexedDB local-first persistence', () => {
     expect((await listOutbox()).find(item => item.recordId === id)?.entity).toBe('flock_vaccination_events')
     await markLocalReferenceDeleted('flock_vaccination_events', id)
     expect(await listLocalReferenceRecords('flock_vaccination_events', flockId)).toHaveLength(0)
-    expect((await listOutbox()).find(item => item.recordId === id)?.operation).toBe('delete')
+    const queue = (await listOutbox()).filter(item => item.recordId === id)
+    expect(queue[queue.length - 1]?.operation).toBe('delete')
   })
 })
 
