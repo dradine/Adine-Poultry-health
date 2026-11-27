@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import PersianDateInput from './PersianDateInput'
 import { todayIsoDateInTimeZone } from '../core/zonedTime'
-import { listLocalReferenceRecords, saveLocalReferenceRecord, type LocalClinicalObservation, type LocalFlockTimeSeries, type LocalVaccinationEvent } from '../core/localFirstDb'
+import { listLocalReferenceRecords, markLocalReferenceDeleted, notifyLocalDataChanged, saveLocalReferenceRecord, type LocalClinicalObservation, type LocalFlockTimeSeries, type LocalVaccinationEvent } from '../core/localFirstDb'
+import { confirmStrictDeletion } from '../core/strictDelete'
 
 type Props = { flockId?: string; flockName?: string }
 const today = () => todayIsoDateInTimeZone('Asia/Tehran')
@@ -27,6 +28,18 @@ export default function FlockReferencePanel({ flockId, flockName }: Props) {
     setEvents(nextEvents); setObservations(nextObservations); setSeries(nextSeries)
   }
   useEffect(() => { void refresh().catch(() => undefined) }, [flockId])
+  async function deleteReference(entity: 'flock_vaccination_events' | 'flock_clinical_observations' | 'flock_time_series', id: string, label: string) {
+    if (!confirmStrictDeletion(label + ' از پرونده گله «' + (flockName || 'گله') + '»')) return
+    try {
+      await markLocalReferenceDeleted(entity, id)
+      await refresh()
+      notifyLocalDataChanged()
+      setMessage('رکورد از فهرست فعال حذف و حذف آن در صف همگام‌سازی ثبت شد.')
+      setError('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'حذف رکورد ناموفق بود.')
+    }
+  }
   async function addEvent() {
     if (!flockId) return
     try {
@@ -71,5 +84,12 @@ export default function FlockReferencePanel({ flockId, flockName }: Props) {
       <details className="reference-card"><summary>ثبت سری‌زمانی عملکردی</summary><div className="reference-form"><label>تاریخ<PersianDateInput value={metric.date} onChange={date => setMetric({ ...metric, date })} /></label><label>شاخص<select value={metric.metric} onChange={e => setMetric({ ...metric, metric: e.target.value as LocalFlockTimeSeries['metric'] })}><option value="water">آب</option><option value="feed">دان</option><option value="weight">وزن</option><option value="egg_production">تولید تخم‌مرغ</option><option value="mortality">تلفات</option><option value="temperature">دما</option><option value="humidity">رطوبت</option></select></label><label>مقدار<input inputMode="decimal" value={metric.value} onChange={e => setMetric({ ...metric, value: e.target.value })}/></label><label>واحد<input value={metric.unit} onChange={e => setMetric({ ...metric, unit: e.target.value })} placeholder="مثلاً لیتر/روز"/></label></div><button className="button primary" onClick={() => void addMetric()} disabled={!metric.value || !metric.unit.trim()}>ثبت داده</button></details>
     </div>
     <div className="reference-summary"><div><b>{fa(events.length)}</b><small>رویداد واکسن</small></div><div><b>{fa(observations.length)}</b><small>مشاهده بالینی</small></div><div><b>{fa(series.length)}</b><small>داده عملکردی</small></div></div>
+    <div className="reference-records">
+      <h4>سوابق ثبت‌شده و حذف هر رکورد</h4>
+      {events.map(row => <div className="reference-record-row" key={row.id}><span>{fa(row.age_days || 0)} روز · {row.disease_code} · {row.product_name}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_vaccination_events', row.id, 'رویداد واکسن ' + row.product_name)}>حذف</button></div>)}
+      {observations.map(row => <div className="reference-record-row" key={row.id}><span>{row.observed_at} · مشاهده بالینی · {row.status}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_clinical_observations', row.id, 'مشاهده بالینی ' + row.observed_at)}>حذف</button></div>)}
+      {series.map(row => <div className="reference-record-row" key={row.id}><span>{row.observed_at} · {row.metric} · {fa(row.value)} {row.unit}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_time_series', row.id, 'داده عملکردی ' + row.observed_at)}>حذف</button></div>)}
+      {!events.length && !observations.length && !series.length && <p className="muted">هنوز رکوردی در پرونده مرجع ثبت نشده است.</p>}
+    </div>
   </section>
 }
