@@ -49,7 +49,21 @@ describe('IBV trend', () => {
     const result = analyzeIbvTrend({ observations:[{day:1,value:100},{day:14,value:200},{day:28,value:150}], assay:'ELISA kit A', measurementScale:'OD450', unit:'ELISA' })
     expect(result.warnings.join(' ')).toContain('نه CV تحلیلی کیت')
     expect(result.warnings.join(' ')).toContain('fold antibody')
+    expect(result.temporalCvPercent).toBeNull()
+    expect(result.lastToFirstRatio).toBeNull()
+  })
+  it('converts VN log2 endpoints to reciprocal fold change', () => {
+    const result = analyzeIbvTrend({ observations: [{ day: 1, value: 3 }, { day: 14, value: 5 }], assay: 'VN', measurementScale: 'VN log2 endpoint', unit: 'VN' })
+    expect(result.lastToFirstRatio).toBe(4)
+    expect(result.temporalCvPercent).toBeNull()
+  })
+  it('uses a direct ratio only for VN reciprocal dilution titres', () => {
+    const result = analyzeIbvTrend({ observations: [{ day: 1, value: 40 }, { day: 14, value: 160 }], assay: 'VN', measurementScale: 'reciprocal dilution titre', unit: 'VN' })
+    expect(result.lastToFirstRatio).toBe(4)
     expect(result.temporalCvPercent).not.toBeNull()
+  })
+  it('rejects a non-log2 scale selected as HI-log2', () => {
+    expect(() => analyzeIbvTrend({ observations: [{ day: 1, value: 2 }, { day: 14, value: 4 }], assay: 'HI', measurementScale: 'reciprocal titre', unit: 'HI-log2' })).toThrow(/log2 endpoint/)
   })
   it('does not use an arbitrary 5% change as a universal stability threshold', () => {
     const result = analyzeIbvTrend({ observations:[{day:1,value:1000},{day:14,value:1020}], assay:'ELISA kit A', measurementScale:'kit-derived titre', unit:'ELISA' })

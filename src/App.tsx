@@ -685,6 +685,7 @@ export default function App() {
               برچسب بازار {selectedVaccineProduct.market_code || 'نامشخص'}؛ ثبت {selectedVaccineProduct.registration_number || 'بدون شماره ثبت'}؛
               مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز؛
               شروع ایمنی طبق برچسب {selectedVaccineProduct.onset_of_immunity_days ?? 'نامشخص'} روز پس از واکسیناسیون؛ مدت ایمنی اعلام‌شده {selectedVaccineProduct.duration_of_immunity_weeks ?? 'نامشخص'} هفته.
+              در صورت انتظار تیترهای بالای MDA، همین برچسب نمونه‌گیری دیرتر (به‌ویژه روز ۷) را برای برآورد مطمئن‌تر از روز صفر توصیه می‌کند.
               این اطلاعات فقط مربوط به بازار/نسخه ثبت‌شده است، تضمین حفاظت گله نیست و به معنی مجوز عرضه در ایران نیست.
             </small>}
           </label>

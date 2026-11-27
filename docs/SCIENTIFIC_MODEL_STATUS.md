@@ -35,3 +35,9 @@ vaccination_age = sampling_age + (log2(percentile_titer) - log2(BTT)) × half_li
 - When high titres are expected, the label says later sampling (e.g. day 7) gives a more reliable vaccination-age estimate than day 0.
 - Label onset of immunity is 14 days after vaccination and stated duration is 5 weeks; these are product-label claims, not a model prediction of flock-level protection.
 - These values are specific to the cited UK product label and must not be copied to other products, markets or vaccine platforms.
+
+
+## IBV trend metric contract
+- ELISA OD/S/P/SN and index scales are non-ratio: no fold ratio or temporal CV is reported.
+- Kit-calculated ELISA titre and VN reciprocal dilution titre may use a direct same-scale ratio; HI-log2 and VN-log2 use 2^delta. HI/VN log2 scales are not divided as raw log2 numbers.
+- These are temporal descriptive statistics, not between-bird CV, assay precision, mucosal immunity, cross-protection or protection prediction.
