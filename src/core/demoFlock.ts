@@ -39,7 +39,14 @@ function latestVaccine(disease: string, age: number, schedule: Array<Record<stri
   return schedule.filter(x => x.disease_code === disease && Number(x.age_days) <= age).at(-1) || null
 }
 
-export async function createAdineDemoFlock(): Promise<DemoFlockProfile> {
+let seedInFlight: Promise<DemoFlockProfile> | null = null
+
+export function createAdineDemoFlock(): Promise<DemoFlockProfile> {
+  if (!seedInFlight) seedInFlight = createAdineDemoFlockOnce().finally(() => { seedInFlight = null })
+  return seedInFlight
+}
+
+async function createAdineDemoFlockOnce(): Promise<DemoFlockProfile> {
   const now = new Date().toISOString()
   const profile: DemoFlockProfile = {
     id: FLOCK_ID, flockName: 'آدینه', placementDate: BASE_DATE, hatchDate: '2026-11-26',
