@@ -7,6 +7,7 @@ import {
 type Props = { flockId: string }
 type Counts = {
   vaccineEvents: number
+  syntheticVaccineEvents: number
   clinicalObservations: number
   timeSeries: number
   runs: LocalModelRun[]
@@ -27,7 +28,7 @@ function isSyntheticRun(run: LocalModelRun): boolean {
 }
 export default function FlockReadinessReport({ flockId }: Props) {
   const [flock, setFlock] = useState<LocalFlock | null>(null)
-  const [counts, setCounts] = useState<Counts>({ vaccineEvents: 0, clinicalObservations: 0, timeSeries: 0, runs: [] })
+  const [counts, setCounts] = useState<Counts>({ vaccineEvents: 0, syntheticVaccineEvents: 0, clinicalObservations: 0, timeSeries: 0, runs: [] })
   const [loaded, setLoaded] = useState(false)
   useEffect(() => {
     let active = true
@@ -43,7 +44,8 @@ export default function FlockReadinessReport({ flockId }: Props) {
         if (!active) return
         setFlock(flocks.find(row => row.id === flockId) || null)
         setCounts({
-          vaccineEvents: vaccines.filter(row => !row.batch_lot?.includes('SYNTHETIC') && !row.source_reference?.toLowerCase().includes('synthetic')).length,
+          vaccineEvents: vaccines.filter(row => !row.batch_lot?.toUpperCase().includes('SYNTHETIC') && !row.source_reference?.toLowerCase().includes('synthetic')).length,
+          syntheticVaccineEvents: vaccines.filter(row => row.batch_lot?.toUpperCase().includes('SYNTHETIC') || row.source_reference?.toLowerCase().includes('synthetic')).length,
           clinicalObservations: clinical.length,
           timeSeries: series.length,
           runs: runs.filter(row => row.flock_id === flockId && row.model_family === 'serology-longitudinal-round'),
@@ -66,10 +68,12 @@ export default function FlockReadinessReport({ flockId }: Props) {
   const notes = useMemo(() => parseNotes(flock?.notes), [flock?.notes])
   const demo = notes.demo === true
   const realRuns = counts.runs.filter(run => !isSyntheticRun(run))
+  const syntheticRuns = counts.runs.filter(isSyntheticRun)
   const qcPassedRuns = realRuns.filter(run => run.input_snapshot.qcStatus === 'pass' && Boolean(run.input_snapshot.qcEvidence))
   const diseases = ['IBD','ND','IBV','AIV'].map(code => ({
     code,
     count: realRuns.filter(run => run.disease_code === code).length,
+    demoCount: syntheticRuns.filter(run => run.disease_code === code).length,
     qc: qcPassedRuns.filter(run => run.disease_code === code).length,
   }))
   const identityReady = Boolean(flock?.species && flock?.hatch_date && flock?.placement_date && flock?.bird_count)
@@ -94,7 +98,9 @@ export default function FlockReadinessReport({ flockId }: Props) {
       {demo && <p className="readiness-warning">این پرونده با برچسب آموزشی ثبت شده است. هیچ‌یک از رویدادها یا مقادیر شبیه‌سازی‌شده به‌عنوان سابقه واقعی یا نتیجه آزمایش در این ارزیابی شمرده نمی‌شود.</p>}
       <div className="readiness-metrics">
         <article><small>اطلاعات پایه گله</small><b>{identityReady ? 'ثبت شده' : 'ناقص'}</b></article>
-        <article><small>نوبت‌های سرولوژی غیرآزمایشی</small><b>{fa(realRuns.length)}</b></article>
+        <article><small>نوبت‌های سرولوژی واقعی</small><b>{fa(realRuns.length)}</b></article>
+        <article><small>نوبت‌های سرولوژی شبیه‌سازی‌شده</small><b>{fa(syntheticRuns.length)}</b></article>
+        <article><small>رویداد واکسن شبیه‌سازی‌شده</small><b>{fa(counts.syntheticVaccineEvents)}</b></article>
         <article><small>نوبت‌های QC تأییدشده</small><b>{fa(qcPassedRuns.length)}</b></article>
         <article><small>سوابق واکسن واقعی</small><b>{fa(counts.vaccineEvents)}</b></article>
         <article><small>مشاهدات بالینی</small><b>{fa(counts.clinicalObservations)}</b></article>
@@ -104,7 +110,7 @@ export default function FlockReadinessReport({ flockId }: Props) {
       <div className="readiness-diseases">
         {diseases.map(item => <article key={item.code}>
           <b>{diseaseNames[item.code]}</b>
-          <span>{fa(item.count)} نوبت سرولوژی واقعی · {fa(item.qc)} نوبت با QC ثبت‌شده</span>
+          <span>{fa(item.count)} نوبت واقعی · {fa(item.demoCount)} نوبت شبیه‌سازی‌شده · {fa(item.qc)} نوبت با QC ثبت‌شده</span>
           {item.code === 'IBD' && <small>برای محاسبه Deventer باید MDA واقعی، نمونه‌گیری تصادفی، کیت/مقیاس سازگار با BTT واکسن و نیمه‌عمر مستند همان جمعیت موجود باشد.</small>}
           {item.code === 'ND' && <small>برای تفسیر HI باید آنتی‌ژن همولوگ، HAU، تیمار سرم، RBC و پروتکل دقیق ثبت شود؛ ELISA و HI قابل ادغام عددی نیستند.</small>}
           {item.code === 'IBV' && <small>روند ELISA فقط در همان کیت/مقیاس قابل مقایسه است؛ از تیتر سرمی به‌تنهایی حفاظت مخاطی یا cross-protection استنباط نمی‌شود.</small>}
