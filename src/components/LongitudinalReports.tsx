@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import PersianDateInput from './PersianDateInput'
-import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
+import { listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
+import { confirmStrictDeletion } from '../core/strictDelete'
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { normalizeDigits } from '../core/ibd'
@@ -52,6 +53,19 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const selected=rows.find(x=>x.id===openId)
  const previousFlockRun=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0]
  useEffect(()=>{if(!flockId||!historyLoaded||hydratedFlockRef.current===flockId)return;hydratedFlockRef.current=flockId;const latest=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0];if(latest){const i=latest.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext())}else{setVaccinationEvents([]);setClinicalContext(emptyClinicalContext())}},[flockId,runs,historyLoaded])
+ async function deleteSerologyRun(run: LocalModelRun) {
+  const label = str(run.input_snapshot, 'roundLabel') || ('نوبت ' + run.id)
+  if (!confirmStrictDeletion('آزمایش «' + label + '» از گله «' + (fl.find(x => x.id === run.flock_id)?.name || 'گله') + '»')) return
+  try {
+   await markLocalDeleted('model_runs', run.id)
+   if (openId === run.id) setOpenId('')
+   await refresh()
+   notifyLocalDataChanged()
+   setMessage('آزمایش از فهرست فعال حذف و حذف آن در صف همگام‌سازی ثبت شد.')
+  } catch (error) {
+   setMessage(error instanceof Error ? error.message : 'حذف آزمایش ناموفق بود.')
+  }
+ }
  function copyFlockHistory(){if(!previousFlockRun){setMessage('گزارش قبلی برای این گله پیدا نشد.');return}const i=previousFlockRun.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext());setMessage('تاریخچه واکسن و اطلاعات بالینی از آخرین گزارش گله کپی شد؛ وضعیت بالینی و رویدادهای جدید را به‌روزرسانی کنید.')}
  const previousAssayRun=runs.filter(x=>x.model_family==='serology-longitudinal-round'&&x.flock_id===flockId&&x.disease_code===disease&&x.input_snapshot.method===method).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at))).at(-1)
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
@@ -139,7 +153,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
    <label className="wide-label">یادداشت<textarea rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
    </div></details>
   </div>{sampleWarning&&<p className="muted">{sampleWarning} این هشدار مختص راهنمای BioChek است و برای سایر کیت‌ها تعمیم داده نمی‌شود.</p>}<p className="muted">مقایسه روند فقط با تطابق کامل روش، کیت، نسخه، آنتی‌ژن، مقیاس، واحد، آزمایشگاه، دستگاه، پروتکل و Lot و QC قابل قبول انجام می‌شود.</p><button className="button primary" disabled={busy}>{busy?'در حال ذخیره…':'ذخیره نوبت و ساخت گزارش'}</button></form>}
-  {mode!=='entry'&&<div className="saved-list report-list"><div className="saved-title">گزارش‌های ثبت‌شده · {mode==='reports'?'همه بیماری‌ها':title}</div>{rows.length===0?<p className="muted">هنوز گزارشی برای این بیماری ثبت نشده است.</p>:rows.map((r,i)=><button type="button" className="saved-row" key={r.id} onClick={()=>setOpenId(openId===r.id?'':r.id)}><span>{str(r.input_snapshot,'roundLabel')||'گزارش '+(i+1)} · {str(r.input_snapshot,'kit')}</span><small>{faDate(str(r.input_snapshot,'samplingDate')||r.created_at.slice(0,10))} · {fa(Number(r.output_snapshot.n||0))} نمونه · {str(r.input_snapshot,'method')}</small>{r.input_snapshot.demo===true&&<b className="tag warning">نمونه شبیه‌سازی‌شده</b>}<b>{openId===r.id?'بستن':'مشاهده گزارش'}</b></button>)}</div>}
+  {mode!=='entry'&&<div className="saved-list report-list"><div className="saved-title">گزارش‌های ثبت‌شده · {mode==='reports'?'همه بیماری‌ها':title}</div>{rows.length===0?<p className="muted">هنوز گزارشی برای این بیماری ثبت نشده است.</p>:rows.map((r,i)=><div className="saved-row saved-row-with-actions" key={r.id}><button type="button" className="saved-row-open" onClick={()=>setOpenId(openId===r.id?'':r.id)}><span>{str(r.input_snapshot,'roundLabel')||'گزارش '+(i+1)} · {str(r.input_snapshot,'kit')}</span><small>{faDate(str(r.input_snapshot,'samplingDate')||r.created_at.slice(0,10))} · {fa(Number(r.output_snapshot.n||0))} نمونه · {str(r.input_snapshot,'method')}</small>{r.input_snapshot.demo===true&&<b className="tag warning">نمونه شبیه‌سازی‌شده</b>}<b>{openId===r.id?'بستن':'مشاهده گزارش'}</b></button><button type="button" className="link-button" onClick={()=>void deleteSerologyRun(r)}>حذف</button></div>)}</div>}
   {selected&&<div className="report-page"><SerologyReportStudio key={selected.id} initialRunId={selected.id}/></div>}
 
  </section>
