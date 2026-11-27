@@ -243,7 +243,7 @@ describe('product-specific sample-size provenance', () => {
 
 
 describe('IBD Deventer product platform gate', () => {
-  const valid = { diseaseCode:'IBD', platform:'live', modelFamily:'deventer_live', validationStatus:'documented', bttAssayKitId:'idexx-ibd', selectedAssayKitId:'idexx-ibd' }
+  const valid = { diseaseCode:'IBD', platform:'live', modelFamily:'deventer_live', validationStatus:'documented', bttAssayKitId:'idexx-ibd', selectedAssayKitId:'idexx-ibd', breakthroughTiter:500, breakthroughUnit:'IDEXX standard ELISA units', minimumVaccinationAgeDays:10, labelVersion:'Revised June 2026', sourceDocument:'UK VMD product information', bttReferenceUrl:'https://example.org/label.pdf', deventerMinimumSampleCount:18, deventerSampleSizeBasis:'section 8: at least 18 chicks' }
   it('accepts only documented conventional live IBD with its exact BTT assay', () => {
     expect(validateIbdDeventerProductGate(valid)).toEqual([])
   })
@@ -253,6 +253,11 @@ describe('IBD Deventer product platform gate', () => {
     [{...valid, validationStatus:'unverified'}, 'مستند'],
     [{...valid, selectedAssayKitId:'biochek-ck113'}, 'کیت دقیق'],
     [{...valid, diseaseCode:'IBV'}, 'IBD'],
+    [{...valid, breakthroughTiter:null}, 'BTT'],
+    [{...valid, breakthroughUnit:null}, 'واحد دقیق BTT'],
+    [{...valid, minimumVaccinationAgeDays:null}, 'حداقل سن'],
+    [{...valid, labelVersion:null}, 'نسخه و سند'],
+    [{...valid, bttReferenceUrl:null}, 'پیوند مرجع'],
   ])('blocks unsupported product/assay pairing', (input) => {
     expect(validateIbdDeventerProductGate(input).length).toBeGreaterThan(0)
   })
