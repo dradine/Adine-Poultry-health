@@ -63,6 +63,7 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری برای محاسبه حداقل سن برچسب معتبر نیست.')
   if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays < 0 || minimumVaccinationAgeDays > 365) throw new Error('حداقل سن مجاز باید از برچسب دقیق محصول واکسن ثبت شود.')
   if (!Number.isFinite(correctionHours) || correctionHours < 0 || correctionHours > 96) throw new Error('اصلاح زمانی باید بین صفر تا ۹۶ ساعت باشد.')
+  if (correctionHours > 0 && samplingAgeDays > 4) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ برای نمونه‌گیری پس از روز چهارم، اصلاح باید صفر باشد.')
   const sampledTimestamp = Date.parse(sampledAt)
   if (!Number.isFinite(sampledTimestamp)) throw new Error('تاریخ و ساعت نمونه‌گیری معتبر نیست.')
   const warnings = [

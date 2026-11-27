@@ -77,7 +77,7 @@ describe('future vaccination timing window', () => {
     expect(r.targetAt).toBe('2026-12-06T08:00:00.000Z')
   })
   it('keeps fractional hours as minutes and includes a documented correction', () => {
-    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionHours: 0.5, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })
+    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionHours: 0.5, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 4, minimumVaccinationAgeDays: 10 })
     expect(r.wholeHours).toBe(212)
     expect(r.remainingMinutes).toBe(16)
     expect(r.daysUntilThreshold).toBeCloseTo(8.844, 3)
@@ -86,6 +86,10 @@ describe('future vaccination timing window', () => {
     const r = calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 14, minimumVaccinationAgeDays: 10 })
     expect(r.status).toBe('threshold-already-reached')
     expect(r.targetAt).toBeNull()
+  })
+  it('rejects Deventer age correction when sampling is later than day 4', () => {
+    expect(() => calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3, correctionHours: 24, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 7, minimumVaccinationAgeDays: 10 })).toThrow(/۰ تا ۴/)
+    expect(() => calculateIbdWindow({ samplingAgeDays: 7, breakthroughTiter: 100, halfLifeDays: 3, susceptiblePercent: 75, titers: sample23, correctionDays: 1 })).toThrow(/۰ تا ۴/)
   })
   it('rejects missing timestamps and non-positive inputs', () => {
     expect(() => calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })).toThrow()

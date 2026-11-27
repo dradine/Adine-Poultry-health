@@ -683,8 +683,9 @@ export default function App() {
             </select>
             {selectedVaccineProduct && <small>
               برچسب بازار {selectedVaccineProduct.market_code || 'نامشخص'}؛ ثبت {selectedVaccineProduct.registration_number || 'بدون شماره ثبت'}؛
-              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز.
-              این برچسب فقط مربوط به بازار ثبت‌شده است و به معنی مجوز عرضه در ایران نیست.
+              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز؛
+              شروع ایمنی طبق برچسب {selectedVaccineProduct.onset_of_immunity_days ?? 'نامشخص'} روز پس از واکسیناسیون؛ مدت ایمنی اعلام‌شده {selectedVaccineProduct.duration_of_immunity_weeks ?? 'نامشخص'} هفته.
+              این اطلاعات فقط مربوط به بازار/نسخه ثبت‌شده است، تضمین حفاظت گله نیست و به معنی مجوز عرضه در ایران نیست.
             </small>}
           </label>
           <label>انتخاب کیت سرولوژی (بانک مرجع)
@@ -733,6 +734,7 @@ export default function App() {
           </label>
           <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
             <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
+            <small>در برچسب Avishield IBD Plus، اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز تعریف شده است؛ اگر نمونه‌گیری بعد از روز چهارم انجام شده، مقدار اصلاح باید صفر باشد.</small>
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
