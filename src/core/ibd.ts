@@ -38,7 +38,7 @@ export type VaccinationTimingInput = {
   breakthroughTiter: number
   halfLifeDays: number
   sampledAt: string
-  correctionHours?: number
+  correctionDays?: number
 }
 export type VaccinationTimingOutput = {
   status: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
@@ -57,14 +57,16 @@ export type VaccinationTimingOutput = {
  * order or a claim of clinical protection.
  */
 export function calculateVaccinationTiming(input: VaccinationTimingInput): VaccinationTimingOutput {
-  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, correctionHours = 0, samplingAgeDays, minimumVaccinationAgeDays } = input
+  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, samplingAgeDays, minimumVaccinationAgeDays } = input
   if (!Number.isFinite(currentTiter) || currentTiter <= 0) throw new Error('تیتر فعلی باید عدد مثبت باشد.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عددی مثبت باشد.')
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری برای محاسبه حداقل سن برچسب معتبر نیست.')
+  if (samplingAgeDays <= 4 && !Number.isInteger(samplingAgeDays)) throw new Error('برای نمونه‌گیری روز ۰ تا ۴، سن باید روز کامل باشد تا اصلاح استاندارد Deventer دقیق اعمال شود.')
+  const expectedCorrectionDays = samplingAgeDays <= 4 ? 4 - samplingAgeDays : 0
+  const correctionDays = input.correctionDays ?? expectedCorrectionDays
+  if (!Number.isInteger(correctionDays) || correctionDays < 0 || correctionDays > 4 || correctionDays !== expectedCorrectionDays) throw new Error('اصلاح Deventer باید خودکار مطابق سن نمونه‌گیری باشد: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱، روز ۴ یا بالاتر=۰ روز.')
   if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays < 0 || minimumVaccinationAgeDays > 365) throw new Error('حداقل سن مجاز باید از برچسب دقیق محصول واکسن ثبت شود.')
-  if (!Number.isFinite(correctionHours) || correctionHours < 0 || correctionHours > 96) throw new Error('اصلاح زمانی باید بین صفر تا ۹۶ ساعت باشد.')
-  if (correctionHours > 0 && samplingAgeDays > 4) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ برای نمونه‌گیری پس از روز چهارم، اصلاح باید صفر باشد.')
   const sampledTimestamp = Date.parse(sampledAt)
   if (!Number.isFinite(sampledTimestamp)) throw new Error('تاریخ و ساعت نمونه‌گیری معتبر نیست.')
   const warnings = [
@@ -74,7 +76,7 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
   ]
   const modelHours = currentTiter <= breakthroughTiter
     ? null
-    : halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter) + correctionHours
+    : halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter) + correctionDays * 24
   if (modelHours !== null && !Number.isFinite(modelHours)) throw new Error('زمان خام مدل خارج از محدوده عددی قابل محاسبه است؛ ورودی‌ها و نیمه‌عمر را بازبینی کنید.')
   const labelMinimumHours = Math.max(0, (minimumVaccinationAgeDays - samplingAgeDays) * 24)
   const hoursUntilEarliestAllowed = Math.max(modelHours ?? 0, labelMinimumHours)
@@ -130,10 +132,14 @@ function nearestRank(sorted: number[], percentile: number): { value: number; ran
  * Does not validate assay, product BTT, half-life, sampling or field protection. */
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
-    correctionDays = 0, minimumSampleCount, minimumVaccinationAgeDays } = input
+    correctionDays, minimumSampleCount, minimumVaccinationAgeDays } = input
   if (input.assayMethod !== 'ELISA') throw new Error('مدل Deventer فقط برای آزمون ELISA قابل استفاده است؛ HI، VN و روش‌های دیگر مجاز نیستند.')
   if (input.measurementScale !== 'elisa-titer') throw new Error('ورودی باید تیتر محاسبه‌شده با فرمول/نرم‌افزار همان کیت باشد؛ OD، S/P و S/N خام قابل استفاده نیستند.')
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری معتبر نیست.')
+  if (samplingAgeDays <= 4 && !Number.isInteger(samplingAgeDays)) throw new Error('برای نمونه‌گیری روز ۰ تا ۴، سن باید روز کامل باشد تا اصلاح استاندارد Deventer دقیق اعمال شود.')
+  const expectedCorrectionDays = samplingAgeDays <= 4 ? 4 - samplingAgeDays : 0
+  const effectiveCorrectionDays = correctionDays ?? expectedCorrectionDays
+  if (!Number.isInteger(effectiveCorrectionDays) || effectiveCorrectionDays < 0 || effectiveCorrectionDays > 4 || effectiveCorrectionDays !== expectedCorrectionDays) throw new Error('اصلاح Deventer باید خودکار مطابق سن نمونه‌گیری باشد: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱، روز ۴ یا بالاتر=۰ روز.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
   if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays! < 0 || minimumVaccinationAgeDays! > 365) throw new Error('حداقل سن مجاز واکسن باید از برچسب دقیق همان محصول ثبت شود؛ بدون آن زمان‌بندی فعال نمی‌شود.')
@@ -148,7 +154,7 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const percentileTiter = selected.value
   const percentileRank = selected.rank
   const log2PercentileTiter = Math.log2(percentileTiter)
-  const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + correctionDays
+  const rawCalculatedAgeDays = samplingAgeDays + (log2PercentileTiter - Math.log2(breakthroughTiter)) * halfLifeDays + effectiveCorrectionDays
   // An observed selected titre already at/below the product BTT cannot be made "not yet susceptible" by a positive age-correction term.
   const thresholdAlreadyReachedAtSampling = percentileTiter <= breakthroughTiter || rawCalculatedAgeDays <= samplingAgeDays
   const estimatedVaccinationAgeDays = thresholdAlreadyReachedAtSampling ? null : rawCalculatedAgeDays
