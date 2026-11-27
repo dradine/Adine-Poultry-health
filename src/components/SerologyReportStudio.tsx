@@ -138,14 +138,18 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
   window.addEventListener('adine-local-data-changed',refresh)
   return()=>{active=false;window.removeEventListener('adine-cloud-data-updated',refresh);window.removeEventListener('adine-local-data-changed',refresh)}
  },[run.flock_id])
+ const sampleDate=s(i,'samplingDate')
  const embedded=snapshotTimelineEvents([run])
- const events=[...new Map([...vaccinationEvents.map(dbTimelineEvent),...embedded].map(e=>[[e.date,e.disease,e.product,e.strain,e.route].join('|'),e])).values()].sort((a,b)=>a.date.localeCompare(b.date))
- const ibdRun=relatedRuns.filter(x=>x.flock_id===run.flock_id&&x.disease_code==='IBD'&&x.model_family==='deventer-live-conventional').sort((a,b)=>b.created_at.localeCompare(a.created_at))[0]
+ const allEvents=[...new Map([...vaccinationEvents.map(dbTimelineEvent),...embedded].map(e=>[[e.date,e.disease,e.product,e.strain,e.route].join('|'),e])).values()].sort((a,b)=>a.date.localeCompare(b.date))
+ const events=allEvents.filter(e=>!e.date||!sampleDate||e.date<=sampleDate)
+ const ibdRun=relatedRuns.filter(x=>x.flock_id===run.flock_id&&x.disease_code==='IBD'&&x.model_family==='deventer-live-conventional'&&(!sampleDate||String((x.input_snapshot as O).samplingDate||x.created_at.slice(0,10))<=sampleDate)).sort((a,b)=>String((b.input_snapshot as O).samplingDate||b.created_at).localeCompare(String((a.input_snapshot as O).samplingDate||a.created_at)))[0]
  const ibdOutput=(ibdRun?.output_snapshot||{}) as O
  const ibdAgeRaw=ibdOutput.labelConstrainedVaccinationAgeDays??ibdOutput.estimatedVaccinationAgeDays
  const ibdAge=typeof ibdAgeRaw==='number'&&Number.isFinite(ibdAgeRaw)&&ibdAgeRaw>=0&&ibdAgeRaw<=500?ibdAgeRaw:null
+ const ibdStatus=String(ibdOutput.timingStatus||ibdRun?.decision_status||'')
+ const ibdThresholdReached=ibdStatus==='threshold-already-reached'
+ const ibdLabelFloor=ibdStatus==='label-minimum-floor'||ibdOutput.labelMinimumApplied===true
  const ibdDate=ibdAge!==null&&flock?.hatch_date&&/^\d{4}-\d{2}-\d{2}$/.test(flock.hatch_date)?new Date(Date.parse(flock.hatch_date+'T00:00:00Z')+ibdAge*86400000).toISOString().slice(0,10):''
- const sampleDate=s(i,'samplingDate')
  const observation=clinicalRecords.filter(x=>x.observed_at.slice(0,10)<=sampleDate).sort((a,b)=>b.observed_at.localeCompare(a.observed_at))[0]
  const snapshot=i.clinicalContext&&typeof i.clinicalContext==='object'?i.clinicalContext as O:{}
  const hasSnapshot=(key:string)=>snapshot[key]!==undefined&&snapshot[key]!==null&&String(snapshot[key]).trim()!==''&&!(key==='status'&&snapshot[key]==='unknown')
@@ -189,8 +193,8 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
   </section>
   <section><h4>وضعیت زمان‌بندی واکسیناسیون</h4>
    {i.demo===true?<p className="srs-note">این پرونده آموزشی است. رویدادهای بالا فقط برای آزمایش خط زمانی ساخته شده‌اند؛ هیچ تاریخ واکسن بعدی به‌عنوان توصیه دامپزشکی محاسبه نمی‌شود.</p>:
-    <><div className="context-clinical-grid"><article><small>گامبورو (IBD)</small><b>{ibdRun&&ibdAge!==null?'سن برآوردی مدل: '+f(ibdAge,0)+' روزگی':'هنوز برآورد قابل نمایش ثبت نشده'}</b>{ibdDate&&<span>تاریخ تقویمی متناظر با تاریخ هچ: {date(ibdDate)}</span>}{ibdRun&&<small>وضعیت: {String(ibdOutput.timingStatus||ibdRun.decision_status||'نیازمند بازبینی دامپزشک')}</small>}</article>
-     <article><small>نیوکاسل، برونشیت و آنفلوانزا</small><b>تاریخ خودکار تعیین نشده</b><span>این گزارش سرولوژی به‌تنهایی موتور معتبر تعیین روز واکسن برای این بیماری‌ها نیست.</span></article></div>
+    <><div className="context-clinical-grid"><article><small>گامبورو (IBD)</small><b>{!ibdRun||ibdAge===null?'اجرای معتبر Deventer برای این گله تا تاریخ نمونه‌گیری موجود نیست':ibdThresholdReached?'آستانه BTT در زمان نمونه‌گیری حاصل شده است':ibdLabelFloor?'زودترین سن مجاز طبق حداقل سن برچسب: '+f(ibdAge,0)+' روزگی':'سن برآوردی Deventer: '+f(ibdAge,0)+' روزگی'}</b>{ibdDate&&<span>{ibdThresholdReached?'تاریخ فقط کف حداقل سن برچسب محصول است، نه توصیه واکسن آینده.':ibdLabelFloor?'تاریخ تقویمی حداقل سن مجاز برچسب: '+date(ibdDate):'تاریخ تقویمی برآورد مدل: '+date(ibdDate)}</span>}{ibdRun&&<small>وضعیت مدل: {ibdStatus||'نیازمند بازبینی دامپزشک'}</small>}{!ibdRun&&<small>ورودی لازم: MDA واقعی و نماینده، assay/BTT هم‌مقیاس، نیمه‌عمر مستند، سن هچ و حداقل سن برچسب محصول.</small>}</article>
+     <article><small>نیوکاسل، برونشیت و آنفلوانزا</small><b>تاریخ واکسن از تیتر سرمی به‌تنهایی قابل تعیین نیست</b><span>برای ND به HI جفت‌شده/آنتی‌ژن و برنامه واکسن؛ برای IBV به سویه/ژنوتیپ، route و پایش میدانی؛ و برای AIV به HI زیرتیپی، وضعیت رسمی منطقه و الزامات DIVA نیاز است. این بخش‌ها فعلاً پایش و تفسیرند، نه موتور مستقل زمان‌بندی.</span></article></div>
      <p className="srs-note">برآورد IBD فقط وقتی نمایش داده می‌شود که اجرای مدل اختصاصی Deventer برای همین گله ذخیره شده باشد. این مقدار تضمین حفاظت یا دستور قطعی نیست و باید با MDA واقعی، نمونه‌گیری نماینده، کیت/واحد منطبق با BTT، نسخه برچسب معتبر در بازار مربوط و حداقل سن محصول بازبینی شود. اگر تاریخ محاسبه‌شده گذشته باشد، آن را نوبت بعدی تلقی نکنید؛ مدل باید با داده تازه دوباره اجرا شود.</p></>}
   </section>
   <section><h4>وضعیت بالینی گله در زمان نمونه‌گیری</h4>
