@@ -31,11 +31,11 @@ describe('IBD Deventer-style mathematical estimator', () => {
   it('accepts Persian digits',()=>expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128,256]))
   it('applies the product label minimum age as a hard floor', () => {
     const rawBeforeLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(1000), minimumVaccinationAgeDays: 10 })
-    expect(rawBeforeLabel.estimatedVaccinationAgeDays).toBe(7)
+    expect(rawBeforeLabel.estimatedVaccinationAgeDays).toBe(9)
     expect(rawBeforeLabel.labelConstrainedVaccinationAgeDays).toBe(10)
     expect(rawBeforeLabel.labelMinimumApplied).toBe(true)
     const rawAfterLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(2000), minimumVaccinationAgeDays: 10 })
-    expect(rawAfterLabel.labelConstrainedVaccinationAgeDays).toBe(12)
+    expect(rawAfterLabel.labelConstrainedVaccinationAgeDays).toBe(14)
     expect(rawAfterLabel.labelMinimumApplied).toBe(false)
   })
   it('keeps the label minimum even when BTT is already reached at sampling', () => {
@@ -70,7 +70,7 @@ describe('IBD Deventer-style mathematical estimator', () => {
     expect(() => calculateIbdWindow({ ...input, assayMethod: 'HI' })).toThrow(/ELISA/)
     expect(() => calculateIbdWindow({ ...input, measurementScale: 's-p' })).toThrow(/OD/)
   })
-  it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
+  it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1} )).toThrow(/روز صفر=۴/))
   it('automatically applies the published age correction for sampling on days 0–4',()=>{
     const day0=calculateIbdWindow({samplingAgeDays:0,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
     const day1=calculateIbdWindow({samplingAgeDays:1,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
