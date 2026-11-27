@@ -16,7 +16,6 @@ grant select on public.flock_audit_events to authenticated;
 -- Protect history and children from physical deletion of the parent.
 alter table public.flock_audit_events drop constraint flock_audit_events_flock_id_fkey,
   add constraint flock_audit_events_flock_id_fkey foreign key(flock_id) references public.flocks(id) on delete no action deferrable initially deferred;
-create index flock_audit_events_owner_created_at_idx on public.flock_audit_events(owner_id, created_at desc);
 
 create function public.apply_flock_change(p_table text,p_id uuid,p_base uuid,p_mutation uuid,p_operation text,p_payload jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
