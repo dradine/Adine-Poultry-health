@@ -304,9 +304,22 @@ export default function App() {
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     if (!selectedVaccineProductId || !selectedVaccineProduct) return { result: null, error: 'مدل Deventer در این نسخه فقط با محصول واکسن مستندِ موجود در بانک مرجع فعال می‌شود؛ نام یا BTT دستی برای فعال‌کردن مدل کافی نیست.' }
-    const minimumVaccinationAgeDays = Number(normalizeDigits(String(selectedVaccineProduct.vaccine_age_min_days ?? '')))
-    if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays < 0 || minimumVaccinationAgeDays > 365) return { result: null, error: 'حداقل سن مجاز واکسن در نسخه دقیق برچسب محصول ثبت نشده است؛ زمان‌بندی تا تکمیل این داده متوقف می‌ماند.' }
-    const productGateErrors = validateIbdDeventerProductGate({ diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family, validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId })
+    const minimumAgeRaw = selectedVaccineProduct.vaccine_age_min_days
+    const minimumVaccinationAgeDays = minimumAgeRaw === null || minimumAgeRaw === undefined || String(minimumAgeRaw).trim() === '' ? Number.NaN : Number(normalizeDigits(String(minimumAgeRaw)))
+    const productBtt = selectedVaccineProduct.breakthrough_titer === null ? Number.NaN : Number(normalizeDigits(String(selectedVaccineProduct.breakthrough_titer)))
+    const enteredBtt = Number(normalizeDigits(btt))
+    const productGateErrors = validateIbdDeventerProductGate({
+      diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family,
+      validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId,
+      breakthroughTiter:Number.isFinite(productBtt) ? productBtt : null, breakthroughUnit:selectedVaccineProduct.breakthrough_unit,
+      minimumVaccinationAgeDays:Number.isFinite(minimumVaccinationAgeDays) ? minimumVaccinationAgeDays : null,
+      labelVersion:selectedVaccineProduct.label_version, sourceDocument:selectedVaccineProduct.source_document, bttReferenceUrl:selectedVaccineProduct.btt_reference_url,
+      deventerMinimumSampleCount:selectedVaccineProduct.deventer_minimum_sample_count,
+      deventerSampleSizeBasis:selectedVaccineProduct.deventer_sample_size_basis,
+    })
+    if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
+    if (!Number.isFinite(enteredBtt) || enteredBtt !== productBtt) return { result: null, error: 'BTT واردشده باید دقیقاً با مقدار و واحد ثبت‌شده در برچسب همان محصول برابر باشد؛ تغییر دستی BTT مجاز نیست.' }
+    if (selectedVaccineProduct.deventer_minimum_sample_count !== null && Number(normalizeDigits(minimumSampleCount)) !== selectedVaccineProduct.deventer_minimum_sample_count) return { result: null, error: 'حداقل تعداد نمونه باید دقیقاً مطابق رکورد مستند همان محصول باشد: ' + selectedVaccineProduct.deventer_minimum_sample_count + ' نمونه.' }
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
     if (selectedAssay.method !== 'ELISA') return { result: null, error: 'مدل Deventer فقط با ELISA قابل استفاده است؛ HI یا روش‌های دیگر پذیرفته نمی‌شوند.' }
