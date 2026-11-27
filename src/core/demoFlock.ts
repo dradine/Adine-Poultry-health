@@ -36,7 +36,7 @@ function hiValues(meanLog2: number): number[] {
   return offsets.map(offset => Math.pow(2, Math.max(1, Math.min(10, Math.round(meanLog2 + offset)))))
 }
 function latestVaccine(disease: string, age: number, schedule: Array<Record<string, unknown>>) {
-  return schedule.filter(x => x.disease_code === disease && Number(x.age_days) <= age).at(-1) || null
+  return schedule.filter(x => x.disease_code === disease && Number(x.age_days) < age).at(-1) || null
 }
 
 let seedInFlight: Promise<DemoFlockProfile> | null = null
@@ -129,7 +129,7 @@ async function createAdineDemoFlockOnce(): Promise<DemoFlockProfile> {
         notes: 'خط پایه روز اول نماینده MDA مادری در داده ساختگی است. هیچ محدوده نرمال عمومی یا آستانه حفاظت برای این اعداد ادعا نمی‌شود.',
         comparisonRule: 'Demo-only; no clinical comparison eligibility',
       }
-      const bioChekVI = item.disease === 'AIV' ? null : calculateBioChekVI(stats.arithmeticMean, stats.cvPercent)
+      const bioChekVI = item.disease === 'IBD' ? calculateBioChekVI(stats.arithmeticMean, stats.cvPercent) : null
       await saveLocalModelRun({
         id, flock_id: FLOCK_ID, disease_code: item.disease, model_version: 'serology-longitudinal-demo-0.1.0',
         model_family: 'serology-longitudinal-round', input_snapshot: input,
