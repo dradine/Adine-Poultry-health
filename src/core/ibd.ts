@@ -101,6 +101,14 @@ export type IbdDeventerProductGateInput = {
   validationStatus: string
   bttAssayKitId: string | null
   selectedAssayKitId: string
+  breakthroughTiter: number | null
+  breakthroughUnit: string | null
+  minimumVaccinationAgeDays: number | null
+  labelVersion: string | null
+  sourceDocument: string | null
+  bttReferenceUrl: string | null
+  deventerMinimumSampleCount: number | null
+  deventerSampleSizeBasis: string | null
 }
 /** Only documented conventional-live IBD products paired to their exact BTT assay may enter this Deventer MVP. */
 export function validateIbdDeventerProductGate(input: IbdDeventerProductGateInput): string[] {
@@ -109,6 +117,12 @@ export function validateIbdDeventerProductGate(input: IbdDeventerProductGateInpu
   if (input.platform !== 'live' || input.modelFamily !== 'deventer_live') errors.push('مدل Deventer فقط برای واکسن زنده متعارف IBD با model_family=deventer_live قابل بررسی است؛ immune-complex و HVT-VP2 مجاز نیستند.')
   if (input.validationStatus !== 'documented') errors.push('برچسب محصول در سطح مستند و تأییدشده ثبت نشده است.')
   if (!input.bttAssayKitId || input.bttAssayKitId !== input.selectedAssayKitId) errors.push('کیت انتخاب‌شده با کیت دقیق تعریف BTT این محصول یکسان نیست.')
+  if (input.breakthroughTiter === null || !Number.isFinite(input.breakthroughTiter) || input.breakthroughTiter <= 0) errors.push('BTT عددی معتبر و مستند در رکورد همان محصول ندارد.')
+  if (!input.breakthroughUnit?.trim()) errors.push('واحد دقیق BTT در برچسب محصول ثبت نشده است.')
+  if (input.minimumVaccinationAgeDays === null || !Number.isFinite(input.minimumVaccinationAgeDays) || input.minimumVaccinationAgeDays < 0 || input.minimumVaccinationAgeDays > 365) errors.push('حداقل سن مجاز محصول در برچسب دقیق آن ثبت نشده است.')
+  if (!input.labelVersion?.trim() || !input.sourceDocument?.trim()) errors.push('نسخه و سند برچسب محصول برای ردیابی BTT و حداقل سن ناقص است.')
+  if (!input.bttReferenceUrl || !/^https?:\\/\\//i.test(input.bttReferenceUrl)) errors.push('پیوند مرجع رسمی BTT محصول ثبت نشده است.')
+  if (input.deventerMinimumSampleCount !== null && (!Number.isInteger(input.deventerMinimumSampleCount) || input.deventerMinimumSampleCount < 2 || !input.deventerSampleSizeBasis?.trim())) errors.push('حداقل تعداد نمونه یا مبنای مستند آن در رکورد محصول ناقص است.')
   return errors
 }
 export type IbdRunGateInput = {
