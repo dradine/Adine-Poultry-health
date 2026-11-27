@@ -1,7 +1,7 @@
 import type { IbdOutput, IbdInput } from './ibd'
 
 export type IbdInterpretation = {
-  status: 'candidate-window' | 'already-reached'
+  status: 'candidate-window' | 'already-reached' | 'label-minimum-floor'
   farmer: string
   veterinarian: string[]
   assumptions: string[]
@@ -21,15 +21,19 @@ export function interpretIbdResult(input: IbdInput, result: IbdOutput, context: 
   const p = input.susceptiblePercent
   const selected = result.percentileTiter
   const rank = result.percentileRank
-  const date = result.estimatedVaccinationAgeDays
+  const date = result.labelConstrainedVaccinationAgeDays
+  const rawDate = result.estimatedVaccinationAgeDays
   const already = result.thresholdAlreadyReachedAtSampling
-  const status = already ? 'already-reached' : 'candidate-window'
-  const farmer = already
-    ? `در نمونه‌گیری روز ${input.samplingAgeDays}، تیتر گروه انتخاب‌شده (${selected}) از آستانه عبور واکسن (${input.breakthroughTiter}) پایین‌تر/در حد آن بوده و مدل می‌گوید زمان محاسباتی ممکن است رسیده باشد. این به معنی الزام تزریق فوری یا اثبات حفاظت/عدم حفاظت گله نیست؛ برنامه واکسن و وضعیت فارم باید بررسی شود.`
-    : `با فرض اینکه در ${p}٪ پرندگان هدف، تیتر MDA به BTT رسیده یا پایین‌تر آمده و از نظر آنتی‌بادی مستعد واکسن زنده شده باشند، مدل بر پایه تیتر انتخابی ${selected} از نمونه‌گیری روز ${input.samplingAgeDays}، روز ${date!.toFixed(1)} را به‌عنوان پنجره محاسباتی عبور از آستانه واکسن برآورد می‌کند. این روز، زمان قطعی یا تضمین‌کننده ایمنی گله نیست.`
+  const labelFloor = result.labelMinimumApplied
+  const status = labelFloor ? 'label-minimum-floor' : already ? 'already-reached' : 'candidate-window'
+  const farmer = labelFloor
+    ? `آستانه BTT در زمان نمونه‌گیری حاصل شده یا برآورد خام مدل زودتر از حداقل سن برچسب است. بنابراین سن قابل اجرا زودتر از ${result.minimumVaccinationAgeDays} روزگی نیست؛ سن ${date.toFixed(1)} روز فقط کف مجاز برچسب را رعایت می‌کند و به معنی اثبات حفاظت نیست.`
+    : already
+      ? `در نمونه‌گیری روز ${input.samplingAgeDays}، تیتر گروه انتخاب‌شده (${selected}) از آستانه عبور واکسن (${input.breakthroughTiter}) پایین‌تر/در حد آن بوده و حداقل سن برچسب نیز سپری شده است. این به معنی الزام تزریق فوری یا اثبات حفاظت/عدم حفاظت گله نیست؛ برنامه واکسن و وضعیت فارم باید بررسی شود.`
+      : `با فرض اینکه در ${p}٪ پرندگان هدف، تیتر MDA به BTT رسیده یا پایین‌تر آمده و از نظر آنتی‌بادی مستعد واکسن زنده شده باشند، مدل بر پایه تیتر انتخابی ${selected} از نمونه‌گیری روز ${input.samplingAgeDays}، سن خام ${rawDate!.toFixed(1)} روز را برآورد می‌کند؛ با رعایت حداقل سن برچسب، سن قابل اجرا ${date.toFixed(1)} روز است. این روز، زمان قطعی یا تضمین‌کننده ایمنی گله نیست.`
   const veterinarian = [
     `آمار نمونه: n=${result.sampleCount}؛ صدک/هدف پاسخ‌پذیری=${p}٪؛ رتبه مشاهده‌ای انتخاب‌شده=${rank} از ${result.sampleCount}؛ تیتر متناظر=${selected}؛ log₂(titer)= ${result.log2PercentileTiter.toFixed(3)}.`,
-    `محاسبه: سن نمونه‌گیری (${input.samplingAgeDays}) + [log₂ تیتر انتخابی − log₂ BTT (${input.breakthroughTiter})] × نیمه‌عمر (${input.halfLifeDays}) + اصلاح (${input.correctionDays ?? 0}) = ${result.rawCalculatedAgeDays.toFixed(2)} روز. ${already ? (selected <= input.breakthroughTiter ? 'تیتر مشاهده‌شده در زمان نمونه‌گیری از BTT بالاتر نیست؛ حتی اگر اصلاح روز، خروجی خام را جلو ببرد، وضعیت عبور از آستانه در نمونه‌گیری قبلاً برقرار بوده و تاریخ آینده گزارش نمی‌شود.' : 'خروجی خام از سن نمونه‌گیری جلوتر نیست؛ تاریخ آینده گزارش نمی‌شود.') : 'خروجی خام به‌عنوان سن تخمینی ثبت شده است.'}`,
+    `محاسبه خام: سن نمونه‌گیری (${input.samplingAgeDays}) + [log₂ تیتر انتخابی − log₂ BTT (${input.breakthroughTiter})] × نیمه‌عمر (${input.halfLifeDays}) + اصلاح (${input.correctionDays ?? 0}) = ${result.rawCalculatedAgeDays.toFixed(2)} روز. حداقل سن برچسب=${result.minimumVaccinationAgeDays} روز؛ سن قابل اجرا با رعایت برچسب=${result.labelConstrainedVaccinationAgeDays.toFixed(2)} روز. ${labelFloor ? 'در این سناریو کف برچسب محدودکننده است.' : already ? 'آستانه در نمونه‌گیری حاصل شده و حداقل سن نیز سپری شده است.' : 'برآورد خام مدل از کف برچسب دیرتر است.'}`,
     `توزیع: میانگین حسابی=${result.arithmeticMean.toFixed(1)}؛ میانه=${result.medianTiter.toFixed(1)}؛ GMT=${result.geometricMeanTiter.toFixed(1)}؛ SD در مقیاس log₂=${result.log2StandardDeviation.toFixed(2)}؛ CV حسابی=${result.coefficientOfVariationPercent.toFixed(1)}٪؛ دامنه=${result.minimumTiter} تا ${result.maximumTiter}.`,
     `تفسیر هدف: درصد ${p}، سهم هدف پرندگانی است که طبق مدل تیتر MDA آن‌ها به BTT رسیده یا پایین‌تر آمده است؛ این نه درصد take واکسن، نه درصد پاسخ ایمنی تضمینی و نه درصد حفاظت است. انتخاب ۵٪ و ۷۵٪ دو هدف متفاوت‌اند و قابل جایگزینی خودکار نیستند.`,
     `ردیابی پارامترها: کیت=${context.assay || 'ثبت نشده'}؛ واکسن=${context.vaccine || 'ثبت نشده'}؛ منبع BTT=${context.bttSource || 'ثبت نشده'}؛ منبع نیمه‌عمر=${context.halfLifeSource || 'ثبت نشده'}؛ منبع اصلاح=${context.correctionSource || 'ثبت نشده'}.`
@@ -44,8 +48,10 @@ export function interpretIbdResult(input: IbdInput, result: IbdOutput, context: 
     'ناهمگنی تیتر و انتخاب صدک، خطای نمونه‌گیری، سن نمونه، نوع پرنده، برنامه واکسیناسیون، وضعیت فارم و فشار عفونت می‌توانند نتیجه عملی را تغییر دهند.',
     'تاریخ محاسباتی باید با برچسب واکسن، مسیر/روش تجویز، سلامت گله، آب و تجهیزات، زنجیره سرد و امکان اجرای صحیح تطبیق داده شود.'
   ]
-  const nextActions = already
-    ? ['تاریخچه واکسن و سن گله را فوراً با دامپزشک مسئول تطبیق دهید؛ از این خروجی به‌تنهایی دستور واکسیناسیون فوری نسازید.', 'تحلیل حساسیت درصدهای هدف را ببینید و تیترهای خام/نمونه‌گیری و منبع BTT را بازبینی کنید.', 'اگر علائم یا تلفات غیرعادی وجود دارد، بررسی تشخیصی و اپیدمیولوژیک جداگانه انجام دهید؛ این مدل تشخیص بیماری نیست.']
-    : ['سناریوهای ۵، ۲۵، ۷۵ و ۹۰٪ از سهم هدفِ پرندگان زیر/در حد BTT را مقایسه کنید؛ اختلاف‌ها را به‌عنوان حساسیت مدل، نه چند توصیه قطعی، گزارش کنید.', 'اعتبار IFU، BTT و نیمه‌عمر و کیفیت نمونه‌گیری را قبل از تصمیم عملی بازبینی کنید.', 'زمان محاسباتی را با برنامه واکسن، سلامت گله، برچسب محصول و امکان اجرای صحیح تطبیق دهید.']
+  const nextActions = labelFloor
+    ? ['حداقل سن و نسخه برچسب دقیق بازار محصول را دوباره کنترل کنید؛ قبل از آن واکسن را تجویز نکنید.', 'تحلیل حساسیت درصدهای هدف را ببینید و BTT، نیمه‌عمر و کیفیت نمونه‌گیری را بازبینی کنید.', 'تاریخ قابل اجرا را با سلامت گله، روش تجویز و برنامه مزرعه با دامپزشک مسئول تطبیق دهید.']
+    : already
+      ? ['تاریخچه واکسن و سن گله را با دامپزشک مسئول تطبیق دهید؛ از این خروجی به‌تنهایی دستور واکسیناسیون فوری نسازید.', 'تحلیل حساسیت درصدهای هدف را ببینید و تیترهای خام/نمونه‌گیری و منبع BTT را بازبینی کنید.', 'اگر علائم یا تلفات غیرعادی وجود دارد، بررسی تشخیصی و اپیدمیولوژیک جداگانه انجام دهید؛ این مدل تشخیص بیماری نیست.']
+      : ['سناریوهای ۵، ۲۵، ۷۵ و ۹۰٪ از سهم هدفِ پرندگان زیر/در حد BTT را مقایسه کنید؛ اختلاف‌ها را به‌عنوان حساسیت مدل، نه چند توصیه قطعی، گزارش کنید.', 'اعتبار IFU، BTT و نیمه‌عمر و کیفیت نمونه‌گیری را قبل از تصمیم عملی بازبینی کنید.', 'زمان محاسباتی را با برنامه واکسن، سلامت گله، برچسب محصول و امکان اجرای صحیح تطبیق دهید.']
   return { status, farmer, veterinarian, assumptions, limitations, nextActions }
 }

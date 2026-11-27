@@ -6,6 +6,7 @@ export type IbdInput = {
   titers: number[]
   assayMethod?: string
   measurementScale?: string
+  minimumVaccinationAgeDays?: number
   correctionDays?: number
   minimumSampleCount?: number
   minimumSampleCountSource?: string
@@ -16,6 +17,9 @@ export type IbdOutput = {
   percentileRank: number
   rawCalculatedAgeDays: number
   estimatedVaccinationAgeDays: number | null
+  minimumVaccinationAgeDays: number
+  labelConstrainedVaccinationAgeDays: number
+  labelMinimumApplied: boolean
   thresholdAlreadyReachedAtSampling: boolean
   sampleCount: number
   arithmeticMean: number
@@ -29,13 +33,15 @@ export type IbdOutput = {
 }
 export type VaccinationTimingInput = {
   currentTiter: number
+  samplingAgeDays: number
+  minimumVaccinationAgeDays: number
   breakthroughTiter: number
   halfLifeDays: number
   sampledAt: string
   correctionHours?: number
 }
 export type VaccinationTimingOutput = {
-  status: 'future-window' | 'threshold-already-reached'
+  status: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
   hoursUntilThreshold: number | null
   wholeHours: number | null
   remainingMinutes: number | null
@@ -50,30 +56,35 @@ export type VaccinationTimingOutput = {
  * order or a claim of clinical protection.
  */
 export function calculateVaccinationTiming(input: VaccinationTimingInput): VaccinationTimingOutput {
-  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, correctionHours = 0 } = input
+  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, correctionHours = 0, samplingAgeDays, minimumVaccinationAgeDays } = input
   if (!Number.isFinite(currentTiter) || currentTiter <= 0) throw new Error('تیتر فعلی باید عدد مثبت باشد.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عددی مثبت باشد.')
+  if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری برای محاسبه حداقل سن برچسب معتبر نیست.')
+  if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays < 0 || minimumVaccinationAgeDays > 365) throw new Error('حداقل سن مجاز باید از برچسب دقیق محصول واکسن ثبت شود.')
   if (!Number.isFinite(correctionHours) || correctionHours < 0 || correctionHours > 96) throw new Error('اصلاح زمانی باید بین صفر تا ۹۶ ساعت باشد.')
   const sampledTimestamp = Date.parse(sampledAt)
   if (!Number.isFinite(sampledTimestamp)) throw new Error('تاریخ و ساعت نمونه‌گیری معتبر نیست.')
   const warnings = [
     'این زمان، رسیدن مدل افت آنتی‌بادی به BTT را نشان می‌دهد و به‌تنهایی دستور واکسیناسیون یا تضمین حفاظت نیست.',
-    'پیش از اجرا، IFU واکسن و کیت، وضعیت بالینی گله، سن، زنجیره سرد، مسیر اجرا و نظر دامپزشک بررسی شود.',
+    'حداقل سن مجاز برچسب محصول یک کف اجباری است و هرگز با برآورد زودتر مدل کنار گذاشته نمی‌شود.',
+    'پیش از اجرا، IFU واکسن و کیت، وضعیت بالینی گله، زنجیره سرد، مسیر اجرا و نظر دامپزشک بررسی شود.',
   ]
-  if (currentTiter <= breakthroughTiter) {
-    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'تیتر فعلی برابر یا پایین‌تر از BTT است؛ پنجره آینده از این مدل قابل استخراج نیست.'] }
-  }
-  const decayHours = halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter)
-  const hoursUntilThreshold = decayHours + correctionHours
+  const modelHours = currentTiter <= breakthroughTiter
+    ? 0
+    : halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter) + correctionHours
+  const labelMinimumHours = Math.max(0, (minimumVaccinationAgeDays - samplingAgeDays) * 24)
+  const hoursUntilThreshold = Math.max(modelHours, labelMinimumHours)
   if (!Number.isFinite(hoursUntilThreshold) || hoursUntilThreshold <= 0) {
-    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'زمان محاسبه‌شده به آینده نمی‌رسد؛ ورودی‌ها و اصلاح زمانی را بازبینی کنید.'] }
+    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای تولید نمی‌کند.'] }
   }
+  const labelMinimumApplied = labelMinimumHours > modelHours
   let wholeHours = Math.floor(hoursUntilThreshold)
   let remainingMinutes = Math.round((hoursUntilThreshold - wholeHours) * 60)
   if (remainingMinutes === 60) { wholeHours += 1; remainingMinutes = 0 }
   const targetAt = new Date(sampledTimestamp + hoursUntilThreshold * 60 * 60 * 1000).toISOString()
-  return { status: 'future-window', hoursUntilThreshold, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: hoursUntilThreshold / 24, warnings }
+  if (labelMinimumApplied) warnings.push('حداقل سن برچسب محصول (' + minimumVaccinationAgeDays + ' روز) از زمان خام مدل دیرتر است؛ تاریخ نمایش‌داده‌شده زودترین زمان مجاز طبق برچسب است، نه تاریخ خام رسیدن تیتر به BTT.')
+  return { status: labelMinimumApplied ? 'label-minimum-floor' : 'future-window', hoursUntilThreshold, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: hoursUntilThreshold / 24, warnings }
 }
 export type IbdDeventerProductGateInput = {
   diseaseCode: string
@@ -113,12 +124,13 @@ function nearestRank(sorted: number[], percentile: number): { value: number; ran
  * Does not validate assay, product BTT, half-life, sampling or field protection. */
 export function calculateIbdWindow(input: IbdInput): IbdOutput {
   const { samplingAgeDays, breakthroughTiter, halfLifeDays, susceptiblePercent, titers,
-    correctionDays = 0, minimumSampleCount } = input
+    correctionDays = 0, minimumSampleCount, minimumVaccinationAgeDays } = input
   if (input.assayMethod !== 'ELISA') throw new Error('مدل Deventer فقط برای آزمون ELISA قابل استفاده است؛ HI، VN و روش‌های دیگر مجاز نیستند.')
   if (input.measurementScale !== 'elisa-titer') throw new Error('ورودی باید تیتر محاسبه‌شده با فرمول/نرم‌افزار همان کیت باشد؛ OD، S/P و S/N خام قابل استفاده نیستند.')
   if (!Number.isFinite(samplingAgeDays) || samplingAgeDays < 0 || samplingAgeDays > 365) throw new Error('سن نمونه‌گیری معتبر نیست.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید مثبت و مستند به همان محصول و مقیاس آزمون باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید مثبت و مستند به جمعیت و روش آزمون باشد.')
+  if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays! < 0 || minimumVaccinationAgeDays! > 365) throw new Error('حداقل سن مجاز واکسن باید از برچسب دقیق همان محصول ثبت شود؛ بدون آن زمان‌بندی فعال نمی‌شود.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
   if (minimumSampleCount !== undefined && (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2)) throw new Error('حداقل تعداد نمونه باید یک عدد صحیح حداقل ۲ باشد؛ در غیر این صورت آن را خالی بگذارید و از فرض عمومی استفاده نکنید.')
   if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
@@ -134,6 +146,12 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   // An observed selected titre already at/below the product BTT cannot be made "not yet susceptible" by a positive age-correction term.
   const thresholdAlreadyReachedAtSampling = percentileTiter <= breakthroughTiter || rawCalculatedAgeDays <= samplingAgeDays
   const estimatedVaccinationAgeDays = thresholdAlreadyReachedAtSampling ? null : rawCalculatedAgeDays
+  const labelConstrainedVaccinationAgeDays = thresholdAlreadyReachedAtSampling
+    ? Math.max(samplingAgeDays, minimumVaccinationAgeDays!)
+    : Math.max(rawCalculatedAgeDays, minimumVaccinationAgeDays!)
+  const labelMinimumApplied = thresholdAlreadyReachedAtSampling
+    ? minimumVaccinationAgeDays! > samplingAgeDays
+    : minimumVaccinationAgeDays! > rawCalculatedAgeDays
   const arithmeticMean = titers.reduce((s,v)=>s+v,0)/titers.length
   const medianTiter = sorted.length % 2 === 0
     ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
@@ -155,20 +173,22 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (percentileRank <= 3) warnings.push(`صدک انتخاب‌شده به ${percentileRank} مشاهده از انتهای پایین توزیع متکی است؛ در نمونه ${titers.length}تایی این برآورد ناپایدار است. تحلیل حساسیت ۵٪، ۲۵٪، ۷۵٪ و ۹۰٪ را هم بررسی کنید.`)
   if (minimumSampleCount !== undefined && !input.minimumSampleCountSource?.trim()) warnings.push('منبع حداقل تعداد نمونه ثبت نشده است؛ عدد واردشده هنوز به IFU/برچسب همان محصول و کیت متصل نشده است.')
   else if (minimumSampleCount !== undefined && input.minimumSampleCountSource?.trim()) warnings.push('مبنای حداقل تعداد نمونه: ' + input.minimumSampleCountSource.trim() + '.')
-  if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ از نظر این شاخص آستانه در زمان نمونه‌گیری قبلاً حاصل شده است. اصلاح سن نمی‌تواند این مشاهده را به یک پنجره آینده تبدیل کند.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
+  if (thresholdAlreadyReachedAtSampling) warnings.push(percentileTiter <= breakthroughTiter ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT مستند محصول است؛ از نظر این شاخص آستانه در زمان نمونه‌گیری قبلاً حاصل شده است.' : 'برآورد خام به سن نمونه‌گیری یا قبل از آن رسیده است؛ ممکن است آستانه در زمان نمونه‌گیری قبلاً حاصل شده باشد.')
+  if (labelMinimumApplied) warnings.push('حداقل سن برچسب محصول (' + minimumVaccinationAgeDays + ' روز) از برآورد خام مدل دیرتر است؛ سن قابل اجرا پیش از این حداقل نخواهد بود.')
   warnings.push('CV توصیفی است و به‌تنهایی حد پذیرش یا رد جهانی برای زمان‌بندی واکسن نیست.')
   warnings.push('این محاسبه فقط برای واکسن زنده متعارف IBD و در صورت تطابق دقیق روش، کیت، BTT و نیمه‌عمر قابل بررسی است؛ برای immune-complex یا HVT-VP2 استفاده نشود مگر مدل اختصاصی و اعتبارسنجی شده باشد.')
   return { log2PercentileTiter, percentileTiter, percentileRank, rawCalculatedAgeDays, estimatedVaccinationAgeDays,
+    minimumVaccinationAgeDays: minimumVaccinationAgeDays!, labelConstrainedVaccinationAgeDays, labelMinimumApplied,
     thresholdAlreadyReachedAtSampling, sampleCount:titers.length, arithmeticMean, medianTiter,
     geometricMeanTiter, log2StandardDeviation, minimumTiter, maximumTiter,
     coefficientOfVariationPercent, warnings }
 }
 
-export type IbdSensitivityPoint = { susceptiblePercent: number; vaccinationAgeDays: number | null; selectedTiter: number; selectedRank: number }
+export type IbdSensitivityPoint = { susceptiblePercent: number; vaccinationAgeDays: number | null; labelConstrainedVaccinationAgeDays: number; labelMinimumApplied: boolean; selectedTiter: number; selectedRank: number }
 export function calculateIbdSensitivity(input: IbdInput, percentages: number[] = [5, 25, 75, 90]): IbdSensitivityPoint[] {
   return percentages.map(susceptiblePercent => {
     const result = calculateIbdWindow({ ...input, susceptiblePercent })
-    return { susceptiblePercent, vaccinationAgeDays: result.estimatedVaccinationAgeDays, selectedTiter: result.percentileTiter, selectedRank: result.percentileRank }
+    return { susceptiblePercent, vaccinationAgeDays: result.estimatedVaccinationAgeDays, labelConstrainedVaccinationAgeDays: result.labelConstrainedVaccinationAgeDays, labelMinimumApplied: result.labelMinimumApplied, selectedTiter: result.percentileTiter, selectedRank: result.percentileRank }
   })
 }
 export function normalizeDigits(value: string): string {

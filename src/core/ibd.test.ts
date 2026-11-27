@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { calculateIbdWindow as calculateIbdWindowCore, calculateIbdSensitivity, calculateVaccinationTiming, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
-const calculateIbdWindow = (input: Parameters<typeof calculateIbdWindowCore>[0]) => calculateIbdWindowCore({ assayMethod: 'ELISA', measurementScale: 'elisa-titer', ...input })
+const calculateIbdWindow = (input: Parameters<typeof calculateIbdWindowCore>[0]) => calculateIbdWindowCore({ assayMethod: 'ELISA', measurementScale: 'elisa-titer', minimumVaccinationAgeDays: 10, ...input })
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -29,6 +29,33 @@ describe('IBD Deventer-style mathematical estimator', () => {
     expect(r.thresholdAlreadyReachedAtSampling).toBe(true); expect(r.estimatedVaccinationAgeDays).toBeNull()
   })
   it('accepts Persian digits',()=>expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128,256]))
+  it('applies the product label minimum age as a hard floor', () => {
+    const rawBeforeLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(1000), minimumVaccinationAgeDays: 10 })
+    expect(rawBeforeLabel.estimatedVaccinationAgeDays).toBe(7)
+    expect(rawBeforeLabel.labelConstrainedVaccinationAgeDays).toBe(10)
+    expect(rawBeforeLabel.labelMinimumApplied).toBe(true)
+    const rawAfterLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(2000), minimumVaccinationAgeDays: 10 })
+    expect(rawAfterLabel.labelConstrainedVaccinationAgeDays).toBe(12)
+    expect(rawAfterLabel.labelMinimumApplied).toBe(false)
+  })
+  it('keeps the label minimum even when BTT is already reached at sampling', () => {
+    const result = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(500), minimumVaccinationAgeDays: 10 })
+    expect(result.estimatedVaccinationAgeDays).toBeNull()
+    expect(result.labelConstrainedVaccinationAgeDays).toBe(10)
+    expect(result.labelMinimumApplied).toBe(true)
+  })
+  it('uses the later of the model threshold and the product minimum age in calendar timing', () => {
+    const floor = calculateVaccinationTiming({ currentTiter: 1000, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 2, minimumVaccinationAgeDays: 10 })
+    expect(floor.status).toBe('label-minimum-floor')
+    expect(floor.hoursUntilThreshold).toBe(192)
+    expect(floor.targetAt).toBe('2026-12-05T08:00:00.000Z')
+    const modelLater = calculateVaccinationTiming({ currentTiter: 2000, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 2, minimumVaccinationAgeDays: 10 })
+    expect(modelLater.status).toBe('future-window')
+    expect(modelLater.hoursUntilThreshold).toBe(240)
+    const alreadyEligible = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 14, minimumVaccinationAgeDays: 10 })
+    expect(alreadyEligible.status).toBe('threshold-already-reached')
+    expect(alreadyEligible.targetAt).toBeNull()
+  })
   it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
   it('rejects non-ELISA methods and non-standardized titre scales', () => {
     const input = { samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3, susceptiblePercent: 75, titers: sample23 }
@@ -97,7 +124,7 @@ describe('published Deventer reference example', () => {
 
 describe('Deventer sensitivity analysis', () => {
   it('shows distinct vaccination ages for different directly receptive flock fractions', () => {
-    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18,assayMethod:'ELISA',measurementScale:'elisa-titer'})
+    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18,assayMethod:'ELISA',measurementScale:'elisa-titer',minimumVaccinationAgeDays:10})
     expect(r.map(x=>x.susceptiblePercent)).toEqual([5,25,75,90])
     expect(r.every(x => x.vaccinationAgeDays !== null)).toBe(true)
     expect(r[0].vaccinationAgeDays!).toBeLessThan(r[1].vaccinationAgeDays!)
