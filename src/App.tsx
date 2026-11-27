@@ -319,7 +319,7 @@ export default function App() {
     })
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!Number.isFinite(enteredBtt) || enteredBtt !== productBtt) return { result: null, error: 'BTT واردشده باید دقیقاً با مقدار و واحد ثبت‌شده در برچسب همان محصول برابر باشد؛ تغییر دستی BTT مجاز نیست.' }
-    if (selectedVaccineProduct.deventer_minimum_sample_count !== null && Number(normalizeDigits(minimumSampleCount)) !== selectedVaccineProduct.deventer_minimum_sample_count) return { result: null, error: 'حداقل تعداد نمونه باید دقیقاً مطابق رکورد مستند همان محصول باشد: ' + selectedVaccineProduct.deventer_minimum_sample_count + ' نمونه.' }
+    if (selectedVaccineProduct.deventer_minimum_sample_count !== null && Number(normalizeDigits(minimumSampleCount)) < selectedVaccineProduct.deventer_minimum_sample_count) return { result: null, error: 'حداقل تعداد نمونه طبق برچسب محصول ' + selectedVaccineProduct.deventer_minimum_sample_count + ' است؛ تعداد بالاتر قابل قبول است، اما کمتر از این مقدار مجاز نیست.' }
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
     if (selectedAssay.method !== 'ELISA') return { result: null, error: 'مدل Deventer فقط با ELISA قابل استفاده است؛ HI یا روش‌های دیگر پذیرفته نمی‌شوند.' }
@@ -752,7 +752,7 @@ export default function App() {
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
-            <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
+            <small>پیش‌فرض ۷۵٪ مطابق Deventer است؛ یعنی هدف برآورد سهمی از گله است که MDA آن‌ها تا زمان واکسیناسیون زیر BTT قرار می‌گیرد، نه درصد حفاظت تضمین‌شده. تغییر این درصد باید با توجه به یکنواختی تیتر، نوع سالن، انتشار افقی واکسن و نظر دامپزشک انجام شود.</small>
           </label>
         </div></details>
         <label className="wide-label">تیترهای انفرادی ELISA
