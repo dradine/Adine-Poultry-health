@@ -132,16 +132,16 @@ export default function App() {
   const [samplingTime, setSamplingTime] = useState('')
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
-  const [correctionDays, setCorrectionDays] = useState('0')
+  const correctionDays = (() => { const age = Number(normalizeDigits(samplingAge)); return Number.isInteger(age) && age >= 0 && age <= 4 ? String(4 - age) : '0' })()
   const [minimumSampleCount, setMinimumSampleCount] = useState('')
   const [minimumSampleCountSource, setMinimumSampleCountSource] = useState('')
-  const [susceptiblePercent, setSusceptiblePercent] = useState('5')
+  const [susceptiblePercent, setSusceptiblePercent] = useState('75')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
   const [bttSource, setBttSource] = useState('')
   const [halfLifeSource, setHalfLifeSource] = useState('')
-  const [correctionSource, setCorrectionSource] = useState('')
+  const [correctionSource, setCorrectionSource] = useState('de Wit 2001, Table 3')
   const [plateQcAccepted, setPlateQcAccepted] = useState(false)
   const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
   const [pairingVerified, setPairingVerified] = useState(false)
@@ -387,7 +387,7 @@ export default function App() {
         samplingAgeDays: Number(normalizeDigits(samplingAge)),
         minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
         sampledAt: zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || '',
-        correctionHours: Number(normalizeDigits(correctionDays)) * 24,
+        correctionDays: Number(normalizeDigits(correctionDays)),
       })
     } catch { return null }
   }, [result, sampleDate, samplingTime, samplingAge, btt, halfLife, correctionDays, selectedVaccineProduct])
@@ -528,7 +528,6 @@ export default function App() {
     setCorrectionSource(item.correctionSource || '')
     setBtt(item.btt)
     setHalfLife(item.halfLife)
-    setCorrectionDays(item.correctionDays)
     setMinimumSampleCount(item.minimumSampleCount)
     setMinimumSampleCountSource(item.minimumSampleCountSource || '')
     setSusceptiblePercent(item.susceptiblePercent)
@@ -734,9 +733,9 @@ export default function App() {
           <label>منبع حداقل تعداد نمونه (IFU/برچسب همان محصول یا کیت)
             <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_sample_size_basis)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
           </label>
-          <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
-            <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
-            <small>در برچسب Avishield IBD Plus، اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز تعریف شده است؛ اگر نمونه‌گیری بعد از روز چهارم انجام شده، مقدار اصلاح باید صفر باشد.</small>
+          <label>اصلاح استاندارد Deventer (روز؛ محاسبه خودکار)
+            <input value={toPersianDigits(correctionDays)} readOnly aria-readonly="true" />
+            <small>طبق جدول De Wit 2001: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱ و روز ۴ یا بالاتر=۰ روز. این مقدار قابل ویرایش دستی نیست.</small>
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
