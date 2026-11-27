@@ -39,6 +39,7 @@ export type VaccinationTimingInput = {
   halfLifeDays: number
   sampledAt: string
   correctionDays?: number
+  onsetOfImmunityDays?: number
 }
 export type VaccinationTimingOutput = {
   status: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
@@ -47,6 +48,7 @@ export type VaccinationTimingOutput = {
   wholeHours: number | null
   remainingMinutes: number | null
   targetAt: string | null
+  expectedOnsetAt: string | null
   daysUntilThreshold: number | null
   warnings: string[]
 }
@@ -57,7 +59,7 @@ export type VaccinationTimingOutput = {
  * order or a claim of clinical protection.
  */
 export function calculateVaccinationTiming(input: VaccinationTimingInput): VaccinationTimingOutput {
-  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, samplingAgeDays, minimumVaccinationAgeDays } = input
+  const { currentTiter, breakthroughTiter, halfLifeDays, sampledAt, samplingAgeDays, minimumVaccinationAgeDays, onsetOfImmunityDays } = input
   if (!Number.isFinite(currentTiter) || currentTiter <= 0) throw new Error('تیتر فعلی باید عدد مثبت باشد.')
   if (!Number.isFinite(breakthroughTiter) || breakthroughTiter <= 0) throw new Error('BTT باید عدد مثبت باشد.')
   if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) throw new Error('نیمه‌عمر باید عددی مثبت باشد.')
@@ -67,6 +69,7 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
   const correctionDays = input.correctionDays ?? expectedCorrectionDays
   if (!Number.isInteger(correctionDays) || correctionDays < 0 || correctionDays > 4 || correctionDays !== expectedCorrectionDays) throw new Error('اصلاح Deventer باید خودکار مطابق سن نمونه‌گیری باشد: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱، روز ۴ یا بالاتر=۰ روز.')
   if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays < 0 || minimumVaccinationAgeDays > 365) throw new Error('حداقل سن مجاز باید از برچسب دقیق محصول واکسن ثبت شود.')
+  if (onsetOfImmunityDays !== undefined && (!Number.isInteger(onsetOfImmunityDays) || onsetOfImmunityDays < 0 || onsetOfImmunityDays > 365)) throw new Error('فاصله شروع ایمنی باید عدد صحیح و مستند به برچسب محصول باشد.')
   const sampledTimestamp = Date.parse(sampledAt)
   if (!Number.isFinite(sampledTimestamp)) throw new Error('تاریخ و ساعت نمونه‌گیری معتبر نیست.')
   const warnings = [
@@ -82,17 +85,18 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
   const hoursUntilEarliestAllowed = Math.max(modelHours ?? 0, labelMinimumHours)
   if (!Number.isFinite(hoursUntilEarliestAllowed)) throw new Error('زمان مجاز بر اساس برچسب خارج از محدوده عددی قابل محاسبه است.')
   if (hoursUntilEarliestAllowed <= 0) {
-    return { status: 'threshold-already-reached', hoursUntilThreshold: null, hoursUntilEarliestAllowed: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری یا پیش از آن حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای برای عبور از BTT تولید نمی‌کند.'] }
+    return { status: 'threshold-already-reached', hoursUntilThreshold: null, hoursUntilEarliestAllowed: null, wholeHours: null, remainingMinutes: null, targetAt: null, expectedOnsetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری یا پیش از آن حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای برای عبور از BTT تولید نمی‌کند.'] }
   }
   const labelMinimumApplied = modelHours === null || labelMinimumHours > modelHours
   let wholeHours = Math.floor(hoursUntilEarliestAllowed)
   let remainingMinutes = Math.round((hoursUntilEarliestAllowed - wholeHours) * 60)
   if (remainingMinutes === 60) { wholeHours += 1; remainingMinutes = 0 }
   const targetAt = new Date(sampledTimestamp + hoursUntilEarliestAllowed * 60 * 60 * 1000).toISOString()
+  const expectedOnsetAt = onsetOfImmunityDays === undefined ? null : new Date(Date.parse(targetAt) + onsetOfImmunityDays * 24 * 60 * 60 * 1000).toISOString()
   if (labelMinimumApplied) warnings.push(modelHours === null
     ? 'تیتر در زمان نمونه‌گیری برابر یا پایین‌تر از BTT است؛ تاریخ نمایش‌داده‌شده فقط زودترین زمان مجاز طبق حداقل سن برچسب محصول است، نه زمان آینده رسیدن به BTT.'
     : 'زمان خام مدل برای رسیدن به BTT زودتر از حداقل سن برچسب محصول است؛ تاریخ نمایش‌داده‌شده فقط زودترین زمان مجاز طبق برچسب است.')
-  return { status: labelMinimumApplied ? 'label-minimum-floor' : 'future-window', hoursUntilThreshold: modelHours, hoursUntilEarliestAllowed, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: modelHours === null ? null : modelHours / 24, warnings }
+  return { status: labelMinimumApplied ? 'label-minimum-floor' : 'future-window', hoursUntilThreshold: modelHours, hoursUntilEarliestAllowed, wholeHours, remainingMinutes, targetAt, expectedOnsetAt, daysUntilThreshold: modelHours === null ? null : modelHours / 24, warnings }
 }
 export type IbdDeventerProductGateInput = {
   diseaseCode: string
