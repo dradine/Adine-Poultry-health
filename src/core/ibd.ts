@@ -43,6 +43,7 @@ export type VaccinationTimingInput = {
 export type VaccinationTimingOutput = {
   status: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
   hoursUntilThreshold: number | null
+  hoursUntilEarliestAllowed: number | null
   wholeHours: number | null
   remainingMinutes: number | null
   targetAt: string | null
@@ -72,21 +73,24 @@ export function calculateVaccinationTiming(input: VaccinationTimingInput): Vacci
     'پیش از اجرا، IFU واکسن و کیت، وضعیت بالینی گله، زنجیره سرد، مسیر اجرا و نظر دامپزشک بررسی شود.',
   ]
   const modelHours = currentTiter <= breakthroughTiter
-    ? 0
+    ? null
     : halfLifeDays * 24 * Math.log2(currentTiter / breakthroughTiter) + correctionHours
+  if (modelHours !== null && !Number.isFinite(modelHours)) throw new Error('زمان خام مدل خارج از محدوده عددی قابل محاسبه است؛ ورودی‌ها و نیمه‌عمر را بازبینی کنید.')
   const labelMinimumHours = Math.max(0, (minimumVaccinationAgeDays - samplingAgeDays) * 24)
-  const hoursUntilThreshold = Math.max(modelHours, labelMinimumHours)
-  if (!Number.isFinite(hoursUntilThreshold)) throw new Error('زمان برآوردی خارج از محدوده عددی قابل محاسبه است؛ ورودی‌ها و نیمه‌عمر را بازبینی کنید.')
-  if (hoursUntilThreshold <= 0) {
-    return { status: 'threshold-already-reached', hoursUntilThreshold: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای تولید نمی‌کند.'] }
+  const hoursUntilEarliestAllowed = Math.max(modelHours ?? 0, labelMinimumHours)
+  if (!Number.isFinite(hoursUntilEarliestAllowed)) throw new Error('زمان مجاز بر اساس برچسب خارج از محدوده عددی قابل محاسبه است.')
+  if (hoursUntilEarliestAllowed <= 0) {
+    return { status: 'threshold-already-reached', hoursUntilThreshold: null, hoursUntilEarliestAllowed: null, wholeHours: null, remainingMinutes: null, targetAt: null, daysUntilThreshold: null, warnings: [...warnings, 'BTT در زمان نمونه‌گیری یا پیش از آن حاصل شده و حداقل سن برچسب نیز سپری شده است؛ این مدل تاریخ آینده‌ای برای عبور از BTT تولید نمی‌کند.'] }
   }
-  const labelMinimumApplied = labelMinimumHours > modelHours
-  let wholeHours = Math.floor(hoursUntilThreshold)
-  let remainingMinutes = Math.round((hoursUntilThreshold - wholeHours) * 60)
+  const labelMinimumApplied = modelHours === null || labelMinimumHours > modelHours
+  let wholeHours = Math.floor(hoursUntilEarliestAllowed)
+  let remainingMinutes = Math.round((hoursUntilEarliestAllowed - wholeHours) * 60)
   if (remainingMinutes === 60) { wholeHours += 1; remainingMinutes = 0 }
-  const targetAt = new Date(sampledTimestamp + hoursUntilThreshold * 60 * 60 * 1000).toISOString()
-  if (labelMinimumApplied) warnings.push('حداقل سن برچسب محصول (' + minimumVaccinationAgeDays + ' روز) از زمان خام مدل دیرتر است؛ تاریخ نمایش‌داده‌شده زودترین زمان مجاز طبق برچسب است، نه تاریخ خام رسیدن تیتر به BTT.')
-  return { status: labelMinimumApplied ? 'label-minimum-floor' : 'future-window', hoursUntilThreshold, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: hoursUntilThreshold / 24, warnings }
+  const targetAt = new Date(sampledTimestamp + hoursUntilEarliestAllowed * 60 * 60 * 1000).toISOString()
+  if (labelMinimumApplied) warnings.push(modelHours === null
+    ? 'تیتر در زمان نمونه‌گیری برابر یا پایین‌تر از BTT است؛ تاریخ نمایش‌داده‌شده فقط زودترین زمان مجاز طبق حداقل سن برچسب محصول است، نه زمان آینده رسیدن به BTT.'
+    : 'زمان خام مدل برای رسیدن به BTT زودتر از حداقل سن برچسب محصول است؛ تاریخ نمایش‌داده‌شده فقط زودترین زمان مجاز طبق برچسب است.')
+  return { status: labelMinimumApplied ? 'label-minimum-floor' : 'future-window', hoursUntilThreshold: modelHours, hoursUntilEarliestAllowed, wholeHours, remainingMinutes, targetAt, daysUntilThreshold: modelHours === null ? null : modelHours / 24, warnings }
 }
 export type IbdDeventerProductGateInput = {
   diseaseCode: string
