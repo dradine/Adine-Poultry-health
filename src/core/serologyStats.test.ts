@@ -86,7 +86,16 @@ describe('strict longitudinal assay compatibility',()=>{
  })
 })
 
- it('allows explicitly labelled synthetic demo rounds for UI-only trend demonstration without claiming real QC',()=>{
+ it('allows only same-version synthetic training rounds in descriptive trend plots and blocks real/demo mixing',()=>{
+  const base={population:'broiler',method:'ELISA',assayId:'manual',kit:'Synthetic training dataset',catalog:'DEMO-IBD-ELISA',assayVersion:'SIMULATION-2.0',antigen:'IBDV group antigen (synthetic)',unit:'synthetic kit-scale units',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Demo lab',readerModel:'NOT A REAL READER',protocolVersion:'SIMULATION-2.0',kitLot:'SYNTHETIC-NOT-A-REAL-LOT',qcStatus:'not-run-synthetic',samplingPurpose:'training-only',demo:true,synthetic:true,demoVersion:'synthetic-training-v2',rawFileImported:false}
+  const a={flockId:'DEMO-FLOCK',diseaseCode:'IBD',input:{...base}}
+  const b={flockId:'DEMO-FLOCK',diseaseCode:'IBD',input:{...base,samplingDate:'2026-11-14'}}
+  expect(areComparableAssayRounds(a,b)).toBe(true)
+  expect(areComparableAssayRounds(a,{...b,input:{...base,demoVersion:'synthetic-training-v3'}})).toBe(false)
+  expect(areComparableAssayRounds(a,{...b,input:{...base,demo:false,synthetic:false,qcStatus:'pass'}})).toBe(false)
+  expect(areComparableAssayRounds(a,{...b,input:{...base,qcStatus:'pass'}})).toBe(false)
+ })
+it('allows explicitly labelled synthetic demo rounds for UI-only trend demonstration without claiming real QC',()=>{
   const demoBase={population:'broiler',method:'ELISA',assayId:'manual',kit:'Demo kit',catalog:'DEMO',assayVersion:'SIM-1',antigen:'demo antigen',unit:'synthetic titre',scale:'kit-titer',sampleMatrix:'serum',laboratory:'Demo lab',readerModel:'Demo reader',protocolVersion:'Demo SOP',kitLot:'DEMO-LOT',qcEvidence:'fictional demo only'}
   const demo={...demoBase,demo:true,qcStatus:'demo'}
   const roundDemo=(input:Record<string,unknown>)=>({flockId:'DEMO-FLOCK',diseaseCode:'ND',input})
