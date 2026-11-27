@@ -2,7 +2,7 @@ import type { LocalFlock,LocalModelRun } from '../core/localFirstDb'
 import SerologyFlockComparison from './SerologyFlockComparison'
 import SerologyControlTracking from './SerologyControlTracking'
 import { areComparableAssayRounds, areComparableSerologyRounds } from '../core/serologyStats'
-import { analyzePairedRounds, calculateSeropositivity, compareIndependentRounds, geometricMeanConfidenceInterval, meanConfidenceInterval } from '../core/serologyAdvancedStats'
+import { analyzePairedRounds, bootstrapGeometricMeanConfidenceInterval, bootstrapMeanConfidenceInterval, calculateSeropositivity, compareIndependentRounds, geometricMeanConfidenceInterval, meanConfidenceInterval } from '../core/serologyAdvancedStats'
 type O=Record<string,unknown>
 const str=(o:O,k:string)=>typeof o[k]==='string'?String(o[k]):''
 const nums=(v:unknown)=>Array.isArray(v)&&v.every(x=>typeof x==='number'&&Number.isFinite(x))?v as number[]:[]
@@ -15,6 +15,7 @@ export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalMod
  const isTitre=scale==='kit-titer'||scale==='hi-reciprocal',hasPositiveTitre=isTitre&&values.length>0&&values.every(v=>v>0)
  const demo=input.demo===true&&input.synthetic===true&&input.samplingPurpose==='training-only'&&input.qcStatus==='not-run-synthetic'
  const ci=hasPositiveTitre?geometricMeanConfidenceInterval(values):meanConfidenceInterval(values)
+ const bootstrapCi=hasPositiveTitre?bootstrapGeometricMeanConfidenceInterval(values,run.id):bootstrapMeanConfidenceInterval(values,run.id)
  const comparable=runs.filter(x=>x.id!==run.id&&x.flock_id===run.flock_id&&x.disease_code===run.disease_code&&x.model_family==='serology-longitudinal-round'&&(demo
   ? areComparableAssayRounds({flockId:x.flock_id,diseaseCode:x.disease_code,input:x.input_snapshot},{flockId:run.flock_id,diseaseCode:run.disease_code,input})
   : areComparableSerologyRounds({flockId:x.flock_id,diseaseCode:x.disease_code,input:x.input_snapshot},{flockId:run.flock_id,diseaseCode:run.disease_code,input}))&&String(x.input_snapshot.samplingDate||'')<String(input.samplingDate||'')).sort((a,b)=>String(b.input_snapshot.samplingDate||'').localeCompare(String(a.input_snapshot.samplingDate||'')))
@@ -56,7 +57,8 @@ export default function SerologyAdvancedAnalysis({run,runs,flocks}:{run:LocalMod
   </div>
   <p className="srs-note">فاصله اطمینان ۹۵٪ برای توصیف عدم‌قطعیت برآورد میانگین همین نمونه‌هاست؛ محدوده حفاظت یا حد تشخیص بیماری نیست.</p>
   <div className="srs-metrics">
-   <Metric label="فاصله اطمینان ۹۵٪" value={ci?fa(ci.lower)+' تا '+fa(ci.upper):'قابل محاسبه نیست'} detail={hasPositiveTitre?'GMT؛ برآورد در مقیاس log₂ و بازتبدیل‌شده':isTitre?'GMT محاسبه نشده؛ CI میانگین حسابی به‌علت وجود تیتر صفر':'میانگین حسابی در مقیاس ثبت‌شده'}/>
+   <Metric label="فاصله اطمینان پارامتریک ۹۵٪" value={ci?fa(ci.lower)+' تا '+fa(ci.upper):'قابل محاسبه نیست'} detail={hasPositiveTitre?'GMT؛ برآورد در مقیاس log₂ و بازتبدیل‌شده':isTitre?'GMT محاسبه نشده؛ CI میانگین حسابی به‌علت وجود تیتر صفر':'میانگین حسابی در مقیاس ثبت‌شده'}/>
+   <Metric label="فاصله اطمینان Bootstrap ۹۵٪" value={bootstrapCi?fa(bootstrapCi.lower)+' تا '+fa(bootstrapCi.upper):'قابل محاسبه نیست'} detail={'۲۰۰۰ بازنمونه‌گیری؛ seed ثابت '+run.id.slice(0,8)+(hasPositiveTitre?' · GMT در مقیاس log₂':' · میانگین حسابی')}/>
    <Metric label="حجم نمونه" value={fa(values.length,0)} detail={values.length<2?'برای CI حداقل دو نتیجه لازم است':'نتایج معتبر واردشده'}/>
    <Metric label="مثبت سرولوژیک" value={positivity?pct(positivity.percent):'تعریف نشده'} detail={positivity?fa(positivity.positive,0)+' از '+fa(positivity.total,0)+'؛ CI ویلسون ۹۵٪':'فقط با cutoff و منبع معتبر همان IFU'}/>
    {positivity&&<Metric label="CI درصد مثبت‌ها" value={pct(positivity.interval.lower)+' تا '+pct(positivity.interval.upper)} detail="Wilson score interval"/>}

@@ -97,3 +97,43 @@ export function compareIndependentRounds(previous:number[],current:number[],scal
     geometricMeanPrevious:null,geometricMeanCurrent:null,geometricMeanFoldChange:null,foldChangeLower:null,foldChangeUpper:null,
   }
 }
+
+
+export type BootstrapInterval = {
+  n:number; mean:number; lower:number; upper:number
+  confidenceLevel:number; replicates:number; seed:string
+}
+function seededRandom(seed:string):()=>number {
+  let state=2166136261
+  for(let i=0;i<seed.length;i++)state=Math.imul(state^seed.charCodeAt(i),16777619)>>>0
+  return ()=>{
+    state=(state+0x6D2B79F5)>>>0
+    let t=state
+    t=Math.imul(t^(t>>>15),t|1)
+    t^=t+Math.imul(t^(t>>>7),t|61)
+    return ((t^(t>>>14))>>>0)/4294967296
+  }
+}
+function percentile(sorted:number[],p:number):number {
+  const position=(sorted.length-1)*p,lower=Math.floor(position)
+  return sorted[lower]+(sorted[Math.ceil(position)]-sorted[lower])*(position-lower)
+}
+/** Deterministic percentile bootstrap CI; seed should be a stable run identifier. */
+export function bootstrapMeanConfidenceInterval(values:number[],seed:string,replicates=2000):BootstrapInterval|null {
+  if(values.length<2||values.some(v=>!Number.isFinite(v))||!seed.trim())return null
+  if(!Number.isInteger(replicates)||replicates<500||replicates>20000)throw new Error('تعداد بازنمونه‌گیری باید عدد صحیح بین ۵۰۰ تا ۲۰۰۰۰ باشد.')
+  const random=seededRandom(seed),n=values.length
+  const mean=values.reduce((a,b)=>a+b,0)/n
+  const estimates=Array.from({length:replicates},()=>{
+    let total=0
+    for(let i=0;i<n;i++)total+=values[Math.floor(random()*n)]
+    return total/n
+  }).sort((a,b)=>a-b)
+  return {n,mean,lower:percentile(estimates,.025),upper:percentile(estimates,.975),confidenceLevel:.95,replicates,seed}
+}
+export function bootstrapGeometricMeanConfidenceInterval(titres:number[],seed:string,replicates=2000):BootstrapInterval|null {
+  if(titres.length<2||titres.some(v=>!Number.isFinite(v)||v<=0))return null
+  const ci=bootstrapMeanConfidenceInterval(titres.map(Math.log2),seed+':log2',replicates)
+  if(!ci)return null
+  return {...ci,mean:2**ci.mean,lower:2**ci.lower,upper:2**ci.upper,seed}
+}

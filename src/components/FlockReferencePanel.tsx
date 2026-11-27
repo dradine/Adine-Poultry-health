@@ -7,6 +7,8 @@ import { confirmStrictDeletion } from '../core/strictDelete'
 type Props = { flockId?: string; flockName?: string }
 const today = () => todayIsoDateInTimeZone('Asia/Tehran')
 const fa = (value: number) => value.toLocaleString('fa-IR')
+const faDate = (value: string) => new Date(value.includes('T') ? value : value + 'T12:00:00').toLocaleDateString('fa-IR')
+const synthetic = (source?: string | null) => Boolean(source?.toUpperCase().includes('SIMULATED'))
 
 export default function FlockReferencePanel({ flockId, flockName }: Props) {
   const [events, setEvents] = useState<LocalVaccinationEvent[]>([])
@@ -86,9 +88,9 @@ export default function FlockReferencePanel({ flockId, flockName }: Props) {
     <div className="reference-summary"><div><b>{fa(events.length)}</b><small>رویداد واکسن</small></div><div><b>{fa(observations.length)}</b><small>مشاهده بالینی</small></div><div><b>{fa(series.length)}</b><small>داده عملکردی</small></div></div>
     <div className="reference-records">
       <h4>سوابق ثبت‌شده و حذف هر رکورد</h4>
-      {events.map(row => <div className="reference-record-row" key={row.id}><span>{fa(row.age_days || 0)} روز · {row.disease_code} · {row.product_name}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_vaccination_events', row.id, 'رویداد واکسن ' + row.product_name)}>حذف</button></div>)}
-      {observations.map(row => <div className="reference-record-row" key={row.id}><span>{row.observed_at} · مشاهده بالینی · {row.status}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_clinical_observations', row.id, 'مشاهده بالینی ' + row.observed_at)}>حذف</button></div>)}
-      {series.map(row => <div className="reference-record-row" key={row.id}><span>{row.observed_at} · {row.metric} · {fa(row.value)} {row.unit}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_time_series', row.id, 'داده عملکردی ' + row.observed_at)}>حذف</button></div>)}
+      {events.map(row => <div className="reference-record-row" key={row.id}><span>{faDate(row.event_date)}{row.age_days!==null?' · '+fa(row.age_days)+' روز':''} · {row.disease_code} · {row.product_name}{synthetic(row.source_reference)&&<small> · داده آموزشی شبیه‌سازی‌شده؛ سابقه واقعی نیست</small>}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_vaccination_events', row.id, 'رویداد واکسن ' + row.product_name)}>حذف</button></div>)}
+      {observations.map(row => <div className="reference-record-row" key={row.id}><span>{faDate(row.observed_at)} · مشاهده بالینی · {row.status}{synthetic(row.source_reference)&&<small> · داده آموزشی شبیه‌سازی‌شده؛ یافته واقعی نیست</small>}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_clinical_observations', row.id, 'مشاهده بالینی ' + row.observed_at)}>حذف</button></div>)}
+      {series.map(row => <div className="reference-record-row" key={row.id}><span>{faDate(row.observed_at)} · {row.metric} · {fa(row.value)} {row.unit}{synthetic(row.source_reference)&&<small> · داده آموزشی شبیه‌سازی‌شده</small>}</span><button type="button" className="link-button" onClick={() => void deleteReference('flock_time_series', row.id, 'داده عملکردی ' + row.observed_at)}>حذف</button></div>)}
       {!events.length && !observations.length && !series.length && <p className="muted">هنوز رکوردی در پرونده مرجع ثبت نشده است.</p>}
     </div>
   </section>

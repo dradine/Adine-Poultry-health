@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {analyzePairedRounds,calculateSeropositivity,compareIndependentRounds,geometricMeanConfidenceInterval,meanConfidenceInterval,wilsonInterval} from './serologyAdvancedStats'
+import {analyzePairedRounds,bootstrapGeometricMeanConfidenceInterval,bootstrapMeanConfidenceInterval,calculateSeropositivity,compareIndependentRounds,geometricMeanConfidenceInterval,meanConfidenceInterval,wilsonInterval} from './serologyAdvancedStats'
 describe('advanced serology inference',()=>{
  it('returns a t-based 95% interval for the arithmetic mean',()=>{
   const x=meanConfidenceInterval([10,10,10,10])
@@ -51,5 +51,22 @@ describe('independent round comparison',()=>{
   const x=compareIndependentRounds([1,2,3],[3,4,5],'continuous')
   expect(x?.meanDifference).toBeCloseTo(2)
   expect(x?.lower).toBeLessThan(2);expect(x?.upper).toBeGreaterThan(2)
+ })
+})
+
+
+describe('deterministic percentile bootstrap',()=>{
+ it('returns reproducible intervals for a stable seed',()=>{
+  const a=bootstrapMeanConfidenceInterval([1,2,3,4,5],'run-123',500)
+  const b=bootstrapMeanConfidenceInterval([1,2,3,4,5],'run-123',500)
+  expect(a).toEqual(b);expect(a?.lower).toBeLessThanOrEqual(a?.mean||0);expect(a?.upper).toBeGreaterThanOrEqual(a?.mean||0)
+ })
+ it('back-transforms bootstrap titre intervals from log2 scale',()=>{
+  const x=bootstrapGeometricMeanConfidenceInterval([16,32,64,32],'titre-run',500)
+  expect(x?.mean).toBeCloseTo(32);expect(x?.lower).toBeGreaterThan(0);expect(x?.upper).toBeGreaterThan(x?.lower||0)
+ })
+ it('rejects invalid titre values and insufficient samples',()=>{
+  expect(bootstrapGeometricMeanConfidenceInterval([0,2],'bad')).toBeNull()
+  expect(bootstrapMeanConfidenceInterval([1],'one',500)).toBeNull()
  })
 })
