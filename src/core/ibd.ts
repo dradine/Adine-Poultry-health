@@ -145,8 +145,6 @@ export function calculateIbdWindow(input: IbdInput): IbdOutput {
   if (!Number.isFinite(minimumVaccinationAgeDays) || minimumVaccinationAgeDays! < 0 || minimumVaccinationAgeDays! > 365) throw new Error('حداقل سن مجاز واکسن باید از برچسب دقیق همان محصول ثبت شود؛ بدون آن زمان‌بندی فعال نمی‌شود.')
   if (!Number.isFinite(susceptiblePercent) || susceptiblePercent <= 0 || susceptiblePercent >= 100) throw new Error('درصد هدف باید بین صفر و صد باشد.')
   if (minimumSampleCount !== undefined && (!Number.isInteger(minimumSampleCount) || minimumSampleCount < 2)) throw new Error('حداقل تعداد نمونه باید یک عدد صحیح حداقل ۲ باشد؛ در غیر این صورت آن را خالی بگذارید و از فرض عمومی استفاده نکنید.')
-  if (!Number.isFinite(correctionDays) || correctionDays < 0 || correctionDays > 4) throw new Error('اصلاح سن نمونه‌گیری باید بین صفر تا چهار روز باشد.')
-  if (samplingAgeDays > 4 && correctionDays !== 0) throw new Error('اصلاح ۰ تا ۴ روز فقط برای نمونه‌گیری در سن ۰ تا ۴ روز مجاز است؛ بروشور همان محصول ملاک نهایی است.')
   if (!Array.isArray(titers) || titers.length < 2) throw new Error('برای محاسبه توصیفی حداقل دو تیتر معتبر لازم است؛ با یک نمونه تحلیل پراکندگی/صدک انجام نمی‌شود.')
   if (titers.some(v => !Number.isFinite(v) || v <= 0 || v > 1e9)) throw new Error('همه تیترها باید عدد مثبت باشند. نتایج زیر حد تشخیص، بالاتر از محدوده، نامعتبر یا مفقود را عددگذاری نکنید.')
   const sorted = [...titers].sort((a,b) => a-b)
