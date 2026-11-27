@@ -54,3 +54,86 @@ export function calculateSeropositivity(values:number[],cutoff:number,direction:
   const interval=wilsonInterval(positive,values.length)
   return interval?{positive,total:values.length,percent:positive/values.length*100,interval:{lower:interval.lower*100,upper:interval.upper*100}}:null
 }
+
+
+export type IndependentRoundComparison = {
+  nPrevious:number; nCurrent:number
+  meanDifference:number; standardError:number; degreesFreedom:number
+  lower:number; upper:number; hedgesG:number|null
+  geometricMeanPrevious:number|null; geometricMeanCurrent:number|null
+  geometricMeanFoldChange:number|null; foldChangeLower:number|null; foldChangeUpper:number|null
+}
+/**
+ * Welch comparison for two independent rounds. Titre values are analysed on log2 scale.
+ * Intended for explicitly independent samples; this is not a paired-bird analysis.
+ */
+export function compareIndependentRounds(previous:number[],current:number[],scale:'titre'|'continuous'):IndependentRoundComparison|null {
+  if(previous.length<2||current.length<2)return null
+  const valid=(xs:number[])=>xs.every(v=>Number.isFinite(v)&&(scale==='titre'?v>0:v>=0))
+  if(!valid(previous)||!valid(current))return null
+  const transform=(xs:number[])=>scale==='titre'?xs.map(Math.log2):xs
+  const a=transform(previous),b=transform(current)
+  const mean=(xs:number[])=>xs.reduce((s,v)=>s+v,0)/xs.length
+  const variance=(xs:number[])=>xs.reduce((s,v)=>s+(v-mean(xs))**2,0)/(xs.length-1)
+  const ma=mean(a),mb=mean(b),va=variance(a),vb=variance(b)
+  const aa=va/a.length,bb=vb/b.length,se=Math.sqrt(aa+bb)
+  const denominator=(aa*aa)/(a.length-1)+(bb*bb)/(b.length-1)
+  const df=denominator>0?((aa+bb)**2)/denominator:a.length+b.length-2
+  const critical=tCritical95(Math.max(1,Math.floor(df)))
+  const difference=mb-ma,lower=difference-critical*se,upper=difference+critical*se
+  const pooledVariance=((a.length-1)*va+(b.length-1)*vb)/(a.length+b.length-2)
+  const pooledSd=Math.sqrt(pooledVariance)
+  const correction=1-3/(4*(a.length+b.length)-9)
+  const hedgesG=pooledSd>0?correction*difference/pooledSd:null
+  if(scale==='titre')return {
+    nPrevious:previous.length,nCurrent:current.length,meanDifference:difference,standardError:se,degreesFreedom:df,
+    lower,upper,hedgesG,
+    geometricMeanPrevious:2**ma,geometricMeanCurrent:2**mb,
+    geometricMeanFoldChange:2**difference,foldChangeLower:2**lower,foldChangeUpper:2**upper,
+  }
+  return {
+    nPrevious:previous.length,nCurrent:current.length,meanDifference:difference,standardError:se,degreesFreedom:df,
+    lower,upper,hedgesG,
+    geometricMeanPrevious:null,geometricMeanCurrent:null,geometricMeanFoldChange:null,foldChangeLower:null,foldChangeUpper:null,
+  }
+}
+
+
+export type BootstrapInterval = {
+  n:number; mean:number; lower:number; upper:number
+  confidenceLevel:number; replicates:number; seed:string
+}
+function seededRandom(seed:string):()=>number {
+  let state=2166136261
+  for(let i=0;i<seed.length;i++)state=Math.imul(state^seed.charCodeAt(i),16777619)>>>0
+  return ()=>{
+    state=(state+0x6D2B79F5)>>>0
+    let t=state
+    t=Math.imul(t^(t>>>15),t|1)
+    t^=t+Math.imul(t^(t>>>7),t|61)
+    return ((t^(t>>>14))>>>0)/4294967296
+  }
+}
+function percentile(sorted:number[],p:number):number {
+  const position=(sorted.length-1)*p,lower=Math.floor(position)
+  return sorted[lower]+(sorted[Math.ceil(position)]-sorted[lower])*(position-lower)
+}
+/** Deterministic percentile bootstrap CI; seed should be a stable run identifier. */
+export function bootstrapMeanConfidenceInterval(values:number[],seed:string,replicates=2000):BootstrapInterval|null {
+  if(values.length<2||values.some(v=>!Number.isFinite(v))||!seed.trim())return null
+  if(!Number.isInteger(replicates)||replicates<500||replicates>20000)throw new Error('تعداد بازنمونه‌گیری باید عدد صحیح بین ۵۰۰ تا ۲۰۰۰۰ باشد.')
+  const random=seededRandom(seed),n=values.length
+  const mean=values.reduce((a,b)=>a+b,0)/n
+  const estimates=Array.from({length:replicates},()=>{
+    let total=0
+    for(let i=0;i<n;i++)total+=values[Math.floor(random()*n)]
+    return total/n
+  }).sort((a,b)=>a-b)
+  return {n,mean,lower:percentile(estimates,.025),upper:percentile(estimates,.975),confidenceLevel:.95,replicates,seed}
+}
+export function bootstrapGeometricMeanConfidenceInterval(titres:number[],seed:string,replicates=2000):BootstrapInterval|null {
+  if(titres.length<2||titres.some(v=>!Number.isFinite(v)||v<=0))return null
+  const ci=bootstrapMeanConfidenceInterval(titres.map(Math.log2),seed+':log2',replicates)
+  if(!ci)return null
+  return {...ci,mean:2**ci.mean,lower:2**ci.lower,upper:2**ci.upper,seed}
+}

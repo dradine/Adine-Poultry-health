@@ -6,9 +6,10 @@ import DateObject from 'react-date-object'
 import { ASSAY_CATALOG, type AssayCatalogEntry } from './core/assayRegistry'
 import { fetchPublicReferenceCatalog, findBttAssayForProduct, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
-import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import { calculateSamplingAgeFromHatch } from './core/samplingAge'
+import { getTimeZoneOffsetMinutesEast, instantToZonedDateTime, zonedDateTimeToIso } from './core/zonedTime'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import StrainSelector from './components/StrainSelector'
 import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
@@ -16,8 +17,11 @@ import { diagnosticKitCatalog, type DiagnosticKit } from './data/diagnosticKitCa
 import CloudSyncPanel from './components/CloudSyncPanel'
 import BaselineLibrary from './components/BaselineLibrary'
 import LongitudinalReports from './components/LongitudinalReports'
-import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listLocalReferenceRecords, markLocalDeleted, markLocalReferenceDeleted, notifyLocalDataChanged } from './core/localFirstDb'
+import { createAdineDemoFlock } from './core/demoFlock'
+import { confirmStrictDeletion } from './core/strictDelete'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
+import FlockReferencePanel from './components/FlockReferencePanel'
 
 type SavedProfile = {
   id: string
@@ -50,10 +54,23 @@ type SavedAnalysis = {
   susceptiblePercent: string
   titersText: string
   estimatedVaccinationAgeDays: number | null
+  minimumVaccinationAgeDays?: number
+  labelConstrainedVaccinationAgeDays?: number
+  labelMinimumApplied?: boolean
+  timingStatus?: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
   percentileTiter: number
   percentileRank: number
   sampleCount: number
   warnings?: string[]
+  samplingDate?: string
+  samplingTime?: string
+  timingTargetAt?: string | null
+  timingHours?: number | null
+  timingEarliestAllowedHours?: number | null
+  timingExpectedOnsetAt?: string | null
+  sampledAtIso?: string
+  samplingTimeZone?: string
+  samplingTimeZoneOffsetMinutes?: number
   plateQcAccepted: boolean
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
@@ -115,18 +132,19 @@ export default function App() {
   const [hatchery, setHatchery] = useState('')
   const [vaccinationHistory, setVaccinationHistory] = useState('')
   const [samplingAge, setSamplingAge] = useState('14')
+  const [samplingTime, setSamplingTime] = useState('')
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
-  const [correctionDays, setCorrectionDays] = useState('0')
-  const [minimumSampleCount, setMinimumSampleCount] = useState('23')
+  const correctionDays = (() => { const age = Number(normalizeDigits(samplingAge)); return Number.isInteger(age) && age >= 0 && age <= 4 ? String(4 - age) : '0' })()
+  const [minimumSampleCount, setMinimumSampleCount] = useState('')
   const [minimumSampleCountSource, setMinimumSampleCountSource] = useState('')
-  const [susceptiblePercent, setSusceptiblePercent] = useState('5')
+  const [susceptiblePercent, setSusceptiblePercent] = useState('75')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
   const [bttSource, setBttSource] = useState('')
   const [halfLifeSource, setHalfLifeSource] = useState('')
-  const [correctionSource, setCorrectionSource] = useState('')
+  const [correctionSource, setCorrectionSource] = useState('de Wit 2001, Table 3')
   const [plateQcAccepted, setPlateQcAccepted] = useState(false)
   const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
   const [pairingVerified, setPairingVerified] = useState(false)
@@ -167,13 +185,16 @@ export default function App() {
       setAnalyses(readAnalyses())
     }
     const cached = readCachedPublicCatalog()
+    const cachedNotice = cached?.fetchedAt && Number.isFinite(Date.parse(cached.fetchedAt))
+      ? 'بانک مرجع از حافظه محلی بارگذاری شده است؛ آخرین دریافت: ' + new Date(cached.fetchedAt).toLocaleString('fa-IR') + '. پیش از محاسبه، نسخه جاری IFU و برچسب محصول را مستقلاً کنترل کنید.'
+      : 'تاریخ دریافت بانک مرجع در حافظه محلی معتبر نیست؛ نسخه جاری IFU و برچسب محصول را مستقلاً کنترل کنید.'
     if (cached) {
       setAssayCatalog(cached.assays.map(mapPublicAssayToEntry))
       setVaccineCatalog(cached.vaccines)
     }
     const refreshCatalog = async () => {
       if (!navigator.onLine) {
-        if (!cached) setCatalogNotice('برای دریافت بانک کامل کیت و واکسن، یک بار با اینترنت برنامه را باز کنید؛ فهرست محلی محدود در دسترس است.')
+        setCatalogNotice(cached ? cachedNotice : 'برای دریافت بانک کامل کیت و واکسن، یک بار با اینترنت برنامه را باز کنید؛ فهرست محلی محدود در دسترس است.')
         return
       }
       try {
@@ -183,7 +204,7 @@ export default function App() {
         setVaccineCatalog(catalog.vaccines)
         setCatalogNotice('')
       } catch (cause) {
-        if (active && !cached) setCatalogNotice(cause instanceof Error ? 'بانک آنلاین کیت/واکسن در دسترس نیست؛ فهرست محلی محدود استفاده می‌شود.' : 'بانک مرجع آنلاین در دسترس نیست.')
+        if (active) setCatalogNotice(cached ? 'اتصال به بانک آنلاین ناموفق بود. ' + cachedNotice : (cause instanceof Error ? 'بانک آنلاین کیت/واکسن در دسترس نیست؛ فهرست محلی محدود استفاده می‌شود.' : 'بانک مرجع آنلاین در دسترس نیست.'))
       }
     }
     const onOnline = () => { void refreshCatalog() }
@@ -220,7 +241,7 @@ export default function App() {
     } else if (selectedKit.id.startsWith('custom-')) {
       setSelectedAssayId('')
       setKitName(selectedKit.brand + (selectedKit.catalog ? ' (' + selectedKit.catalog + ')' : '') + ' — ' + selectedKit.assay)
-      setMinimumSampleCount('23')
+      setMinimumSampleCount('')
       setMinimumSampleCountSource('')
     }
   }, [selectedDisease, selectedDiagnosticKitId, customKits, assayCatalog])
@@ -250,7 +271,7 @@ export default function App() {
       setBttSource('')
       setSelectedAssayId('')
       setKitName('')
-      setMinimumSampleCount('23')
+      setMinimumSampleCount('')
       setMinimumSampleCountSource('')
       setError('')
       return
@@ -262,7 +283,7 @@ export default function App() {
     setBttSource('')
     setSelectedAssayId('')
     setKitName('')
-    setMinimumSampleCount(String(product.deventer_minimum_sample_count || 23))
+    setMinimumSampleCount(product.deventer_minimum_sample_count ? String(product.deventer_minimum_sample_count) : '')
     setMinimumSampleCountSource(product.deventer_sample_size_basis || '')
     const linkedAssay = findBttAssayForProduct(product, assayCatalog)
     if (!linkedAssay) {
@@ -286,10 +307,28 @@ export default function App() {
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     if (!selectedVaccineProductId || !selectedVaccineProduct) return { result: null, error: 'مدل Deventer در این نسخه فقط با محصول واکسن مستندِ موجود در بانک مرجع فعال می‌شود؛ نام یا BTT دستی برای فعال‌کردن مدل کافی نیست.' }
-    const productGateErrors = validateIbdDeventerProductGate({ diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family, validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId })
+    const minimumAgeRaw = selectedVaccineProduct.vaccine_age_min_days
+    const minimumVaccinationAgeDays = minimumAgeRaw === null || minimumAgeRaw === undefined || String(minimumAgeRaw).trim() === '' ? Number.NaN : Number(normalizeDigits(String(minimumAgeRaw)))
+    const productBtt = selectedVaccineProduct.breakthrough_titer === null ? Number.NaN : Number(normalizeDigits(String(selectedVaccineProduct.breakthrough_titer)))
+    const enteredBtt = Number(normalizeDigits(btt))
+    const productGateErrors = validateIbdDeventerProductGate({
+      diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family,
+      validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId,
+      breakthroughTiter:Number.isFinite(productBtt) ? productBtt : null, breakthroughUnit:selectedVaccineProduct.breakthrough_unit,
+      minimumVaccinationAgeDays:Number.isFinite(minimumVaccinationAgeDays) ? minimumVaccinationAgeDays : null,
+      labelVersion:selectedVaccineProduct.label_version, sourceDocument:selectedVaccineProduct.source_document, bttReferenceUrl:selectedVaccineProduct.btt_reference_url,
+      deventerMinimumSampleCount:selectedVaccineProduct.deventer_minimum_sample_count,
+      deventerSampleSizeBasis:selectedVaccineProduct.deventer_sample_size_basis,
+    })
+    if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
+    if (!Number.isFinite(enteredBtt) || enteredBtt !== productBtt) return { result: null, error: 'BTT واردشده باید دقیقاً با مقدار و واحد ثبت‌شده در برچسب همان محصول برابر باشد؛ تغییر دستی BTT مجاز نیست.' }
+    if (selectedVaccineProduct.deventer_minimum_sample_count !== null && Number(normalizeDigits(minimumSampleCount)) < selectedVaccineProduct.deventer_minimum_sample_count) return { result: null, error: 'حداقل تعداد نمونه طبق برچسب محصول ' + selectedVaccineProduct.deventer_minimum_sample_count + ' است؛ تعداد بالاتر قابل قبول است، اما کمتر از این مقدار مجاز نیست.' }
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
+    if (selectedAssay.method !== 'ELISA') return { result: null, error: 'مدل Deventer فقط با ELISA قابل استفاده است؛ HI یا روش‌های دیگر پذیرفته نمی‌شوند.' }
+    if (selectedAssay.measurementScale !== 'elisa-titer') return { result: null, error: 'مقیاس این کیت به‌عنوان تیتر محاسبه‌شده مستند نشده است؛ OD و S/P خام را وارد نکنید و تا تأیید IFU محاسبه متوقف می‌ماند.' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
+    if (!minimumSampleCount.trim()) return { result: null, error: 'حداقل تعداد نمونه اختصاصی همین محصول/کیت را از IFU یا برچسب وارد کنید؛ مقدار عمومی به‌صورت خودکار فرض نمی‌شود.' }
     if (!minimumSampleCountSource.trim()) return { result: null, error: 'منبع حداقل تعداد نمونه باید از IFU یا برچسب همان محصول/کیت ثبت شود.' }
     if (selectedAssayId && (!selectedAssay || selectedAssay.status !== 'documented')) {
       return { result: null, error: 'این کیت فقط در سطح کاتالوگ/مستندات ناقص ثبت شده و تا دریافت IFU معتبر، مدل محاسباتی آن باز نمی‌شود.' }
@@ -312,6 +351,9 @@ export default function App() {
           correctionDays: Number(normalizeDigits(correctionDays)),
           minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
           minimumSampleCountSource,
+          minimumVaccinationAgeDays,
+          assayMethod: selectedAssay.method,
+          measurementScale: selectedAssay.measurementScale || 'unknown',
           titers,
         }),
         error: '',
@@ -328,6 +370,8 @@ export default function App() {
     halfLifeDays: Number(normalizeDigits(halfLife)),
     susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
     correctionDays: Number(normalizeDigits(correctionDays)),
+    assayMethod: selectedAssay?.method || 'UNKNOWN',
+    measurementScale: selectedAssay?.measurementScale || 'unknown',
     titers,
   }, result, { assay: kitName, vaccine: vaccineName, bttSource, halfLifeSource, correctionSource }) : null,
   [result, samplingAge, btt, halfLife, susceptiblePercent, correctionDays, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource])
@@ -341,11 +385,29 @@ export default function App() {
         correctionDays: Number(normalizeDigits(correctionDays)),
         minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
         minimumSampleCountSource,
+        minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
+        assayMethod: selectedAssay?.method || 'UNKNOWN',
+        measurementScale: selectedAssay?.measurementScale || 'unknown',
         titers,
         susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
       })
     } catch { return [] }
-  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent])
+  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent, selectedVaccineProduct])
+  const vaccinationTiming = useMemo(() => {
+    if (!result || !sampleDate || !samplingTime) return null
+    try {
+      return calculateVaccinationTiming({
+        currentTiter: result.percentileTiter,
+        breakthroughTiter: Number(normalizeDigits(btt)),
+        halfLifeDays: Number(normalizeDigits(halfLife)),
+        samplingAgeDays: Number(normalizeDigits(samplingAge)),
+        minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
+        sampledAt: zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || '',
+        correctionDays: Number(normalizeDigits(correctionDays)),
+        onsetOfImmunityDays: selectedVaccineProduct?.onset_of_immunity_days ? Number(normalizeDigits(String(selectedVaccineProduct.onset_of_immunity_days))) : undefined,
+      })
+    } catch { return null }
+  }, [result, sampleDate, samplingTime, samplingAge, btt, halfLife, correctionDays, selectedVaccineProduct])
 
   async function exportBackup() {
     try {
@@ -403,6 +465,30 @@ export default function App() {
       .catch(cause => setError(cause instanceof Error ? cause.message : 'ذخیره محلی پایدار انجام نشد؛ از فایل پشتیبان استفاده کنید.'))
   }
 
+  async function seedDemoFlock() {
+    setError('')
+    try {
+      const demo = await createAdineDemoFlock()
+      const next = [demo, ...profiles.filter(item => item.id !== demo.id && item.id !== 'demo-adine-flock-2026-11-27')]
+      if (!writeLocalStorage(STORAGE_KEY, next)) throw new Error('ذخیره پروفایل گله در مرورگر ناموفق بود.')
+      setProfiles(next)
+      setSelectedFlockId(demo.id)
+      setFlockName(demo.flockName)
+      setPlacementDate(demo.placementDate)
+      setHatchDate(demo.hatchDate)
+      setFlockType(demo.flockType)
+      setFlockSize(demo.flockSize)
+      setHouseName(demo.houseName)
+      setHatchery(demo.hatchery)
+      setVaccinationHistory(demo.vaccinationHistory)
+      setView('reports')
+      notifyLocalDataChanged()
+      setError('')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'ساخت گله آزمایشی آدینه ناموفق بود.')
+    }
+  }
+
   function saveAnalysis() {
     setError('')
     if (!flockName.trim() || !placementDate) {
@@ -431,10 +517,23 @@ export default function App() {
       susceptiblePercent,
       titersText,
       estimatedVaccinationAgeDays: result.estimatedVaccinationAgeDays,
+      minimumVaccinationAgeDays: result.minimumVaccinationAgeDays,
+      labelConstrainedVaccinationAgeDays: result.labelConstrainedVaccinationAgeDays,
+      labelMinimumApplied: result.labelMinimumApplied,
+      timingStatus: vaccinationTiming?.status,
       percentileTiter: result.percentileTiter,
       percentileRank: result.percentileRank,
       sampleCount: result.sampleCount,
       warnings: result.warnings,
+      samplingDate: sampleDate || undefined,
+      samplingTime: samplingTime || undefined,
+      timingTargetAt: vaccinationTiming?.targetAt || null,
+      timingHours: vaccinationTiming?.hoursUntilThreshold ?? null,
+      timingEarliestAllowedHours: vaccinationTiming?.hoursUntilEarliestAllowed ?? null,
+      timingExpectedOnsetAt: vaccinationTiming?.expectedOnsetAt ?? null,
+      sampledAtIso: sampleDate && samplingTime ? (zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || undefined) : undefined,
+      samplingTimeZone: sampleDate && samplingTime ? 'Asia/Tehran' : undefined,
+      samplingTimeZoneOffsetMinutes: sampleDate && samplingTime ? (() => { const iso = zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran'); return iso ? getTimeZoneOffsetMinutesEast(iso, 'Asia/Tehran') ?? undefined : undefined })() : undefined,
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
@@ -464,16 +563,26 @@ export default function App() {
     setSamplingAge(item.samplingAge)
     setKitName(item.kitName)
     setVaccineName(item.vaccineName)
+    setSelectedVaccineProductId(item.vaccineProductId || '')
+    setSelectedAssayId(item.bttAssayKitId || item.assayKitId || '')
     setBttSource(item.bttSource || '')
     setHalfLifeSource(item.halfLifeSource || '')
     setCorrectionSource(item.correctionSource || '')
     setBtt(item.btt)
     setHalfLife(item.halfLife)
-    setCorrectionDays(item.correctionDays)
     setMinimumSampleCount(item.minimumSampleCount)
     setMinimumSampleCountSource(item.minimumSampleCountSource || '')
     setSusceptiblePercent(item.susceptiblePercent)
     setTitersText(item.titersText)
+    // Restore the original instant in the flock's stored timezone, not the current device timezone.
+    if (item.sampledAtIso && Number.isFinite(Date.parse(item.sampledAtIso))) {
+      const sampled = instantToZonedDateTime(item.sampledAtIso, item.samplingTimeZone || 'Asia/Tehran')
+      if (sampled) { setSampleDate(sampled.date); setSamplingTime(sampled.time) }
+      else { setSampleDate(item.samplingDate || ''); setSamplingTime(item.samplingTime || '') }
+    } else {
+      setSampleDate(item.samplingDate || '')
+      setSamplingTime(item.samplingTime || '')
+    }
     setPlateQcAccepted(item.plateQcAccepted)
     setRandomSamplingConfirmed(item.randomSamplingConfirmed)
     setPairingVerified(item.pairingVerified)
@@ -481,6 +590,8 @@ export default function App() {
   }
 
   function removeAnalysis(id: string) {
+    const record = analyses.find(item => item.id === id)
+    if (!record || !confirmStrictDeletion('گزارش تحلیل ' + record.flockName + ' · ' + formatJalaliDate(record.placementDate))) return
     const next = analyses.filter((item) => item.id !== id)
     if (!writeLocalStorage(ANALYSIS_STORAGE_KEY, next)) { setError('حذف سابقه انجام نشد؛ ذخیره‌سازی مرورگر در دسترس نیست.'); return }
     setAnalyses(next)
@@ -494,11 +605,17 @@ export default function App() {
     if (!profile) return
     setError('')
     try {
-      const localRuns = await listLocalModelRuns()
-      const flockRuns = localRuns.filter(run => run.flock_id === id)
+      const [localRuns, vaccines, observations, series] = await Promise.all([
+        listLocalModelRuns(true),
+        listLocalReferenceRecords('flock_vaccination_events', id, true),
+        listLocalReferenceRecords('flock_clinical_observations', id, true),
+        listLocalReferenceRecords('flock_time_series', id, true),
+      ])
+      const flockRuns = localRuns.filter(run => run.flock_id === id && !run.deleted)
       const relatedLegacy = analyses.filter(item => item.flockName === profile.flockName && item.placementDate === profile.placementDate)
       const runIds = [...new Set([...flockRuns.map(run => run.id), ...relatedLegacy.map(run => run.id)])]
-      if (runIds.length && !window.confirm(`این گله ${runIds.length} سابقه تحلیل/پایش دارد. با حذف گله، همه سوابق وابسته نیز برای حذف محلی و ابری علامت‌گذاری می‌شوند. ادامه می‌دهید؟`)) return
+      const dependentCount = runIds.length + vaccines.filter(x => !x.deleted).length + observations.filter(x => !x.deleted).length + series.filter(x => !x.deleted).length
+      if (!confirmStrictDeletion('گله «' + profile.flockName + '» و ' + dependentCount + ' سابقه وابسته (آزمایش، واکسن، مشاهده بالینی و داده عملکردی)')) return
       const nextProfiles = profiles.filter(item => item.id !== id)
       const nextAnalyses = analyses.filter(item => !relatedLegacy.some(run => run.id === item.id))
       if (!writeLocalStorage(STORAGE_KEY, nextProfiles) || !writeLocalStorage(ANALYSIS_STORAGE_KEY, nextAnalyses)) {
@@ -508,7 +625,11 @@ export default function App() {
       setProfiles(nextProfiles)
       setAnalyses(nextAnalyses)
       for (const runId of runIds) await markLocalDeleted('model_runs', runId)
+      for (const row of vaccines.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_vaccination_events', row.id)
+      for (const row of observations.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_clinical_observations', row.id)
+      for (const row of series.filter(x => !x.deleted)) await markLocalReferenceDeleted('flock_time_series', row.id)
       await markLocalDeleted('flocks', id)
+      if (selectedFlockId === id) setSelectedFlockId('')
       notifyLocalDataChanged()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'حذف گله و سوابق وابسته انجام نشد.')
@@ -531,8 +652,8 @@ export default function App() {
         <div className="workspace-actions">
           {[{step:1,title:'اطلاعات گله',desc:'ثبت یا انتخاب پرونده گله',icon:'۱'},{step:2,title:'انتخاب بیماری',desc:'تعیین بیماری مورد بررسی',icon:'۲'},{step:3,title:'کیت و روش',desc:'انتخاب آزمون و روش آزمایش',icon:'۳'},{step:4,title:'ورود داده و تحلیل',desc:'ثبت تیترها و دریافت تفسیر',icon:'۴'}].map(item=><button key={item.step} className="workspace-action" onClick={()=>goToStep(item.step as 1|2|3|4)}><span>{item.icon}</span><b>{item.title}</b><small>{item.desc}</small></button>)}
         </div>
-        <section className="workspace-flocks"><div className="workspace-section-heading"><h3>گله‌های ثبت‌شده</h3><button className="link-button" onClick={()=>goToStep(1)}>＋ افزودن گله</button></div>
-          {profiles.length===0?<p className="empty-result">هنوز گله‌ای ثبت نشده است. ابتدا اطلاعات گله را وارد کنید.</p>:profiles.map(profile=><div className="workspace-flock-row" key={profile.id}><div><b>{profile.flockName}</b><small>{toPersianDigits(formatJalaliDate(profile.placementDate))} · {profile.flockType==='broiler'?'گوشتی':profile.flockType==='layer'?'تخم‌گذار':profile.flockType==='breeder'?'مادر':'سایر'}{profile.flockSize?' · '+toPersianDigits(profile.flockSize)+' قطعه':''}</small></div><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setFlockName(profile.flockName);setPlacementDate(profile.placementDate);setHatchDate(profile.hatchDate||'');setFlockType(profile.flockType||'broiler');setFlockSize(profile.flockSize||'');setHouseName(profile.houseName||'');setHatchery(profile.hatchery||'');setSampleDate(profile.sampleDate||'');setVaccinationHistory(profile.vaccinationHistory||'');setWizardStep(2);setView('workflow')}}>انتخاب برای تحلیل</button><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setView('reports')}}>گزارش‌ها</button></div></div>)}
+        <section className="workspace-flocks"><div className="workspace-section-heading"><h3>گله‌های ثبت‌شده</h3><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>void seedDemoFlock()}>ایجاد پرونده آموزشی آدینه (بدون داده آزمایشگاهی)</button><button className="link-button" onClick={()=>goToStep(1)}>＋ افزودن گله</button></div></div>
+          {profiles.length===0?<p className="empty-result">هنوز گله‌ای ثبت نشده است. ابتدا اطلاعات گله را وارد کنید.</p>:profiles.map(profile=><div className="workspace-flock-row" key={profile.id}><div><b>{profile.flockName}</b><small>{toPersianDigits(formatJalaliDate(profile.placementDate))} · {profile.flockType==='broiler'?'گوشتی':profile.flockType==='layer'?'تخم‌گذار':profile.flockType==='breeder'?'مادر':'سایر'}{profile.flockSize?' · '+toPersianDigits(profile.flockSize)+' قطعه':''}</small></div><div className="workspace-flock-actions"><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setFlockName(profile.flockName);setPlacementDate(profile.placementDate);setHatchDate(profile.hatchDate||'');setFlockType(profile.flockType||'broiler');setFlockSize(profile.flockSize||'');setHouseName(profile.houseName||'');setHatchery(profile.hatchery||'');setSampleDate(profile.sampleDate||'');setVaccinationHistory(profile.vaccinationHistory||'');setWizardStep(2);setView('workflow')}}>انتخاب برای تحلیل</button><button className="button secondary" onClick={()=>{setSelectedFlockId(profile.id);setView('reports')}}>گزارش‌ها</button><button className="button secondary" onClick={()=>void removeProfile(profile.id)}>حذف</button></div></div>)}
         </section>
         <details className="workspace-tools"><summary>تنظیمات، همگام‌سازی و ابزارهای جانبی</summary><CloudSyncPanel/><details><summary>کتابخانه مراجع و اطلاعات مرجع</summary><BaselineLibrary/></details><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></details>
       </section>}
@@ -582,6 +703,7 @@ export default function App() {
             ))}
           </div>
         )}
+        <FlockReferencePanel flockId={selectedFlockId} flockName={flockName} />
       </section>}
 
 
@@ -595,6 +717,10 @@ export default function App() {
         <div className="form-grid">
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
+          </label>
+          <label>ساعت دقیق نمونه‌گیری (برای پیش‌بینی ساعتی)
+            <input type="time" value={samplingTime} onChange={(e) => setSamplingTime(e.target.value)} />
+            <small>تاریخ نمونه‌گیری را در مشخصات گله وارد کنید. بدون تاریخ و ساعت، فقط سن روزانه محاسبه می‌شود.</small>
           </label>
         </div>
         <details className="custom-kit-accordion"><summary>جزئیات کیت، واکسن و پارامترهای محاسبه (اختیاری برای نمایش)</summary>
@@ -611,8 +737,10 @@ export default function App() {
             </select>
             {selectedVaccineProduct && <small>
               برچسب بازار {selectedVaccineProduct.market_code || 'نامشخص'}؛ ثبت {selectedVaccineProduct.registration_number || 'بدون شماره ثبت'}؛
-              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز.
-              این برچسب فقط مربوط به بازار ثبت‌شده است و به معنی مجوز عرضه در ایران نیست.
+              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز؛
+              شروع ایمنی طبق برچسب {selectedVaccineProduct.onset_of_immunity_days ?? 'نامشخص'} روز پس از واکسیناسیون؛ مدت ایمنی اعلام‌شده {selectedVaccineProduct.duration_of_immunity_weeks ?? 'نامشخص'} هفته.
+              در صورت انتظار تیترهای بالای MDA، همین برچسب نمونه‌گیری دیرتر (به‌ویژه روز ۷) را برای برآورد مطمئن‌تر از روز صفر توصیه می‌کند.
+              این اطلاعات فقط مربوط به بازار/نسخه ثبت‌شده است، تضمین حفاظت گله نیست و به معنی مجوز عرضه در ایران نیست.
             </small>}
           </label>
           <label>انتخاب کیت سرولوژی (بانک مرجع)
@@ -620,7 +748,7 @@ export default function App() {
               const selected = assayCatalog.find(kit => kit.id === e.target.value)
               setSelectedAssayId(e.target.value)
               setKitName(selected ? selected.manufacturer + ' — ' + selected.name + (selected.catalog ? ' (' + selected.catalog + ')' : '') : '')
-              setMinimumSampleCount(String(selected?.minimumSampleCount || 23))
+              setMinimumSampleCount(selected?.minimumSampleCount ? String(selected.minimumSampleCount) : '')
               setMinimumSampleCountSource(selected?.minimumSampleCountSource || '')
             }}>
               <option value="">انتخاب کیت…</option>
@@ -630,7 +758,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount('23'); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount(''); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
             <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
@@ -654,17 +782,18 @@ export default function App() {
             <input value={correctionSource} onChange={(e) => setCorrectionSource(e.target.value)} placeholder="برچسب محصول یا پروتکل اعتبارسنجی‌شده؛ اگر اصلاح صفر است علت را بنویسید" />
           </label>
           <label>حداقل تعداد نمونه در این تحلیل
-            <input inputMode="numeric" value={minimumSampleCount} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setMinimumSampleCount(e.target.value); setMinimumSampleCountSource('') }} />
+            <input inputMode="numeric" value={minimumSampleCount} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_minimum_sample_count)} onChange={(e) => { setMinimumSampleCount(e.target.value); setMinimumSampleCountSource('') }} />
           </label>
           <label>منبع حداقل تعداد نمونه (IFU/برچسب همان محصول یا کیت)
-            <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
+            <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_sample_size_basis)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
           </label>
-          <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
-            <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
+          <label>اصلاح استاندارد Deventer (روز؛ محاسبه خودکار)
+            <input value={toPersianDigits(correctionDays)} readOnly aria-readonly="true" />
+            <small>طبق جدول De Wit 2001: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱ و روز ۴ یا بالاتر=۰ روز. این مقدار قابل ویرایش دستی نیست.</small>
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
-            <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
+            <small>پیش‌فرض ۷۵٪ مطابق Deventer است؛ یعنی هدف برآورد سهمی از گله است که MDA آن‌ها تا زمان واکسیناسیون زیر BTT قرار می‌گیرد، نه درصد حفاظت تضمین‌شده. تغییر این درصد باید با توجه به یکنواختی تیتر، نوع سالن، انتشار افقی واکسن و نظر دامپزشک انجام شود.</small>
           </label>
         </div></details>
         <label className="wide-label">تیترهای انفرادی ELISA
@@ -691,8 +820,23 @@ export default function App() {
               <span className="tag warning">نیازمند بازبینی دامپزشک</span>
             </div>
             <div className="result-number">
-              <strong>{result.estimatedVaccinationAgeDays === null ? '—' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1))}</strong>
-              <span>{result.estimatedVaccinationAgeDays === null ? 'زمان قابل‌برآورد نیست؛ آستانه در سن نمونه‌گیری یا قبل از آن رسیده است' : 'روزگی تخمینی'}</span>
+              <strong>{toPersianDigits(result.labelConstrainedVaccinationAgeDays.toFixed(1))}</strong>
+              <span>سن قابل اجرا با رعایت حداقل سن برچسب محصول</span>
+              <small>برآورد خام Deventer: {result.estimatedVaccinationAgeDays === null ? 'آستانه در زمان نمونه‌گیری حاصل شده' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1)) + ' روز'}</small>
+            </div>
+            {result.labelMinimumApplied && <p className="muted">حداقل سن برچسب ({toPersianDigits(result.minimumVaccinationAgeDays)} روز) محدودکننده است؛ تاریخ اجرایی پیش از این سن مجاز نیست.</p>}
+            <div className="vaccination-timing-card">
+              <div className="result-heading"><span>برآورد زمانی رسیدن تیتر به BTT</span><span className="tag warning">برآورد مدل</span></div>
+              {!sampleDate || !samplingTime ? <p>برای نمایش تاریخ و ساعت، تاریخ نمونه‌گیری در مشخصات گله و ساعت دقیق نمونه‌گیری را وارد کنید.</p> : (vaccinationTiming?.status === 'future-window' || vaccinationTiming?.status === 'label-minimum-floor') ? <>
+                <div className="result-number"><strong>{toPersianDigits(String(vaccinationTiming.wholeHours))} ساعت و {toPersianDigits(String(vaccinationTiming.remainingMinutes))} دقیقه</strong><span>{vaccinationTiming.status === 'label-minimum-floor' ? 'فاصله تا زودترین سن مجاز طبق برچسب محصول' : 'فاصله خام مدل تا رسیدن تیتر صدک انتخابی به BTT'}</span></div>
+                <p><b>{vaccinationTiming.status === 'label-minimum-floor' ? 'زودترین زمان مجاز طبق برچسب محصول' : 'زمان تقویمی برآورد خام مدل برای رسیدن به BTT'}</b> {new Date(vaccinationTiming.targetAt || '').toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}</p>
+                {vaccinationTiming.expectedOnsetAt && <p><b>شروع ایمنی طبق برچسب محصول (برآورد تقویمی):</b> {new Date(vaccinationTiming.expectedOnsetAt).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}<small className="muted">این تاریخ از فاصله شروع ایمنی درج‌شده در برچسب محاسبه شده است و تضمین حفاظت گله نیست.</small></p>}
+                {selectedVaccineProduct?.duration_of_immunity_weeks != null && <p className="muted">مدت ایمنی درج‌شده در برچسب: {toPersianDigits(String(selectedVaccineProduct.duration_of_immunity_weeks))} هفته پس از واکسیناسیون؛ این مقدار مختص همین محصول و نسخه برچسب است.</p>}
+                {vaccinationTiming.status === 'label-minimum-floor'
+                  ? <p className="muted">{vaccinationTiming.hoursUntilThreshold === null ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT بوده است؛ تاریخ بالا فقط حداقل سن مجاز برچسب را نشان می‌دهد و پیش‌بینی آینده رسیدن به BTT نیست.' : 'برآورد خام رسیدن به BTT زودتر از حداقل سن برچسب محصول است؛ تاریخ بالا فقط زودترین زمان مجاز طبق برچسب را نشان می‌دهد، نه زمان خام مدل.'} نمایش ساعت و دقیقه صرفاً تفکیک محاسباتی است و دقت زیستی در حد دقیقه ندارد.</p>
+                  : <p className="muted">این زمان از مدل افت log₂ آنتی‌بادی به دست آمده است. نمایش ساعت و دقیقه فقط تفکیک عددی محاسبه است و به معنی دقت زیستی در حد دقیقه نیست؛ تغییرپذیری MDA، نیمه‌عمر، BTT، نمونه‌گیری و شرایط گله می‌تواند زمان واقعی را جابه‌جا کند.</p>}
+                <p className="muted">اجرای واکسن باید با IFU، سلامت گله، برنامه مزرعه، روش تجویز و تأیید دامپزشک نهایی شود.</p>
+              </> : <p className="error">تیتر فعلی برابر یا پایین‌تر از BTT است؛ مدل زمان آینده‌ای برای این نقطه پیشنهاد نمی‌کند.</p>}
             </div>
             <div className="result-details">
               <div><small>تیتر صدک انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
@@ -709,10 +853,10 @@ export default function App() {
               <b>تحلیل حساسیت درصد پاسخ‌پذیری</b>
               <p>تغییر سهم پرندگانی که باید مستقیماً به واکسن پاسخ‌پذیر باشند، می‌تواند زمان برآوردی را جابه‌جا کند. ۵٪ سناریوی پیش‌فرض راهنمای میدانی Elanco است؛ ۷۵٪ در برخی مطالعات میدانی استفاده شده است.</p>
               <div className="sensitivity-grid">
-                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{point.vaccinationAgeDays === null ? 'قبلاً رسیده/غیرقابل‌برآورد' : `${toPersianDigits(point.vaccinationAgeDays.toFixed(1))} روز`}</strong><small>تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
+                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{toPersianDigits(point.labelConstrainedVaccinationAgeDays.toFixed(1))} روز با کف برچسب</strong><small>خام: {point.vaccinationAgeDays === null ? 'آستانه رسیده' : toPersianDigits(point.vaccinationAgeDays.toFixed(1)) + ' روز'} · تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
               </div>
             </div>
-            {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
+            {result.thresholdAlreadyReachedAtSampling && <p className="muted">آستانه BTT در زمان نمونه‌گیری حاصل شده است؛ با این حال حداقل سن برچسب محصول همچنان باید رعایت شود و سن قابل اجرا در بالا نمایش داده شده است.</p>}
             <p>هشدارها: {result.warnings.join(' ')}</p>
             <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
             {interpretation && <section className="interpretation-panel">
@@ -761,7 +905,7 @@ export default function App() {
       {wizardStep===4&&<LongitudinalReports profiles={profiles} mode="entry" initialFlockId={selectedFlockId} initialDisease={selectedDisease}/>} 
       <div className="workflow-bottom"><button className="button secondary" onClick={()=>setView('home')}>بازگشت به صفحه اصلی</button>{wizardStep<4&&<button className="button primary" onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>ادامه</button>}</div>
       </>}
-      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
+      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>گزارش‌ها و پایش طولی گله</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
       {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>

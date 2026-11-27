@@ -34,13 +34,25 @@ describe('persisted disease monitor runs', () => {
     expect((await listOutbox()).filter(item => item.recordId === flock.id || item.recordId === id)).toHaveLength(2)
   })
 
+  it('rejects MDA persistence when assay and parameter provenance are incomplete', async () => {
+    const flock = { id:crypto.randomUUID(), flockName:'MDA provenance gate', placementDate:'2026-11-16', hatchDate:'2026-11-14', savedAt:'2026-11-16T10:00:00.000Z' }
+    await expect(saveMdaRunToLocal({flock,diseaseCode:'IBD',input:{sampleAgeDays:2,sampleTiters:[1000]},output:{}})).rejects.toThrow('provenance کامل')
+    expect((await listLocalFlocks()).some(item=>item.id===flock.id)).toBe(false)
+  })
+
   it('preserves hatch date when an MDA run creates its missing local flock record', async () => {
     const flock = { id:crypto.randomUUID(), flockName:'Farm MDA test', placementDate:'2026-11-16', hatchDate:'2026-11-14', savedAt:'2026-11-16T10:00:00.000Z' }
-    const id = await saveMdaRunToLocal({ flock, diseaseCode:'IBD', input:{sampleAgeDays:2,sampleTiters:[1000],unit:'kit titre'}, output:{estimatedHatchTiter:1587} })
+    const parameterProvenance = {assayIdentity:'BioChek CK113 IBD ELISA / VP2',measurementScale:'kit-specific ELISA titer',halfLifeSource:'Peer-reviewed longitudinal study; methods section',thresholdSource:'Product-specific IFU; threshold definition',halfLifeSourceVersion:'Study DOI; methods section',thresholdSourceVersion:'IFU RevB 2025; p. 6',halfLifeOrigin:'peer-reviewed-study' as const,thresholdOrigin:'manufacturer-ifu' as const}
+    const id = await saveMdaRunToLocal({ flock, diseaseCode:'IBD', input:{sampleAgeDays:2,sampleTiters:[1000],unit:'kit titre',parameterProvenance,modelVersion:'mda-decay-exploratory-0.2.0',parameterOverride:false}, output:{estimatedHatchTiter:1587} })
     const savedFlock = (await listLocalFlocks()).find(item=>item.id===flock.id)
     const run = (await listLocalModelRuns()).find(item=>item.id===id)
     expect(savedFlock?.hatch_date).toBe('2026-11-14')
     expect(run?.model_family).toBe('maternal-antibody-decay-exploratory')
+    expect(run?.model_version).toBe('mda-decay-exploratory-0.2.0')
+    expect(run?.input_schema_version).toBe('mda-monitor-input-v2')
+    expect(run?.model_assumptions?.parameterOverride).toBe(false)
+    expect(run?.model_assumptions?.parameterProvenanceIndependentlyVerified).toBe(false)
+    expect(run?.source_references).toHaveLength(3)
   })
 
   it('preserves IBV and AIV disease identifiers in local history', async () => {

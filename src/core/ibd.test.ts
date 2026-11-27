@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { calculateIbdWindow, calculateIbdSensitivity, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
+import { calculateIbdWindow as calculateIbdWindowCore, calculateIbdSensitivity, calculateVaccinationTiming, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './ibd'
+const calculateIbdWindow = (input: Parameters<typeof calculateIbdWindowCore>[0]) => calculateIbdWindowCore({ assayMethod: 'ELISA', measurementScale: 'elisa-titer', minimumVaccinationAgeDays: 10, ...input })
 const sample23 = Array.from({ length: 23 }, (_, i) => 100 * (2 ** (i % 5)))
 describe('IBD Deventer-style mathematical estimator', () => {
   it('uses nearest-rank observed titre and applies correction days', () => {
@@ -28,10 +29,92 @@ describe('IBD Deventer-style mathematical estimator', () => {
     expect(r.thresholdAlreadyReachedAtSampling).toBe(true); expect(r.estimatedVaccinationAgeDays).toBeNull()
   })
   it('accepts Persian digits',()=>expect(parseTiters('۱۲۸، ۲۵۶')).toEqual([128,256]))
+  it('applies the product label minimum age as a hard floor', () => {
+    const rawBeforeLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(1000), minimumVaccinationAgeDays: 10 })
+    expect(rawBeforeLabel.estimatedVaccinationAgeDays).toBe(9)
+    expect(rawBeforeLabel.labelConstrainedVaccinationAgeDays).toBe(10)
+    expect(rawBeforeLabel.labelMinimumApplied).toBe(true)
+    const rawAfterLabel = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(2000), minimumVaccinationAgeDays: 10 })
+    expect(rawAfterLabel.labelConstrainedVaccinationAgeDays).toBe(14)
+    expect(rawAfterLabel.labelMinimumApplied).toBe(false)
+  })
+  it('keeps the label minimum even when BTT is already reached at sampling', () => {
+    const result = calculateIbdWindow({ samplingAgeDays: 2, breakthroughTiter: 500, halfLifeDays: 5, susceptiblePercent: 5, titers: Array(20).fill(500), minimumVaccinationAgeDays: 10 })
+    expect(result.estimatedVaccinationAgeDays).toBeNull()
+    expect(result.labelConstrainedVaccinationAgeDays).toBe(10)
+    expect(result.labelMinimumApplied).toBe(true)
+  })
+  it('uses the later of the model threshold and the product minimum age in calendar timing', () => {
+    const floor = calculateVaccinationTiming({ currentTiter: 1000, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 2, minimumVaccinationAgeDays: 10, onsetOfImmunityDays: 14 })
+    expect(floor.status).toBe('label-minimum-floor')
+    expect(floor.hoursUntilThreshold).toBe(168)
+    expect(floor.hoursUntilEarliestAllowed).toBe(192)
+    expect(floor.wholeHours).toBe(192)
+    expect(floor.targetAt).toBe('2026-12-05T08:00:00.000Z')
+    expect(floor.expectedOnsetAt).toBe('2026-12-19T08:00:00.000Z')
+    const modelLater = calculateVaccinationTiming({ currentTiter: 2000, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 2, minimumVaccinationAgeDays: 10 })
+    expect(modelLater.status).toBe('future-window')
+    expect(modelLater.hoursUntilThreshold).toBe(288)
+    expect(modelLater.hoursUntilEarliestAllowed).toBe(288)
+    const alreadyCrossedButLabelPending = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 2, minimumVaccinationAgeDays: 10 })
+    expect(alreadyCrossedButLabelPending.status).toBe('label-minimum-floor')
+    expect(alreadyCrossedButLabelPending.hoursUntilThreshold).toBeNull()
+    expect(alreadyCrossedButLabelPending.hoursUntilEarliestAllowed).toBe(192)
+    expect(alreadyCrossedButLabelPending.targetAt).toBe('2026-12-05T08:00:00.000Z')
+    const alreadyEligible = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 500, halfLifeDays: 5, sampledAt: '2026-11-27T08:00:00Z', samplingAgeDays: 14, minimumVaccinationAgeDays: 10 })
+    expect(alreadyEligible.status).toBe('threshold-already-reached')
+    expect(alreadyEligible.targetAt).toBeNull()
+  })
   it('rejects invalid or zero titres',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:[...sample23.slice(0,22),0]})).toThrow())
-  it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1})).toThrow(/فقط برای نمونه‌گیری/))
-  it('accepts a documented correction for day-old sampling',()=>expect(calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:2}).estimatedVaccinationAgeDays).toBeGreaterThan(2))
+  it('rejects non-ELISA methods and non-standardized titre scales', () => {
+    const input = { samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3, susceptiblePercent: 75, titers: sample23 }
+    expect(() => calculateIbdWindow({ ...input, assayMethod: 'HI' })).toThrow(/ELISA/)
+    expect(() => calculateIbdWindow({ ...input, measurementScale: 's-p' })).toThrow(/OD/)
+  })
+  it('rejects correction outside the 0-4 day sampling window',()=>expect(()=>calculateIbdWindow({samplingAgeDays:10,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:1} )).toThrow(/روز صفر=۴/))
+  it('automatically applies the published age correction for sampling on days 0–4',()=>{
+    const day0=calculateIbdWindow({samplingAgeDays:0,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    const day1=calculateIbdWindow({samplingAgeDays:1,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    const day2=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    const day3=calculateIbdWindow({samplingAgeDays:3,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    const day4=calculateIbdWindow({samplingAgeDays:4,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23})
+    expect(day0.rawCalculatedAgeDays).toBeCloseTo(day1.rawCalculatedAgeDays)
+    expect(day1.rawCalculatedAgeDays).toBeCloseTo(day2.rawCalculatedAgeDays)
+    expect(day2.rawCalculatedAgeDays).toBeCloseTo(day3.rawCalculatedAgeDays)
+    expect(day3.rawCalculatedAgeDays).toBeCloseTo(day4.rawCalculatedAgeDays)
+  })
+  it('rejects a manually overridden correction inconsistent with sampling age',()=>expect(()=>calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:128,halfLifeDays:3,susceptiblePercent:75,titers:sample23,correctionDays:0})).toThrow(/روز صفر=۴/))
   it('keeps an already-crossed BTT status even when positive age correction shifts the raw formula forward',()=>{const r=calculateIbdWindow({samplingAgeDays:2,breakthroughTiter:100,halfLifeDays:3,susceptiblePercent:50,titers:[80,90,95],correctionDays:2});expect(r.rawCalculatedAgeDays).toBeGreaterThan(2);expect(r.thresholdAlreadyReachedAtSampling).toBe(true);expect(r.estimatedVaccinationAgeDays).toBeNull();expect(r.warnings.join(' ')).toContain('اصلاح سن نمی‌تواند')})
+})
+
+describe('future vaccination timing window', () => {
+  it('returns an exact hour/minute window and an ISO target timestamp', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 800, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })
+    expect(r.status).toBe('future-window')
+    expect(r.hoursUntilThreshold).toBe(216)
+    expect(r.wholeHours).toBe(216)
+    expect(r.remainingMinutes).toBe(0)
+    expect(r.targetAt).toBe('2026-12-06T08:00:00.000Z')
+  })
+  it('keeps fractional hours as minutes and includes a documented correction', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3.8, correctionDays: 0, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 4, minimumVaccinationAgeDays: 10 })
+    expect(r.wholeHours).toBe(211)
+    expect(r.remainingMinutes).toBe(46)
+    expect(r.daysUntilThreshold).toBeCloseTo(8.823, 3)
+  })
+  it('does not create a future appointment when BTT is already reached', () => {
+    const r = calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 100, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 14, minimumVaccinationAgeDays: 10 })
+    expect(r.status).toBe('threshold-already-reached')
+    expect(r.targetAt).toBeNull()
+  })
+  it('rejects Deventer age correction when sampling is later than day 4', () => {
+    expect(() => calculateVaccinationTiming({ currentTiter: 500, breakthroughTiter: 100, halfLifeDays: 3, correctionDays: 1, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 7, minimumVaccinationAgeDays: 10 })).toThrow(/روز صفر=۴/)
+    expect(() => calculateIbdWindow({ samplingAgeDays: 7, breakthroughTiter: 100, halfLifeDays: 3, susceptiblePercent: 75, titers: sample23, correctionDays: 1 })).toThrow(/روز صفر=۴/)
+  })
+  it('rejects missing timestamps and non-positive inputs', () => {
+    expect(() => calculateVaccinationTiming({ currentTiter: 100, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })).toThrow()
+    expect(() => calculateVaccinationTiming({ currentTiter: 0, breakthroughTiter: 10, halfLifeDays: 3, sampledAt: '2026-11-27T08:00Z', samplingAgeDays: 10, minimumVaccinationAgeDays: 10 })).toThrow()
+  })
 })
 
 describe('IBD assay quality gate', () => {
@@ -65,7 +148,7 @@ describe('published Deventer reference example', () => {
 
 describe('Deventer sensitivity analysis', () => {
   it('shows distinct vaccination ages for different directly receptive flock fractions', () => {
-    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18})
+    const r=calculateIbdSensitivity({samplingAgeDays:2,breakthroughTiter:125,halfLifeDays:3,titers:[1224,1456,1556,1890,1985,2268,2397,2439,2648,2890,3025,3066,3288,3566,4027,4582,4899,5212,5557,6209],susceptiblePercent:5,correctionDays:2,minimumSampleCount:18,assayMethod:'ELISA',measurementScale:'elisa-titer',minimumVaccinationAgeDays:10})
     expect(r.map(x=>x.susceptiblePercent)).toEqual([5,25,75,90])
     expect(r.every(x => x.vaccinationAgeDays !== null)).toBe(true)
     expect(r[0].vaccinationAgeDays!).toBeLessThan(r[1].vaccinationAgeDays!)
@@ -130,6 +213,15 @@ describe('IBD percentile and extreme input regression', () => {
 })
 
 describe('product-specific sample-size provenance', () => {
+  it('does not silently assume a universal minimum sample count when product guidance is absent', () => {
+    const r = calculateIbdWindow({
+      samplingAgeDays: 10, breakthroughTiter: 128, halfLifeDays: 3,
+      susceptiblePercent: 75, titers: sample23,
+    })
+    expect(r.sampleCount).toBe(23)
+    expect(r.warnings.join(' ')).toContain('هیچ مقدار عمومی جایگزین نشده')
+  })
+
   it('does not apply the BioChek 23-sample guidance to a product label specifying 18 chicks', () => {
     const source = 'UK VMD product information revised June 2026; AN 00716/2026 section 8'
     const r = calculateIbdWindow({
@@ -152,17 +244,23 @@ describe('product-specific sample-size provenance', () => {
 
 
 describe('IBD Deventer product platform gate', () => {
-  const valid = { diseaseCode:'IBD', platform:'live', modelFamily:'deventer_live', validationStatus:'documented', bttAssayKitId:'idexx-ibd', selectedAssayKitId:'idexx-ibd' }
+  const valid = { diseaseCode:'IBD', platform:'live', modelFamily:'deventer_live', validationStatus:'documented', bttAssayKitId:'idexx-ibd', selectedAssayKitId:'idexx-ibd', breakthroughTiter:500, breakthroughUnit:'IDEXX standard ELISA units', minimumVaccinationAgeDays:10, labelVersion:'Revised June 2026', sourceDocument:'UK VMD product information', bttReferenceUrl:'https://example.org/label.pdf', deventerMinimumSampleCount:18, deventerSampleSizeBasis:'section 8: at least 18 chicks' }
   it('accepts only documented conventional live IBD with its exact BTT assay', () => {
     expect(validateIbdDeventerProductGate(valid)).toEqual([])
   })
-  it.each([
+  const invalidCases: Array<[Parameters<typeof validateIbdDeventerProductGate>[0], string]> = [
     [{...valid, platform:'immune_complex'}, 'immune-complex'],
     [{...valid, platform:'vector_hvt', modelFamily:'hvt_vp2'}, 'HVT-VP2'],
     [{...valid, validationStatus:'unverified'}, 'مستند'],
     [{...valid, selectedAssayKitId:'biochek-ck113'}, 'کیت دقیق'],
     [{...valid, diseaseCode:'IBV'}, 'IBD'],
-  ])('blocks unsupported product/assay pairing', (input) => {
+    [{...valid, breakthroughTiter:null}, 'BTT'],
+    [{...valid, breakthroughUnit:null}, 'واحد دقیق BTT'],
+    [{...valid, minimumVaccinationAgeDays:null}, 'حداقل سن'],
+    [{...valid, labelVersion:null}, 'نسخه و سند'],
+    [{...valid, bttReferenceUrl:null}, 'پیوند مرجع'],
+  ]
+  it.each(invalidCases)('blocks unsupported product/assay pairing', (input) => {
     expect(validateIbdDeventerProductGate(input).length).toBeGreaterThan(0)
   })
 })

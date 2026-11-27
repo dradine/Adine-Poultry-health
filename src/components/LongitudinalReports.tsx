@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { listLocalFlocks, listLocalModelRuns, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
+import PersianDateInput from './PersianDateInput'
+import { listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged, type LocalFlock, type LocalModelRun } from '../core/localFirstDb'
+import { confirmStrictDeletion } from '../core/strictDelete'
 import { saveSerologyRound } from '../core/serologyRunService'
 import { ASSAY_CATALOG } from '../core/assayRegistry'
 import { normalizeDigits } from '../core/ibd'
 import { emptyClinicalContext, resolveVaccinationEvents, validateClinicalContext, type ClinicalContext, type VaccinationEvent } from '../core/serologyClinicalContext'
 import { supabase } from '../core/supabase'
 import SerologyReportStudio from './SerologyReportStudio'
+import FlockReadinessReport from './FlockReadinessReport'
+import FlockReferencePanel from './FlockReferencePanel'
 import SerologyReaderImport from './SerologyReaderImport'
 import ClinicalContextEditor from './ClinicalContextEditor'
 import { calculateBioChekVI, parseSampleIds, parseSerologyValues, summarizeSerology, type SerologyScale } from '../core/serologyStats'
@@ -37,6 +41,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const [qc,setQc]=useState('pending'),[qcEvidence,setQcEvidence]=useState(''),[lab,setLab]=useState(''),[source,setSource]=useState(''),[notes,setNotes]=useState('')
  const [vaccinationEvents,setVaccinationEvents]=useState<VaccinationEvent[]>([]),[clinicalContext,setClinicalContext]=useState<ClinicalContext>(emptyClinicalContext())
  const hydratedFlockRef=useRef('')
+ const autoOpenedFlockRef=useRef('')
  async function refresh(){const x=await Promise.all([listLocalFlocks(),listLocalModelRuns()]);setFlocks(x[0]);setRuns(x[1]);setHistoryLoaded(true)}
  useEffect(()=>{if(initialFlockId)setFlockId(initialFlockId)},[initialFlockId])
  useEffect(()=>{setForm(mode!=='reports')},[mode])
@@ -49,8 +54,27 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  const fl=useMemo(()=>{const m=new Map<string,{id:string;name:string;placement:string}>();flocks.forEach(x=>m.set(x.id,{id:x.id,name:x.flock_name,placement:x.placement_date}));profiles.forEach(x=>{if(!m.has(x.id))m.set(x.id,{id:x.id,name:x.flockName,placement:x.placementDate})});return [...m.values()]},[flocks,profiles])
  const rows=runs.filter(x=>(mode==='reports'||x.disease_code===disease)&&x.model_family==='serology-longitudinal-round'&&(!flockId||x.flock_id===flockId)).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at)))
  const selected=rows.find(x=>x.id===openId)
+ const latestReportId=rows[rows.length-1]?.id||''
+ useEffect(()=>{
+  if(mode!=='reports'||!flockId||!historyLoaded||autoOpenedFlockRef.current===flockId)return
+  autoOpenedFlockRef.current=flockId
+  setOpenId(latestReportId)
+ },[mode,flockId,historyLoaded,latestReportId])
  const previousFlockRun=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0]
  useEffect(()=>{if(!flockId||!historyLoaded||hydratedFlockRef.current===flockId)return;hydratedFlockRef.current=flockId;const latest=runs.filter(x=>x.flock_id===flockId&&x.model_family==='serology-longitudinal-round').sort((a,b)=>String(b.input_snapshot.samplingDate||b.created_at).localeCompare(String(a.input_snapshot.samplingDate||a.created_at)))[0];if(latest){const i=latest.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext())}else{setVaccinationEvents([]);setClinicalContext(emptyClinicalContext())}},[flockId,runs,historyLoaded])
+ async function deleteSerologyRun(run: LocalModelRun) {
+  const label = str(run.input_snapshot, 'roundLabel') || ('نوبت ' + run.id)
+  if (!confirmStrictDeletion('آزمایش «' + label + '» از گله «' + (fl.find(x => x.id === run.flock_id)?.name || 'گله') + '»')) return
+  try {
+   await markLocalDeleted('model_runs', run.id)
+   if (openId === run.id) setOpenId('')
+   await refresh()
+   notifyLocalDataChanged()
+   setMessage('آزمایش از فهرست فعال حذف و حذف آن در صف همگام‌سازی ثبت شد.')
+  } catch (error) {
+   setMessage(error instanceof Error ? error.message : 'حذف آزمایش ناموفق بود.')
+  }
+ }
  function copyFlockHistory(){if(!previousFlockRun){setMessage('گزارش قبلی برای این گله پیدا نشد.');return}const i=previousFlockRun.input_snapshot;setVaccinationEvents(Array.isArray(i.vaccinationEvents)?i.vaccinationEvents as VaccinationEvent[]:[]);setClinicalContext(i.clinicalContext&&typeof i.clinicalContext==='object'?{...emptyClinicalContext(),...i.clinicalContext as Partial<ClinicalContext>}:emptyClinicalContext());setMessage('تاریخچه واکسن و اطلاعات بالینی از آخرین گزارش گله کپی شد؛ وضعیت بالینی و رویدادهای جدید را به‌روزرسانی کنید.')}
  const previousAssayRun=runs.filter(x=>x.model_family==='serology-longitudinal-round'&&x.flock_id===flockId&&x.disease_code===disease&&x.input_snapshot.method===method).sort((a,b)=>String(a.input_snapshot.samplingDate||a.created_at).localeCompare(String(b.input_snapshot.samplingDate||b.created_at))).at(-1)
  const options=ASSAY_CATALOG.filter(x=>x.disease===disease&&x.method===method)
@@ -91,12 +115,15 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
  return <section className={'panel serology-workspace '+(mode==='reports'?'reports-only':mode==='entry'?'entry-only':'')} aria-label={mode==='reports'?'گزارش‌های سرولوژی':'ثبت و پایش سرولوژی'}>
   <div className="panel-heading"><div><span className="step">{mode==='reports'?'گزارش':'۴'}</span><h3>{mode==='reports'?'گزارش‌های این گله':'ثبت آزمایش و تحلیل سرولوژی'}</h3></div><span className="tag">ذخیره محلی و همگام‌سازی</span></div>
   {mode!=='entry'&&<p className="muted">هر نوبت گزارش مستقل دارد و به گله انتخاب‌شده متصل می‌شود. حساب همگام‌سازی: {accountEmail||'وارد نشده'}.</p>}
+  {mode==='reports'&&<div className="form-grid report-flock-selector"><label>پرونده‌ای که گزارش آن نمایش داده می‌شود<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('');autoOpenedFlockRef.current=''}}><option value="">همه پرونده‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select><small>اگر پرونده آموزشی سرولوژی را نمی‌بینید، ابتدا از پنل همگام‌سازی ابری، همگام‌سازی را اجرا کنید.</small></label></div>}
+  {mode==='reports'&&flockId&&<><FlockReferencePanel flockId={flockId} flockName={fl.find(x=>x.id===flockId)?.name}/><FlockReadinessReport flockId={flockId}/></>}
+  {mode==='reports'&&flockId&&rows.length===0&&<p className="srs-note">برای این گله هنوز نوبت سرولوژی ثبت نشده است. اگر قصد مشاهده گزارش نمونه را دارید، از فهرست بالا «آدینه — گله آموزشی سرولوژی (داده شبیه‌سازی‌شده)» را انتخاب کنید؛ این داده‌ها آموزشی‌اند و مبنای تصمیم بالینی نیستند. اگر اطلاعات واقعی را در فضای ابری ثبت کرده‌اید اما دیده نمی‌شوند، ابتدا همگام‌سازی ابری را اجرا کنید.</p>}
   {runs.some(r=>r.input_snapshot.demo===true)&&<p className="muted" role="note">نمونه‌های دارای برچسب «شبیه‌سازی‌شده» فقط برای مشاهده امکانات گزارش و مقایسه هستند؛ داده آزمایشگاهی واقعی، QC واقعی یا مبنای تصمیم واکسیناسیون نیستند.</p>}{mode==='all'&&<div className="disease-grid">{diseases.map(x=><button type="button" key={x.code} className={disease===x.code?'disease active':'disease'} onClick={()=>{setDisease(x.code);setOpenId('')}}><b>{x.title}</b><small>{runs.filter(r=>r.disease_code===x.code&&r.model_family==='serology-longitudinal-round').length.toLocaleString('fa-IR')} نوبت</small></button>)}</div>}
   {mode==='all'&&<div className="form-grid"><label>گله<select value={flockId} onChange={e=>{setFlockId(e.target.value);setOpenId('')}}><option value="">همه گله‌ها</option>{fl.map(x=><option key={x.id} value={x.id}>{x.name} · {faDate(x.placement)}</option>)}</select></label><label>پرونده فعال<input value={title} readOnly/></label></div>}
   {mode!=='reports'&&<div className="wizard-nav"><button type="button" className="button secondary" onClick={()=>void refresh()}>به‌روزرسانی سوابق</button></div>}
   {message&&<p className="muted" role="status">{message}</p>}
   {mode!=='reports'&&form&&<form className="serology-entry-form" onSubmit={submit}><h4>ثبت نوبت جدید · {title}</h4><button type="button" className="button secondary" disabled={!previousAssayRun} onClick={copyPreviousAssay}>کپی مشخصات آزمون از آخرین نوبت هم‌روش</button><small>کپی‌کردن فقط برای کاهش ورود تکراری داده‌هاست؛ Lot، نسخه IFU، Reader، پروتکل و QC را در هر نوبت کنترل کنید.</small><div className="form-grid">
-   <label>تاریخ نمونه‌گیری<input type="date" value={date} onChange={e=>setDate(e.target.value)} required/></label>
+   <label>تاریخ نمونه‌گیری<PersianDateInput value={date} onChange={setDate} required /></label>
    <label>سن گله هنگام نمونه‌گیری (روز)<input value={age} onChange={e=>setAge(e.target.value)} inputMode="decimal"/><small>برای IBD نمونه‌گیری روز صفر تا ۴ نیز پذیرفته می‌شود؛ سن از تاریخ جوجه‌ریزی/هچ دقیق ثبت شود.</small></label>
    <label>جمعیت / نوع پرنده<select value={population} onChange={e=>setPopulation(e.target.value)}><option value="unknown">نامشخص</option><option value="broiler">گوشتی</option><option value="layer">تخم‌گذار</option><option value="breeder">مادر</option><option value="other">سایر</option></select></label>
    <label>هدف نمونه‌گیری<select value={purpose} onChange={e=>setPurpose(e.target.value)}><option value="mda">آنتی‌بادی مادری / هچری</option><option value="pre-vaccination">قبل از واکسیناسیون</option><option value="post-vaccination">پس از واکسیناسیون</option><option value="routine">پایش دوره‌ای</option><option value="outbreak">بررسی در شرایط مشکوک به چالش</option></select></label>\n   <label className="wide-label"><input type="checkbox" checked={randomSamplingConfirmed} onChange={e=>setRandomSamplingConfirmed(e.target.checked)}/> نمونه‌گیری تصادفی/طبقه‌بندی‌شده با پوشش سالن‌ها انجام شده است.</label>
@@ -117,7 +144,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
    {method==='HI'&&<><label>مقدار آنتی‌ژن (HAU)<input value={hau} onChange={e=>setHau(e.target.value)}/></label><label>منبع گلبول قرمز (RBC)<input value={rbcSource} onChange={e=>setRbcSource(e.target.value)} placeholder="در صورت اطلاع"/></label><label>Lot گلبول قرمز<input value={rbcLot} onChange={e=>setRbcLot(e.target.value)}/></label><label>غلظت گلبول قرمز<input value={rbcConcentration} onChange={e=>setRbcConcentration(e.target.value)} placeholder="در صورت اطلاع"/></label><label>تیمار آنتی‌ژن<input value={antigenPretreatment} onChange={e=>setAntigenPretreatment(e.target.value)} placeholder="در صورت اطلاع"/></label><label>تیمار سرم<input value={serumPretreatment} onChange={e=>setSerumPretreatment(e.target.value)} placeholder="در صورت اطلاع"/></label><label>ضریب رقت سریالی<input value={dilutionFactor} onChange={e=>setDilutionFactor(e.target.value)} placeholder="در صورت اطلاع"/></label></>}
    <label>آزمایشگاه<input value={lab} onChange={e=>setLab(e.target.value)}/></label>
    <label>واکسن / محصول (خلاصه اختیاری)<input value={vaccine} onChange={e=>setVaccine(e.target.value)}/></label>
-   <label>تاریخ واکسیناسیون<input type="date" value={vaccineDate} onChange={e=>setVaccineDate(e.target.value)}/></label>
+   <label>تاریخ واکسیناسیون<PersianDateInput value={vaccineDate} onChange={setVaccineDate} /></label>
    <label>سویه واکسن<input value={strain} onChange={e=>setStrain(e.target.value)}/></label>
    <label>پلتفرم واکسن<select value={vaccinePlatform} onChange={e=>setVaccinePlatform(e.target.value)}><option value="unknown">نامشخص / ثبت نشده</option><option value="live-conventional">زنده متعارف</option><option value="inactivated">غیرفعال / کشته</option><option value="immune-complex">Immune-complex</option><option value="recombinant-vector">وکتور نوترکیب (rHVT و غیره)</option><option value="other">سایر</option><option value="unvaccinated">بدون واکسیناسیون</option></select></label>
    <label className="wide-label">برنامه واکسیناسیون / نوبت و مسیر تجویز<input value={vaccineProgram} onChange={e=>setVaccineProgram(e.target.value)} placeholder="مثلاً روز ۱ و ۱۴، اسپری / آب آشامیدنی / تزریقی"/></label>
@@ -126,7 +153,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
 
    <details className="wide-label"><summary>ورود فایل آزمایشگاه و QC (اختیاری)</summary><div className="form-grid">
    <label>تعداد نمونه (اختیاری؛ در صورت خالی بودن خودکار محاسبه می‌شود)<input value={count} onChange={e=>setCount(e.target.value)} inputMode="numeric"/></label>
-   <div className="wide-label"><SerologyReaderImport method={method} scale={scale} onApply={(v,ids,meta)=>{setValues(v);setSampleIds(ids);setCount(String(v.split(',').length));setQc(meta.qcStatus);setQcEvidence(meta.qcEvidence);setReaderImportMeta(meta as unknown as Record<string,unknown>)}}/></div>
+   <div className="wide-label"><SerologyReaderImport method={method} scale={scale} onFileChange={()=>{setValues('');setSampleIds('');setCount('');setReaderImportMeta(null);setQc('pending');setQcEvidence('');setRandomSamplingConfirmed(false)}} onApply={(v,ids,meta)=>{setValues(v);setSampleIds(ids);setCount(String(v.split(',').length));setQc(meta.qcStatus);setQcEvidence(meta.qcEvidence);setReaderImportMeta(meta as unknown as Record<string,unknown>)}}/></div>
    <label>وضعیت کنترل کیفیت<select value={qc} disabled={Boolean(readerImportMeta)} onChange={e=>setQc(e.target.value)}><option value="pending">بررسی نشده</option><option value="pass">کنترل‌ها طبق IFU قابل قبول بودند</option><option value="review">نیازمند بازبینی</option><option value="fail">رد شده</option></select></label>
    <label className="wide-label">شواهد QC / مقادیر کنترل مثبت، منفی و مرجع<input value={qcEvidence} onChange={e=>setQcEvidence(e.target.value)} placeholder="مقادیر واقعی کنترل‌ها و حدود پذیرش طبق IFU" /></label>
    <p className="srs-note">برای ساخت گزارش اولیه، فقط اعداد معتبر را وارد کنید؛ نام کیت، IFU، Lot، دستگاه، آنتی‌ژن، QC و اطلاعات واکسیناسیون اختیاری‌اند. در ELISA اگر مقیاس را «نامشخص» بگذارید، فقط شاخص‌های حسابی توصیفی محاسبه می‌شوند؛ GMT، درصد مثبت و مقایسه اختصاصی فعال نمی‌شوند. در HI، تیترها به‌صورت معکوس مانند 16 یا 1:16 تحلیل توصیفی می‌شوند و بدون استانداردسازی، نتیجه معادل حفاظت قطعی نیست.</p>\n   </div></details>
@@ -138,7 +165,7 @@ export default function LongitudinalReports({profiles,mode='all',initialFlockId=
    <label className="wide-label">یادداشت<textarea rows={2} value={notes} onChange={e=>setNotes(e.target.value)}/></label>
    </div></details>
   </div>{sampleWarning&&<p className="muted">{sampleWarning} این هشدار مختص راهنمای BioChek است و برای سایر کیت‌ها تعمیم داده نمی‌شود.</p>}<p className="muted">مقایسه روند فقط با تطابق کامل روش، کیت، نسخه، آنتی‌ژن، مقیاس، واحد، آزمایشگاه، دستگاه، پروتکل و Lot و QC قابل قبول انجام می‌شود.</p><button className="button primary" disabled={busy}>{busy?'در حال ذخیره…':'ذخیره نوبت و ساخت گزارش'}</button></form>}
-  {mode!=='entry'&&<div className="saved-list report-list"><div className="saved-title">گزارش‌های ثبت‌شده · {mode==='reports'?'همه بیماری‌ها':title}</div>{rows.length===0?<p className="muted">هنوز گزارشی برای این بیماری ثبت نشده است.</p>:rows.map((r,i)=><button type="button" className="saved-row" key={r.id} onClick={()=>setOpenId(openId===r.id?'':r.id)}><span>{str(r.input_snapshot,'roundLabel')||'گزارش '+(i+1)} · {str(r.input_snapshot,'kit')}</span><small>{faDate(str(r.input_snapshot,'samplingDate')||r.created_at.slice(0,10))} · {fa(Number(r.output_snapshot.n||0))} نمونه · {str(r.input_snapshot,'method')}</small>{r.input_snapshot.demo===true&&<b className="tag warning">نمونه شبیه‌سازی‌شده</b>}<b>{openId===r.id?'بستن':'مشاهده گزارش'}</b></button>)}</div>}
+  {mode!=='entry'&&<div className="saved-list report-list"><div className="saved-title">گزارش‌های ثبت‌شده · {mode==='reports'?'همه بیماری‌ها':title}</div>{rows.length===0?<p className="muted">هنوز گزارشی برای این بیماری ثبت نشده است.</p>:rows.map((r,i)=><div className="saved-row saved-row-with-actions" key={r.id}><button type="button" className="saved-row-open" onClick={()=>setOpenId(openId===r.id?'':r.id)}><span>{str(r.input_snapshot,'roundLabel')||'گزارش '+(i+1)} · {str(r.input_snapshot,'kit')}</span><small>{faDate(str(r.input_snapshot,'samplingDate')||r.created_at.slice(0,10))} · {fa(Number(r.output_snapshot.n||0))} نمونه · {str(r.input_snapshot,'method')}</small>{r.input_snapshot.demo===true&&<b className="tag warning">نمونه شبیه‌سازی‌شده</b>}<b>{openId===r.id?'بستن':'مشاهده گزارش'}</b></button><button type="button" className="link-button" onClick={()=>void deleteSerologyRun(r)}>حذف</button></div>)}</div>}
   {selected&&<div className="report-page"><SerologyReportStudio key={selected.id} initialRunId={selected.id}/></div>}
 
  </section>
