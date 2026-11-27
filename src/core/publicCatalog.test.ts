@@ -38,16 +38,26 @@ describe('public assay catalog mapping', () => {
     expect(mapPublicAssayToEntry(row).status).toBe('local-validation-required')
     expect(mapPublicAssayToEntry(row).method).toBe('UNKNOWN')
   })
-  it('only assigns an ELISA-titre scale to exact documented IBD kits or an explicit formula specification', () => {
+  it('recognizes only the exact BioChek/IDEXX titer conversion contracts in the live catalog', () => {
     const base: PublicAssayRecord = {
       id: 'other-ibd-kit', disease_code: 'IBD', manufacturer: 'Other', kit_name: 'Other IBD',
       catalog_number: null, assay_type: 'ELISA', protocol_version: 'v1',
       source_document: null, source_version: null, validation_status: 'documented',
       minimum_sample_count: null, reference_url: null, formula_spec: null,
     }
-    expect(mapPublicAssayToEntry({ ...base, id: 'biochek-ck113-ibd' }).measurementScale).toBe('elisa-titer')
+    const biochek = mapPublicAssayToEntry({
+      ...base, id: '56e9f5e2-3035-4545-b5f6-1a5372c9654b', manufacturer: 'BioChek BV',
+      catalog_number: 'CK113 IBD', formula_spec: { titer_equation: 'log10(titer)=x*log10(S/P)+y' },
+    })
+    const idexx = mapPublicAssayToEntry({
+      ...base, id: '8a768364-4bad-4ae9-a558-75029c16b846', manufacturer: 'IDEXX Laboratories',
+      catalog_number: '99-09260', formula_spec: { s_p_formula: '(sample-NCx)/(PCx-NCx)', log10_titer_formula: '1.09*log10(S/P)+3.36' },
+    })
+    expect(biochek.measurementScale).toBe('elisa-titer')
+    expect(idexx.measurementScale).toBe('elisa-titer')
     expect(mapPublicAssayToEntry(base).measurementScale).toBe('unknown')
-    expect(mapPublicAssayToEntry({ ...base, formula_spec: { measurement_scale: 's-p' } }).measurementScale).toBe('s-p')
+    expect(mapPublicAssayToEntry({ ...base, formula_spec: { s_p_formula: 'raw S/P' } }).measurementScale).toBe('s-p')
+    expect(mapPublicAssayToEntry({ ...base, formula_spec: { measurement_scale: 'od' } }).measurementScale).toBe('od')
   })
 })
 

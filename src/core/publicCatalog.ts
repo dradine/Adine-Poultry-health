@@ -70,9 +70,19 @@ export function mapPublicAssayToEntry(row: PublicAssayRecord): AssayCatalogEntry
   const knownMethods = ['ELISA', 'HI', 'VN', 'AGID', 'PCR']
   const method = knownMethods.includes(row.assay_type) ? row.assay_type as AssayCatalogEntry['method'] : 'UNKNOWN'
   const rawScale = typeof row.formula_spec?.measurement_scale === 'string' ? row.formula_spec.measurement_scale.toLowerCase() : ''
+  const normalizedManufacturer = row.manufacturer.trim().toLowerCase()
+  const normalizedCatalog = (row.catalog_number || '').trim().toUpperCase().replace(/\\s+/g, ' ')
+  const hasBioChekTiterEquation = normalizedManufacturer.includes('biochek')
+    && /^CK113(?:\\s+IBD)?$/.test(normalizedCatalog)
+    && typeof row.formula_spec?.titer_equation === 'string'
+  const hasIdexxTiterFormula = normalizedManufacturer.includes('idexx')
+    && normalizedCatalog === '99-09260'
+    && typeof row.formula_spec?.log10_titer_formula === 'string'
   const measurementScale: AssayCatalogEntry['measurementScale'] = ['elisa-titer', 'od', 's-p', 'unknown'].includes(rawScale)
     ? rawScale as AssayCatalogEntry['measurementScale']
-    : (row.id === 'biochek-ck113-ibd' || row.id === 'idexx-ibd-9909260' ? 'elisa-titer' : 'unknown')
+    : hasBioChekTiterEquation || hasIdexxTiterFormula
+      ? 'elisa-titer'
+      : typeof row.formula_spec?.s_p_formula === 'string' ? 's-p' : 'unknown'
   const knownStatus = ['documented', 'catalog-only', 'local-validation-required'].includes(row.validation_status)
   const status = knownStatus && method !== 'UNKNOWN' && disease !== 'UNKNOWN'
     ? row.validation_status as AssayCatalogEntry['status'] : 'local-validation-required'
