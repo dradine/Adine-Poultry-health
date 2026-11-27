@@ -35,7 +35,7 @@
 
 ### محدودیت علمی IBD
 
-Deventer یک برآورد زمان بر اساس افت نمایی MDA و مفروضات half-life است؛ نه مدل مستقیم تکثیر واکسن، آسیب بورس، حفاظت مخاطی، challenge یا پیامد اقتصادی. مدل فعلی عدم‌قطعیت نیمه‌عمر، خطای آزمون، ناهمگنی انتقال MDA از مادر، پراکندگی تیتر، سویه میدانی و اختلاف اجرای واکسن را به‌صورت یک مدل احتمالاتی کالیبره‌شده وارد نمی‌کند. خروجی باید همراه با حساسیت پارامترها، کیفیت نمونه و بررسی بالینی تفسیر شود.
+Deventer یک برآورد زمان بر اساس افت نمایی MDA و مفروضات half-life است؛ نه مدل مستقیم تکثیر واکسن، آسیب بورس، حفاظت مخاطی، challenge یا پیامد اقتصادی. مدل فعلی عدم‌قطعیت نیمه‌عمر، خطای آزمون، ناهمگنی انتقال MDA از مادر، پراکندگی تیتر، سویه میدانی و اختلاف اجرای واکسن را به‌صورت یک مدل احتمالاتی کالیبره‌شده وارد نمی‌کند. خروجی باید همراه با حساسیت پارامترها، کیفیت نمونه و بررسی بالینی تفسیر شود. راهنمای WOAH برای IBD نیز تأکید می‌کند همبستگی ELISA با VN/AGID بسته به منبع معرف‌ها متغیر است و استفاده از سرم مرجع با تیتر معلوم در هر نوبت آزمون روتین توصیه می‌شود؛ بنابراین استانداردسازی assay و کنترل مرجع باید بخشی از SOP آزمایشگاه باشد.
 
 مطالعه میدانی de Wit و همکاران در ۱۶ و ۲۰ گله گوشتی نشان داد واکسیناسیون بیش از یک روز زودتر از زمان محاسبه‌شده می‌تواند پاسخ هومورال را به تأخیر اندازد یا تا کشتار قابل تشخیص نباشد؛ این یافته پشتیبان اهمیت زمان‌بندی است، اما به معنی خطای مجاز جهانی یک‌روزه یا تضمین پاسخ در همه گله‌ها نیست.
 
@@ -90,8 +90,9 @@ ELISA سرمی می‌تواند برای پایش کلی پاسخ سرمی/وا
 4. Gharaibeh S, Mahmoud K (2013). *Decay of maternal antibodies in broiler chickens*. Poultry Science 92:2333–2336. DOI: [10.3382/ps.2013-03249](https://doi.org/10.3382/ps.2013-03249).
 5. WOAH. *Terrestrial Manual 2018, Newcastle disease*, sections on HI and vaccine response. [Official PDF](https://www.woah.org/app/uploads/2021/03/3-03-14-newcastle-dis-1.pdf)
 6. *Immunological aspects of the efficiency of protectotype vaccination strategy against chicken infectious bronchitis*. BMC Veterinary Research (2017). DOI: [10.1186/s12917-017-0963-1](https://doi.org/10.1186/s12917-017-0963-1).
-7. WOAH. *Avian infectious bronchitis*, disease chapter and diagnostic/serological considerations. [WOAH resource](https://www.woah.org/)
-8. EFSA (2024). *Vaccination of poultry against highly pathogenic avian influenza – Part 2*. EFSA Journal. DOI: [10.2903/j.efsa.2024.8755](https://doi.org/10.2903/j.efsa.2024.8755).
+7. WOAH (2024). *Terrestrial Manual, Chapter 3.3.12: Infectious bursal disease (Gumboro disease)*. درباره تفاوت همبستگی ELISA/VN و ضرورت سرم مرجع با تیتر معلوم. [Official PDF](https://www.woah.org/fileadmin/Home/eng/Health_standards/tahm/3.03.12_IBD.pdf)
+8. WOAH (2024). *Biological Standards Commission report, Annex 21, Chapter 3.3.2: Avian infectious bronchitis*. درباره cross-reactivity کیت‌های ELISA، پایش عمومی سرولوژی و ضرورت agent detection/genotyping برای شناسایی سویه. [Official PDF](https://www.woah.org/app/uploads/2024/10/202409-bsc-report-sept-public-md.pdf)
+9. EFSA (2024). *Vaccination of poultry against highly pathogenic avian influenza – Part 2: Surveillance and mitigation measures*. EFSA Journal. DOI: [10.2903/j.efsa.2024.8755](https://doi.org/10.2903/j.efsa.2024.8755). [EFSA summary](https://www.efsa.europa.eu/en/plain-language-summary/vaccination-poultry-against-highly-pathogenic-avian-influenza-part-2).
 
 ---
 این گزارش برای ممیزی و توسعه نرم‌افزار است؛ توصیه فردی واکسیناسیون باید با برچسب رسمی محصول در کشور محل مصرف، وضعیت واقعی گله و دامپزشک مسئول تطبیق داده شود.
