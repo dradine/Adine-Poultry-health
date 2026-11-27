@@ -122,7 +122,7 @@ export default function FlockReadinessReport({ flockId }: Props) {
           <article><b>AIV</b><span>نمودار HI جداگانه برای هر زیرتیپ/آنتی‌ژن، روند ELISA نوع A به‌صورت مستقل، و خط زمانی PCR/پایش ویروس و واکسیناسیون.</span></article>
         </div>
       </details>
-      <p className="readiness-foot">برای کیت‌های BioChek، راهنمای RevB 2025 حداقل ۱۸ نمونه برای برآورد کمی گله و ۲۳ نمونه را برای baseline و پیش‌بینی زمان واکسن توصیه می‌کند؛ ۱۵ نمونه فقط برای مشاهده روند پس از ایجاد baseline مناسب است. این توصیه را به کیت‌های دیگر تعمیم ندهید. {largestSample > 0 ? 'بیشترین تعداد نمونه ثبت‌شده در نوبت‌های واقعی: ' + fa(largestSample) + ' .' : 'هنوز تعداد نمونه واقعی ثبت نشده است.'}</p>
+      <p className="readiness-foot">برای کیت‌های BioChek، راهنمای RevB 2025 حداقل ۱۸ نمونه برای برآورد کمی گله و ۲۳ نمونه را برای baseline و پیش‌بینی زمان واکسن توصیه می‌کند؛ ۱۵ نمونه فقط برای مشاهده روند پس از ایجاد baseline مناسب است. این توصیه را به کیت‌های دیگر تعمیم ندهید. {largestSample > 0 ? 'بیشترین تعداد نمونه ثبت‌شده در نوبت‌های واقعی: ' + fa(largestSample) + ' .' : 'هنوز تعداد نمونه واقعی ثبت نشده است.'} <a href="https://www.biochek.com/wp-content/uploads/2025/11/BioChek-Poultry-ELISA-Interpretation-Manual-RevB-2025.pdf" target="_blank" rel="noreferrer">راهنمای رسمی BioChek RevB 2025</a> · <a href="https://www.vmd.defra.gov.uk/productinformationdatabase/files/QRD_Documents/QRD-Auth_2715448.PDF" target="_blank" rel="noreferrer">برچسب رسمی Avishield IBD Plus (بریتانیا، ژوئن ۲۰۲۶)</a></p>
     </>}
   </section>
 }
