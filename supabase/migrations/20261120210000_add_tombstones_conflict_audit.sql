@@ -19,7 +19,7 @@ alter table public.flock_audit_events drop constraint flock_audit_events_flock_i
 create index flock_audit_events_owner_created_at_idx on public.flock_audit_events(owner_id, created_at desc);
 
 create function public.apply_flock_change(p_table text,p_id uuid,p_base uuid,p_mutation uuid,p_operation text,p_payload jsonb)
-returns jsonb language plpgsql security definer set search_path = '' as $
+returns jsonb language plpgsql security definer set search_path = '' as $$
 declare
   actor uuid := auth.uid();
   parent uuid;
@@ -92,7 +92,7 @@ revoke all on function public.apply_flock_change(text,uuid,uuid,uuid,text,jsonb)
 grant execute on function public.apply_flock_change(text,uuid,uuid,uuid,text,jsonb) to authenticated;
 
 -- Existing batch writers also share the parent lock with archival.
-create function public.require_active_batch_parent() returns trigger language plpgsql set search_path='' as $
+create function public.require_active_batch_parent() returns trigger language plpgsql set search_path='' as $$
 begin
   perform pg_advisory_xact_lock(hashtextextended(new.flock_id::text,0));
   if not exists(select from public.flocks where id=new.flock_id and owner_id=new.owner_id and deleted_at is null)
