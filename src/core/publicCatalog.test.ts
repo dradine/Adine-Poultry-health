@@ -46,7 +46,7 @@ describe('public assay catalog mapping', () => {
       minimum_sample_count: null, reference_url: null, formula_spec: null,
     }
     const biochek = mapPublicAssayToEntry({
-      ...base, id: '56e9f5e2-3035-4545-b5f6-1a5372c9654b', manufacturer: 'BioChek BV',
+      ...base, id: '56e9f5e2-f5ab-4340-a0ba-17dfe0b9e3bb', manufacturer: 'BioChek BV',
       catalog_number: 'CK113 IBD', formula_spec: { titer_equation: 'log10(titer)=x*log10(S/P)+y' },
     })
     const idexx = mapPublicAssayToEntry({

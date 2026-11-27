@@ -73,7 +73,7 @@ export function mapPublicAssayToEntry(row: PublicAssayRecord): AssayCatalogEntry
   const normalizedManufacturer = row.manufacturer.trim().toLowerCase()
   const normalizedCatalog = (row.catalog_number || '').trim().toUpperCase().replace(/\\s+/g, ' ')
   const hasBioChekTiterEquation = normalizedManufacturer.includes('biochek')
-    && /^CK113(?:\\s+IBD)?$/.test(normalizedCatalog)
+    && (normalizedCatalog === 'CK113 IBD' || normalizedCatalog === 'CK113')
     && typeof row.formula_spec?.titer_equation === 'string'
   const hasIdexxTiterFormula = normalizedManufacturer.includes('idexx')
     && normalizedCatalog === '99-09260'
