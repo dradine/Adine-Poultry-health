@@ -83,7 +83,7 @@ create index flock_clinical_observations_owner_id_id_idx on public.flock_clinica
 create index flock_time_series_owner_id_id_idx on public.flock_time_series(owner_id, id);
 create index flock_audit_events_owner_created_at_idx on public.flock_audit_events(owner_id, created_at desc);
 
-do $
+do $$
 declare t text;
 begin
   foreach t in array array['flock_vaccination_events','flock_clinical_observations','flock_time_series','flock_audit_events'] loop
@@ -93,7 +93,7 @@ begin
     -- introduced by the following migration; do not grant direct table mutations.
     execute format('grant select on public.%I to authenticated', t);
   end loop;
-end $;
+end $$;
 
 drop trigger if exists flock_vaccination_events_set_updated_at on public.flock_vaccination_events;
 create trigger flock_vaccination_events_set_updated_at before update on public.flock_vaccination_events for each row execute function public.set_updated_at();
