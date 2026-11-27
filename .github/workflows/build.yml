@@ -1,6 +1,6 @@
 name: Build and test
 permissions:
-  contents: write
+  contents: read
 on:
   push:
     branches: [main, 'feature/**']
@@ -17,7 +17,7 @@ jobs:
       - name: Upgrade npm to patched lockfile resolver
         run: npm install --global npm@11.21.2
       - name: Install dependencies and reconcile optional platform packages
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Audit production dependencies (blocking)
         run: npm audit --omit=dev --audit-level=high
       - name: Report development-tool advisories (non-blocking)
@@ -29,12 +29,11 @@ jobs:
       - run: npm run smoke:supabase
       - run: node --check public/sw.js
       - run: node -e "JSON.parse(require('node:fs').readFileSync('public/manifest.webmanifest', 'utf8'))"
-      - name: Commit refreshed package lock
-        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/feature/ibd-first-mvp'
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: refresh npm lockfile'
-          git push origin HEAD:${GITHUB_REF_NAME}
+      - name: Package the exact tested source snapshot
+        run: zip -qr "/tmp/adine-vaccination-${GITHUB_SHA}.zip" . -x '.git/*' 'node_modules/*' 'dist/*' 'coverage/*'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adine-vaccination-source-${{ github.sha }}
+          path: /tmp/adine-vaccination-${{ github.sha }}.zip
+          if-no-files-found: error
+          retention-days: 30

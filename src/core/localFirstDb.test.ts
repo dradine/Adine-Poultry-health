@@ -2,8 +2,8 @@ import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import {
   countPendingChanges, importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, listOutbox,
-  markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun,
-  upsertLocalFromCloud, reconcileLocalWithCloud,
+  markLocalDeleted, markLocalSynced, saveLocalFlock, saveLocalModelRun, changeDeletion,
+  upsertLocalFromCloud, reconcileLocalWithCloud, saveLocalReferenceRecord, listLocalReferenceRecords, markLocalReferenceDeleted,
 } from './localFirstDb'
 
 const makeFlock = (id: string) => ({
@@ -24,23 +24,29 @@ describe('IndexedDB local-first persistence', () => {
     expect(queue[0].operation).toBe('upsert')
   })
 
-  it('keeps only the newest queued upsert when a flock is edited repeatedly', async () => {
+  it('preserves ordered base revisions for repeated offline edits', async () => {
     const id = crypto.randomUUID()
     await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه اول' })
+    const first = (await listOutbox()).find(item => item.recordId === id)!
     await saveLocalFlock({ ...makeFlock(id), flock_name: 'نسخه دوم', updated_at: '2026-11-16T11:00:00.000Z' })
     const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
-    expect(queue).toHaveLength(1)
-    expect(queue[0].operation).toBe('upsert')
-    expect(queue[0].payload?.flock_name).toBe('نسخه دوم')
+    expect(queue).toHaveLength(2)
+    expect(queue.map(item => item.operation)).toEqual(['upsert', 'upsert'])
+    expect(queue[0].base).toBeNull()
+    expect(queue[1].base).toBe(first.mutation)
+    expect(queue[1].payload?.flock_name).toBe('نسخه دوم')
   })
 
-  it('replaces a queued flock upsert with a delete tombstone', async () => {
+  it('queues deletion after an unsynced create so both operations apply in order', async () => {
     const id = crypto.randomUUID()
     await saveLocalFlock(makeFlock(id))
+    const create = (await listOutbox()).find(item => item.recordId === id)!
     await markLocalDeleted('flocks', id)
     const queue = (await listOutbox()).filter(item => item.entity === 'flocks' && item.recordId === id)
-    expect(queue).toHaveLength(1)
-    expect(queue[0].operation).toBe('delete')
+    expect(queue).toHaveLength(2)
+    expect(queue[0].operation).toBe('upsert')
+    expect(queue[1].operation).toBe('delete')
+    expect(queue[1].base).toBe(create.mutation)
     expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
   })
 
@@ -88,6 +94,19 @@ describe('IndexedDB local-first persistence', () => {
     expect((await listLocalFlocks()).some(item => item.id === id)).toBe(false)
     const deletion = (await listOutbox()).find(item => item.recordId === id && item.operation === 'delete')
     expect(deletion?.payload?.updated_at).toBe('2026-11-16T10:00:00.000Z')
+    expect(deletion?.mutation).toMatch(/[0-9a-f-]{36}/)
+    expect(deletion?.base).toMatch(/[0-9a-f-]{36}/)
+  })
+  it('keeps a tombstone until an explicit restore mutation is queued', async () => {
+    const id = crypto.randomUUID()
+    await saveLocalFlock(makeFlock(id))
+    await markLocalDeleted('flocks', id)
+    expect((await listLocalFlocks()).some(row => row.id === id)).toBe(false)
+    await changeDeletion('flocks', id, false)
+    expect((await listLocalFlocks()).some(row => row.id === id)).toBe(true)
+    const items = (await listOutbox()).filter(row => row.recordId === id)
+    expect(items).toHaveLength(3)
+    expect(items[items.length - 1]?.operation).toBe('restore')
   })
 
   it('marks successful sync state without removing the local record', async () => {
@@ -97,6 +116,24 @@ describe('IndexedDB local-first persistence', () => {
     const row = (await listLocalFlocks()).find(item => item.id === id)
     expect(row?.syncState).toBe('synced')
     expect(await countPendingChanges()).toBeGreaterThan(0)
+  })
+
+  it('stores independent flock reference records and queues safe local operations', async () => {
+    const flockId = crypto.randomUUID()
+    const id = crypto.randomUUID()
+    await saveLocalReferenceRecord('flock_vaccination_events', {
+      id, flock_id: flockId, event_date: '2026-11-20', age_days: 14, disease_code: 'IBD',
+      product_name: 'محصول آزمون', platform: 'live', route: 'water',
+      created_at: '2026-11-20T10:00:00.000Z', updated_at: '2026-11-20T10:00:00.000Z',
+    })
+    const rows = await listLocalReferenceRecords('flock_vaccination_events', flockId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0].product_name).toBe('محصول آزمون')
+    expect((await listOutbox()).find(item => item.recordId === id)?.entity).toBe('flock_vaccination_events')
+    await markLocalReferenceDeleted('flock_vaccination_events', id)
+    expect(await listLocalReferenceRecords('flock_vaccination_events', flockId)).toHaveLength(0)
+    const queue = (await listOutbox()).filter(item => item.recordId === id)
+    expect(queue[queue.length - 1]?.operation).toBe('delete')
   })
 })
 

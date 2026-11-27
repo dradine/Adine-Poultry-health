@@ -6,9 +6,10 @@ import DateObject from 'react-date-object'
 import { ASSAY_CATALOG, type AssayCatalogEntry } from './core/assayRegistry'
 import { fetchPublicReferenceCatalog, findBttAssayForProduct, mapPublicAssayToEntry, readCachedPublicCatalog, type PublicVaccineRecord } from './core/publicCatalog'
 import { createLocalBackup, restoreLocalBackup } from './core/localBackup'
-import { calculateIbdWindow, calculateIbdSensitivity, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
+import { calculateIbdWindow, calculateIbdSensitivity, calculateVaccinationTiming, normalizeDigits, parseTiters, validateIbdRunGate, validateIbdDeventerProductGate } from './core/ibd'
 import { interpretIbdResult } from './core/ibdInterpretation'
 import { calculateSamplingAgeFromHatch } from './core/samplingAge'
+import { getTimeZoneOffsetMinutesEast, instantToZonedDateTime, zonedDateTimeToIso } from './core/zonedTime'
 import DiseaseMonitoring from './DiseaseMonitoring'
 import StrainSelector from './components/StrainSelector'
 import MaternalAntibodyPanel from './components/MaternalAntibodyPanel'
@@ -18,6 +19,7 @@ import BaselineLibrary from './components/BaselineLibrary'
 import LongitudinalReports from './components/LongitudinalReports'
 import { importLocalFirstBackup, listLocalFlocks, listLocalModelRuns, markLocalDeleted, notifyLocalDataChanged } from './core/localFirstDb'
 import { migrateLegacyLocalData, saveAnalysisToLocal, saveProfileToLocal } from './core/syncService'
+import FlockReferencePanel from './components/FlockReferencePanel'
 
 type SavedProfile = {
   id: string
@@ -50,10 +52,23 @@ type SavedAnalysis = {
   susceptiblePercent: string
   titersText: string
   estimatedVaccinationAgeDays: number | null
+  minimumVaccinationAgeDays?: number
+  labelConstrainedVaccinationAgeDays?: number
+  labelMinimumApplied?: boolean
+  timingStatus?: 'future-window' | 'label-minimum-floor' | 'threshold-already-reached'
   percentileTiter: number
   percentileRank: number
   sampleCount: number
   warnings?: string[]
+  samplingDate?: string
+  samplingTime?: string
+  timingTargetAt?: string | null
+  timingHours?: number | null
+  timingEarliestAllowedHours?: number | null
+  timingExpectedOnsetAt?: string | null
+  sampledAtIso?: string
+  samplingTimeZone?: string
+  samplingTimeZoneOffsetMinutes?: number
   plateQcAccepted: boolean
   randomSamplingConfirmed: boolean
   pairingVerified: boolean
@@ -115,18 +130,19 @@ export default function App() {
   const [hatchery, setHatchery] = useState('')
   const [vaccinationHistory, setVaccinationHistory] = useState('')
   const [samplingAge, setSamplingAge] = useState('14')
+  const [samplingTime, setSamplingTime] = useState('')
   const [btt, setBtt] = useState('')
   const [halfLife, setHalfLife] = useState('')
-  const [correctionDays, setCorrectionDays] = useState('0')
+  const correctionDays = (() => { const age = Number(normalizeDigits(samplingAge)); return Number.isInteger(age) && age >= 0 && age <= 4 ? String(4 - age) : '0' })()
   const [minimumSampleCount, setMinimumSampleCount] = useState('')
   const [minimumSampleCountSource, setMinimumSampleCountSource] = useState('')
-  const [susceptiblePercent, setSusceptiblePercent] = useState('5')
+  const [susceptiblePercent, setSusceptiblePercent] = useState('75')
   const [titersText, setTitersText] = useState('')
   const [kitName, setKitName] = useState('')
   const [vaccineName, setVaccineName] = useState('')
   const [bttSource, setBttSource] = useState('')
   const [halfLifeSource, setHalfLifeSource] = useState('')
-  const [correctionSource, setCorrectionSource] = useState('')
+  const [correctionSource, setCorrectionSource] = useState('de Wit 2001, Table 3')
   const [plateQcAccepted, setPlateQcAccepted] = useState(false)
   const [randomSamplingConfirmed, setRandomSamplingConfirmed] = useState(false)
   const [pairingVerified, setPairingVerified] = useState(false)
@@ -167,13 +183,16 @@ export default function App() {
       setAnalyses(readAnalyses())
     }
     const cached = readCachedPublicCatalog()
+    const cachedNotice = cached?.fetchedAt && Number.isFinite(Date.parse(cached.fetchedAt))
+      ? 'بانک مرجع از حافظه محلی بارگذاری شده است؛ آخرین دریافت: ' + new Date(cached.fetchedAt).toLocaleString('fa-IR') + '. پیش از محاسبه، نسخه جاری IFU و برچسب محصول را مستقلاً کنترل کنید.'
+      : 'تاریخ دریافت بانک مرجع در حافظه محلی معتبر نیست؛ نسخه جاری IFU و برچسب محصول را مستقلاً کنترل کنید.'
     if (cached) {
       setAssayCatalog(cached.assays.map(mapPublicAssayToEntry))
       setVaccineCatalog(cached.vaccines)
     }
     const refreshCatalog = async () => {
       if (!navigator.onLine) {
-        if (!cached) setCatalogNotice('برای دریافت بانک کامل کیت و واکسن، یک بار با اینترنت برنامه را باز کنید؛ فهرست محلی محدود در دسترس است.')
+        setCatalogNotice(cached ? cachedNotice : 'برای دریافت بانک کامل کیت و واکسن، یک بار با اینترنت برنامه را باز کنید؛ فهرست محلی محدود در دسترس است.')
         return
       }
       try {
@@ -183,7 +202,7 @@ export default function App() {
         setVaccineCatalog(catalog.vaccines)
         setCatalogNotice('')
       } catch (cause) {
-        if (active && !cached) setCatalogNotice(cause instanceof Error ? 'بانک آنلاین کیت/واکسن در دسترس نیست؛ فهرست محلی محدود استفاده می‌شود.' : 'بانک مرجع آنلاین در دسترس نیست.')
+        if (active) setCatalogNotice(cached ? 'اتصال به بانک آنلاین ناموفق بود. ' + cachedNotice : (cause instanceof Error ? 'بانک آنلاین کیت/واکسن در دسترس نیست؛ فهرست محلی محدود استفاده می‌شود.' : 'بانک مرجع آنلاین در دسترس نیست.'))
       }
     }
     const onOnline = () => { void refreshCatalog() }
@@ -250,7 +269,7 @@ export default function App() {
       setBttSource('')
       setSelectedAssayId('')
       setKitName('')
-      setMinimumSampleCount('23')
+      setMinimumSampleCount('')
       setMinimumSampleCountSource('')
       setError('')
       return
@@ -286,9 +305,26 @@ export default function App() {
   const calculation = useMemo(() => {
     if (!kitName.trim() || !vaccineName.trim() || !btt || !halfLife || titers.length === 0) return { result: null, error: '' }
     if (!selectedVaccineProductId || !selectedVaccineProduct) return { result: null, error: 'مدل Deventer در این نسخه فقط با محصول واکسن مستندِ موجود در بانک مرجع فعال می‌شود؛ نام یا BTT دستی برای فعال‌کردن مدل کافی نیست.' }
-    const productGateErrors = validateIbdDeventerProductGate({ diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family, validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId })
+    const minimumAgeRaw = selectedVaccineProduct.vaccine_age_min_days
+    const minimumVaccinationAgeDays = minimumAgeRaw === null || minimumAgeRaw === undefined || String(minimumAgeRaw).trim() === '' ? Number.NaN : Number(normalizeDigits(String(minimumAgeRaw)))
+    const productBtt = selectedVaccineProduct.breakthrough_titer === null ? Number.NaN : Number(normalizeDigits(String(selectedVaccineProduct.breakthrough_titer)))
+    const enteredBtt = Number(normalizeDigits(btt))
+    const productGateErrors = validateIbdDeventerProductGate({
+      diseaseCode:selectedVaccineProduct.disease_code, platform:selectedVaccineProduct.platform, modelFamily:selectedVaccineProduct.model_family,
+      validationStatus:selectedVaccineProduct.validation_status, bttAssayKitId:selectedVaccineProduct.btt_assay_kit_id, selectedAssayKitId:selectedAssayId,
+      breakthroughTiter:Number.isFinite(productBtt) ? productBtt : null, breakthroughUnit:selectedVaccineProduct.breakthrough_unit,
+      minimumVaccinationAgeDays:Number.isFinite(minimumVaccinationAgeDays) ? minimumVaccinationAgeDays : null,
+      labelVersion:selectedVaccineProduct.label_version, sourceDocument:selectedVaccineProduct.source_document, bttReferenceUrl:selectedVaccineProduct.btt_reference_url,
+      deventerMinimumSampleCount:selectedVaccineProduct.deventer_minimum_sample_count,
+      deventerSampleSizeBasis:selectedVaccineProduct.deventer_sample_size_basis,
+    })
+    if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
+    if (!Number.isFinite(enteredBtt) || enteredBtt !== productBtt) return { result: null, error: 'BTT واردشده باید دقیقاً با مقدار و واحد ثبت‌شده در برچسب همان محصول برابر باشد؛ تغییر دستی BTT مجاز نیست.' }
+    if (selectedVaccineProduct.deventer_minimum_sample_count !== null && Number(normalizeDigits(minimumSampleCount)) < selectedVaccineProduct.deventer_minimum_sample_count) return { result: null, error: 'حداقل تعداد نمونه طبق برچسب محصول ' + selectedVaccineProduct.deventer_minimum_sample_count + ' است؛ تعداد بالاتر قابل قبول است، اما کمتر از این مقدار مجاز نیست.' }
     if (productGateErrors.length) return { result: null, error: productGateErrors.join(' ') }
     if (!selectedAssayId || !selectedAssay || selectedAssay.status !== 'documented') return { result: null, error: 'برای تحلیل Deventer، کیت IBD مستند و شناخته‌شده را از بانک آزمون انتخاب کنید؛ ثبت دستی نام کیت به‌تنهایی محاسبه را فعال نمی‌کند.' }
+    if (selectedAssay.method !== 'ELISA') return { result: null, error: 'مدل Deventer فقط با ELISA قابل استفاده است؛ HI یا روش‌های دیگر پذیرفته نمی‌شوند.' }
+    if (selectedAssay.measurementScale !== 'elisa-titer') return { result: null, error: 'مقیاس این کیت به‌عنوان تیتر محاسبه‌شده مستند نشده است؛ OD و S/P خام را وارد نکنید و تا تأیید IFU محاسبه متوقف می‌ماند.' }
     if (!bttSource.trim() || !halfLifeSource.trim() || !correctionSource.trim()) return { result: null, error: 'منبع دقیق BTT، نیمه‌عمر و اصلاح سن نمونه‌گیری باید ثبت شود؛ بدون provenance خروجی محاسبه نمی‌شود.' }
     if (!minimumSampleCount.trim()) return { result: null, error: 'حداقل تعداد نمونه اختصاصی همین محصول/کیت را از IFU یا برچسب وارد کنید؛ مقدار عمومی به‌صورت خودکار فرض نمی‌شود.' }
     if (!minimumSampleCountSource.trim()) return { result: null, error: 'منبع حداقل تعداد نمونه باید از IFU یا برچسب همان محصول/کیت ثبت شود.' }
@@ -313,6 +349,9 @@ export default function App() {
           correctionDays: Number(normalizeDigits(correctionDays)),
           minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
           minimumSampleCountSource,
+          minimumVaccinationAgeDays,
+          assayMethod: selectedAssay.method,
+          measurementScale: selectedAssay.measurementScale || 'unknown',
           titers,
         }),
         error: '',
@@ -329,6 +368,8 @@ export default function App() {
     halfLifeDays: Number(normalizeDigits(halfLife)),
     susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
     correctionDays: Number(normalizeDigits(correctionDays)),
+    assayMethod: selectedAssay?.method || 'UNKNOWN',
+    measurementScale: selectedAssay?.measurementScale || 'unknown',
     titers,
   }, result, { assay: kitName, vaccine: vaccineName, bttSource, halfLifeSource, correctionSource }) : null,
   [result, samplingAge, btt, halfLife, susceptiblePercent, correctionDays, titers, kitName, vaccineName, bttSource, halfLifeSource, correctionSource])
@@ -342,11 +383,29 @@ export default function App() {
         correctionDays: Number(normalizeDigits(correctionDays)),
         minimumSampleCount: Number(normalizeDigits(minimumSampleCount)),
         minimumSampleCountSource,
+        minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
+        assayMethod: selectedAssay?.method || 'UNKNOWN',
+        measurementScale: selectedAssay?.measurementScale || 'unknown',
         titers,
         susceptiblePercent: Number(normalizeDigits(susceptiblePercent)),
       })
     } catch { return [] }
-  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent])
+  }, [result, samplingAge, btt, halfLife, correctionDays, minimumSampleCount, minimumSampleCountSource, titers, susceptiblePercent, selectedVaccineProduct])
+  const vaccinationTiming = useMemo(() => {
+    if (!result || !sampleDate || !samplingTime) return null
+    try {
+      return calculateVaccinationTiming({
+        currentTiter: result.percentileTiter,
+        breakthroughTiter: Number(normalizeDigits(btt)),
+        halfLifeDays: Number(normalizeDigits(halfLife)),
+        samplingAgeDays: Number(normalizeDigits(samplingAge)),
+        minimumVaccinationAgeDays: Number(normalizeDigits(String(selectedVaccineProduct?.vaccine_age_min_days ?? ''))),
+        sampledAt: zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || '',
+        correctionDays: Number(normalizeDigits(correctionDays)),
+        onsetOfImmunityDays: selectedVaccineProduct?.onset_of_immunity_days ? Number(normalizeDigits(String(selectedVaccineProduct.onset_of_immunity_days))) : undefined,
+      })
+    } catch { return null }
+  }, [result, sampleDate, samplingTime, samplingAge, btt, halfLife, correctionDays, selectedVaccineProduct])
 
   async function exportBackup() {
     try {
@@ -432,10 +491,23 @@ export default function App() {
       susceptiblePercent,
       titersText,
       estimatedVaccinationAgeDays: result.estimatedVaccinationAgeDays,
+      minimumVaccinationAgeDays: result.minimumVaccinationAgeDays,
+      labelConstrainedVaccinationAgeDays: result.labelConstrainedVaccinationAgeDays,
+      labelMinimumApplied: result.labelMinimumApplied,
+      timingStatus: vaccinationTiming?.status,
       percentileTiter: result.percentileTiter,
       percentileRank: result.percentileRank,
       sampleCount: result.sampleCount,
       warnings: result.warnings,
+      samplingDate: sampleDate || undefined,
+      samplingTime: samplingTime || undefined,
+      timingTargetAt: vaccinationTiming?.targetAt || null,
+      timingHours: vaccinationTiming?.hoursUntilThreshold ?? null,
+      timingEarliestAllowedHours: vaccinationTiming?.hoursUntilEarliestAllowed ?? null,
+      timingExpectedOnsetAt: vaccinationTiming?.expectedOnsetAt ?? null,
+      sampledAtIso: sampleDate && samplingTime ? (zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran') || undefined) : undefined,
+      samplingTimeZone: sampleDate && samplingTime ? 'Asia/Tehran' : undefined,
+      samplingTimeZoneOffsetMinutes: sampleDate && samplingTime ? (() => { const iso = zonedDateTimeToIso(sampleDate, samplingTime, 'Asia/Tehran'); return iso ? getTimeZoneOffsetMinutesEast(iso, 'Asia/Tehran') ?? undefined : undefined })() : undefined,
       plateQcAccepted,
       randomSamplingConfirmed,
       pairingVerified,
@@ -465,16 +537,26 @@ export default function App() {
     setSamplingAge(item.samplingAge)
     setKitName(item.kitName)
     setVaccineName(item.vaccineName)
+    setSelectedVaccineProductId(item.vaccineProductId || '')
+    setSelectedAssayId(item.bttAssayKitId || item.assayKitId || '')
     setBttSource(item.bttSource || '')
     setHalfLifeSource(item.halfLifeSource || '')
     setCorrectionSource(item.correctionSource || '')
     setBtt(item.btt)
     setHalfLife(item.halfLife)
-    setCorrectionDays(item.correctionDays)
     setMinimumSampleCount(item.minimumSampleCount)
     setMinimumSampleCountSource(item.minimumSampleCountSource || '')
     setSusceptiblePercent(item.susceptiblePercent)
     setTitersText(item.titersText)
+    // Restore the original instant in the flock's stored timezone, not the current device timezone.
+    if (item.sampledAtIso && Number.isFinite(Date.parse(item.sampledAtIso))) {
+      const sampled = instantToZonedDateTime(item.sampledAtIso, item.samplingTimeZone || 'Asia/Tehran')
+      if (sampled) { setSampleDate(sampled.date); setSamplingTime(sampled.time) }
+      else { setSampleDate(item.samplingDate || ''); setSamplingTime(item.samplingTime || '') }
+    } else {
+      setSampleDate(item.samplingDate || '')
+      setSamplingTime(item.samplingTime || '')
+    }
     setPlateQcAccepted(item.plateQcAccepted)
     setRandomSamplingConfirmed(item.randomSamplingConfirmed)
     setPairingVerified(item.pairingVerified)
@@ -583,6 +665,7 @@ export default function App() {
             ))}
           </div>
         )}
+        <FlockReferencePanel flockId={selectedFlockId} flockName={flockName} />
       </section>}
 
 
@@ -596,6 +679,10 @@ export default function App() {
         <div className="form-grid">
           <label>سن گله هنگام نمونه‌گیری (روز)
             <input inputMode="decimal" value={samplingAge} onChange={(e) => setSamplingAge(e.target.value)} placeholder="مثلاً ۱۴" />
+          </label>
+          <label>ساعت دقیق نمونه‌گیری (برای پیش‌بینی ساعتی)
+            <input type="time" value={samplingTime} onChange={(e) => setSamplingTime(e.target.value)} />
+            <small>تاریخ نمونه‌گیری را در مشخصات گله وارد کنید. بدون تاریخ و ساعت، فقط سن روزانه محاسبه می‌شود.</small>
           </label>
         </div>
         <details className="custom-kit-accordion"><summary>جزئیات کیت، واکسن و پارامترهای محاسبه (اختیاری برای نمایش)</summary>
@@ -612,8 +699,10 @@ export default function App() {
             </select>
             {selectedVaccineProduct && <small>
               برچسب بازار {selectedVaccineProduct.market_code || 'نامشخص'}؛ ثبت {selectedVaccineProduct.registration_number || 'بدون شماره ثبت'}؛
-              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز.
-              این برچسب فقط مربوط به بازار ثبت‌شده است و به معنی مجوز عرضه در ایران نیست.
+              مسیر {selectedVaccineProduct.vaccine_route || 'نامشخص'}؛ حداقل سن {selectedVaccineProduct.vaccine_age_min_days || 'نامشخص'} روز؛
+              شروع ایمنی طبق برچسب {selectedVaccineProduct.onset_of_immunity_days ?? 'نامشخص'} روز پس از واکسیناسیون؛ مدت ایمنی اعلام‌شده {selectedVaccineProduct.duration_of_immunity_weeks ?? 'نامشخص'} هفته.
+              در صورت انتظار تیترهای بالای MDA، همین برچسب نمونه‌گیری دیرتر (به‌ویژه روز ۷) را برای برآورد مطمئن‌تر از روز صفر توصیه می‌کند.
+              این اطلاعات فقط مربوط به بازار/نسخه ثبت‌شده است، تضمین حفاظت گله نیست و به معنی مجوز عرضه در ایران نیست.
             </small>}
           </label>
           <label>انتخاب کیت سرولوژی (بانک مرجع)
@@ -631,7 +720,7 @@ export default function App() {
                 </option>
               ))}
             </select>
-            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount('23'); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
+            <input value={kitName} readOnly={Boolean(selectedVaccineProductId)} onChange={(e) => { setKitName(e.target.value); setSelectedAssayId(''); setMinimumSampleCount(''); setMinimumSampleCountSource('') }} placeholder="یا نام دقیق کیت دیگر را دستی وارد کنید" />
             <small>کیت‌های غیرمستند تا ثبت IFU و تطبیق روش/واحد، محاسبه را باز نمی‌کنند.</small>
           </label>
           <label>نام دقیق واکسن / محصول
@@ -660,12 +749,13 @@ export default function App() {
           <label>منبع حداقل تعداد نمونه (IFU/برچسب همان محصول یا کیت)
             <input value={minimumSampleCountSource} readOnly={Boolean(selectedVaccineProductId && vaccineCatalog.find(item => item.id === selectedVaccineProductId)?.deventer_sample_size_basis)} onChange={(e) => setMinimumSampleCountSource(e.target.value)} placeholder="مثلاً VMD 2026 section 8 یا BioChek RevB 2025" />
           </label>
-          <label>اصلاح سن نمونه‌گیری (روز؛ مطابق بروشور)
-            <input inputMode="decimal" value={correctionDays} onChange={(e) => setCorrectionDays(e.target.value)} />
+          <label>اصلاح استاندارد Deventer (روز؛ محاسبه خودکار)
+            <input value={toPersianDigits(correctionDays)} readOnly aria-readonly="true" />
+            <small>طبق جدول De Wit 2001: روز صفر=۴، روز ۱=۳، روز ۲=۲، روز ۳=۱ و روز ۴ یا بالاتر=۰ روز. این مقدار قابل ویرایش دستی نیست.</small>
           </label>
           <label>درصد هدف پرندگان پاسخ‌پذیر مستقیم در زمان واکسیناسیون (٪)
             <input inputMode="decimal" value={susceptiblePercent} onChange={(e) => setSusceptiblePercent(e.target.value)} />
-            <small>پیش‌فرض ۵٪ در راهنمای Elanco برای حداقل سهم پرندگانِ پاسخ‌پذیر اولیه و با فرض انتشار افقی واکسن زنده مطرح شده است؛ مقدار ثابت جهانی نیست. در قفس، بستر، فشار بیماری و تصمیم واکسیناسیون چندمرحله‌ای باید جداگانه سناریوسازی شود.</small>
+            <small>پیش‌فرض ۷۵٪ مطابق Deventer است؛ یعنی هدف برآورد سهمی از گله است که MDA آن‌ها تا زمان واکسیناسیون زیر BTT قرار می‌گیرد، نه درصد حفاظت تضمین‌شده. تغییر این درصد باید با توجه به یکنواختی تیتر، نوع سالن، انتشار افقی واکسن و نظر دامپزشک انجام شود.</small>
           </label>
         </div></details>
         <label className="wide-label">تیترهای انفرادی ELISA
@@ -692,8 +782,23 @@ export default function App() {
               <span className="tag warning">نیازمند بازبینی دامپزشک</span>
             </div>
             <div className="result-number">
-              <strong>{result.estimatedVaccinationAgeDays === null ? '—' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1))}</strong>
-              <span>{result.estimatedVaccinationAgeDays === null ? 'زمان قابل‌برآورد نیست؛ آستانه در سن نمونه‌گیری یا قبل از آن رسیده است' : 'روزگی تخمینی'}</span>
+              <strong>{toPersianDigits(result.labelConstrainedVaccinationAgeDays.toFixed(1))}</strong>
+              <span>سن قابل اجرا با رعایت حداقل سن برچسب محصول</span>
+              <small>برآورد خام Deventer: {result.estimatedVaccinationAgeDays === null ? 'آستانه در زمان نمونه‌گیری حاصل شده' : toPersianDigits(result.estimatedVaccinationAgeDays.toFixed(1)) + ' روز'}</small>
+            </div>
+            {result.labelMinimumApplied && <p className="muted">حداقل سن برچسب ({toPersianDigits(result.minimumVaccinationAgeDays)} روز) محدودکننده است؛ تاریخ اجرایی پیش از این سن مجاز نیست.</p>}
+            <div className="vaccination-timing-card">
+              <div className="result-heading"><span>برآورد زمانی رسیدن تیتر به BTT</span><span className="tag warning">برآورد مدل</span></div>
+              {!sampleDate || !samplingTime ? <p>برای نمایش تاریخ و ساعت، تاریخ نمونه‌گیری در مشخصات گله و ساعت دقیق نمونه‌گیری را وارد کنید.</p> : (vaccinationTiming?.status === 'future-window' || vaccinationTiming?.status === 'label-minimum-floor') ? <>
+                <div className="result-number"><strong>{toPersianDigits(String(vaccinationTiming.wholeHours))} ساعت و {toPersianDigits(String(vaccinationTiming.remainingMinutes))} دقیقه</strong><span>{vaccinationTiming.status === 'label-minimum-floor' ? 'فاصله تا زودترین سن مجاز طبق برچسب محصول' : 'فاصله خام مدل تا رسیدن تیتر صدک انتخابی به BTT'}</span></div>
+                <p><b>{vaccinationTiming.status === 'label-minimum-floor' ? 'زودترین زمان مجاز طبق برچسب محصول' : 'زمان تقویمی برآورد خام مدل برای رسیدن به BTT'}</b> {new Date(vaccinationTiming.targetAt || '').toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}</p>
+                {vaccinationTiming.expectedOnsetAt && <p><b>شروع ایمنی طبق برچسب محصول (برآورد تقویمی):</b> {new Date(vaccinationTiming.expectedOnsetAt).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'full', timeStyle: 'short' })}<small className="muted">این تاریخ از فاصله شروع ایمنی درج‌شده در برچسب محاسبه شده است و تضمین حفاظت گله نیست.</small></p>}
+                {selectedVaccineProduct?.duration_of_immunity_weeks != null && <p className="muted">مدت ایمنی درج‌شده در برچسب: {toPersianDigits(String(selectedVaccineProduct.duration_of_immunity_weeks))} هفته پس از واکسیناسیون؛ این مقدار مختص همین محصول و نسخه برچسب است.</p>}
+                {vaccinationTiming.status === 'label-minimum-floor'
+                  ? <p className="muted">{vaccinationTiming.hoursUntilThreshold === null ? 'تیتر صدک انتخابی در زمان نمونه‌گیری برابر یا پایین‌تر از BTT بوده است؛ تاریخ بالا فقط حداقل سن مجاز برچسب را نشان می‌دهد و پیش‌بینی آینده رسیدن به BTT نیست.' : 'برآورد خام رسیدن به BTT زودتر از حداقل سن برچسب محصول است؛ تاریخ بالا فقط زودترین زمان مجاز طبق برچسب را نشان می‌دهد، نه زمان خام مدل.'} نمایش ساعت و دقیقه صرفاً تفکیک محاسباتی است و دقت زیستی در حد دقیقه ندارد.</p>
+                  : <p className="muted">این زمان از مدل افت log₂ آنتی‌بادی به دست آمده است. نمایش ساعت و دقیقه فقط تفکیک عددی محاسبه است و به معنی دقت زیستی در حد دقیقه نیست؛ تغییرپذیری MDA، نیمه‌عمر، BTT، نمونه‌گیری و شرایط گله می‌تواند زمان واقعی را جابه‌جا کند.</p>}
+                <p className="muted">اجرای واکسن باید با IFU، سلامت گله، برنامه مزرعه، روش تجویز و تأیید دامپزشک نهایی شود.</p>
+              </> : <p className="error">تیتر فعلی برابر یا پایین‌تر از BTT است؛ مدل زمان آینده‌ای برای این نقطه پیشنهاد نمی‌کند.</p>}
             </div>
             <div className="result-details">
               <div><small>تیتر صدک انتخابی</small><b>{toPersianDigits(result.percentileTiter.toFixed(1))}</b></div>
@@ -710,10 +815,10 @@ export default function App() {
               <b>تحلیل حساسیت درصد پاسخ‌پذیری</b>
               <p>تغییر سهم پرندگانی که باید مستقیماً به واکسن پاسخ‌پذیر باشند، می‌تواند زمان برآوردی را جابه‌جا کند. ۵٪ سناریوی پیش‌فرض راهنمای میدانی Elanco است؛ ۷۵٪ در برخی مطالعات میدانی استفاده شده است.</p>
               <div className="sensitivity-grid">
-                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{point.vaccinationAgeDays === null ? 'قبلاً رسیده/غیرقابل‌برآورد' : `${toPersianDigits(point.vaccinationAgeDays.toFixed(1))} روز`}</strong><small>تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
+                {sensitivity.map((point) => <div key={point.susceptiblePercent}><small>{toPersianDigits(point.susceptiblePercent)}٪ پاسخ‌پذیر</small><strong>{toPersianDigits(point.labelConstrainedVaccinationAgeDays.toFixed(1))} روز با کف برچسب</strong><small>خام: {point.vaccinationAgeDays === null ? 'آستانه رسیده' : toPersianDigits(point.vaccinationAgeDays.toFixed(1)) + ' روز'} · تیتر {toPersianDigits(point.selectedTiter)} · رتبه {toPersianDigits(point.selectedRank)}</small></div>)}
               </div>
             </div>
-            {result.thresholdAlreadyReachedAtSampling && <p className="error">آستانه ممکن است در زمان نمونه‌گیری قبلاً حاصل شده باشد؛ این عدد را زمان آینده تلقی نکنید.</p>}
+            {result.thresholdAlreadyReachedAtSampling && <p className="muted">آستانه BTT در زمان نمونه‌گیری حاصل شده است؛ با این حال حداقل سن برچسب محصول همچنان باید رعایت شود و سن قابل اجرا در بالا نمایش داده شده است.</p>}
             <p>هشدارها: {result.warnings.join(' ')}</p>
             <p>این عدد زمان قطعی واکسیناسیون نیست. تا زمانی که نسخه دقیق کیت و محصول، BTT، مقیاس تیتر و نیمه‌عمر مستند و تأیید نشده‌اند، خروجی فقط محاسبه ریاضی مقدماتی است.</p>
             {interpretation && <section className="interpretation-panel">
@@ -762,7 +867,7 @@ export default function App() {
       {wizardStep===4&&<LongitudinalReports profiles={profiles} mode="entry" initialFlockId={selectedFlockId} initialDisease={selectedDisease}/>} 
       <div className="workflow-bottom"><button className="button secondary" onClick={()=>setView('home')}>بازگشت به صفحه اصلی</button>{wizardStep<4&&<button className="button primary" onClick={()=>goToStep((wizardStep+1) as 1|2|3|4)}>ادامه</button>}</div>
       </>}
-      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
+      {view==='reports'&&<><div className="workflow-heading"><div><span className="tag">پرونده گله</span><h2>{profiles.find(x=>x.id===selectedFlockId)?.flockName||'گزارش‌های گله'}</h2></div><button className="button secondary" onClick={()=>setView('home')}>بازگشت به گله‌ها</button></div><FlockReferencePanel flockId={selectedFlockId} flockName={profiles.find(x=>x.id===selectedFlockId)?.flockName}/><LongitudinalReports profiles={profiles} mode="reports" initialFlockId={selectedFlockId}/></>}
       {view==='settings'&&<section className="panel"><h3>تنظیمات و ابزارهای جانبی</h3><CloudSyncPanel/><BaselineLibrary/><div className="backup-actions"><button className="button secondary" onClick={exportBackup}>تهیه پشتیبان</button><label className="button secondary">بازیابی پشتیبان<input type="file" accept="application/json,.json" hidden onChange={(e)=>{void importBackup(e.target.files?.[0]);e.currentTarget.value=''}}/></label></div></section>}
 
       <footer>نسخه توسعه‌ای · ذخیره محلی گله و تحلیل‌ها · تاریخ‌های ورودی با تقویم شمسی</footer>

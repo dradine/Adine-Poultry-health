@@ -26,8 +26,8 @@ Last reviewed: 2026-11-16. This is a software verification plan, not evidence of
 |---|---|
 | Inputs | Reject NaN/Infinity, zero/negative titres and BTT, invalid percent, half-life, age, correction, sample minimum |
 | Statistics | Deterministic order statistic with ties; rank boundaries; median; GMT; log2 SD; CV; min/max |
-| Time estimate | Reproduce sourced reference example; threshold-at-sampling returns null; correction only in permitted sampling window |
-| Sensitivity | Ordered and distinct outputs for increasing susceptible fractions when data permit; invalid fraction fails closed |
+| Time estimate | Reproduce sourced reference example; threshold-at-sampling returns null unless product label minimum age is still ahead; apply the product minimum-age floor; correction only in permitted sampling window |
+| Sensitivity | Ordered and distinct outputs for increasing susceptible fractions when data permit; product minimum-age floor is applied to every scenario; invalid fraction fails closed |
 | Localization | Persian and Arabic digits, decimal marks, separators; malformed tokens remain invalid |
 | QC | Any missing gate prevents calculation; gate is explicit user attestation |
 | Local data | Empty, malformed and quota-limited storage; merge IDs; duplicate IDs in backup; rollback; version mismatch |

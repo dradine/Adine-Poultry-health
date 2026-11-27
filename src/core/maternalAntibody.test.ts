@@ -22,6 +22,11 @@ describe('maternal antibody early sampling estimator',()=>{
   expect(r.alreadyBelowThresholdAtHatch).toBe(true)
   expect(r.estimatedThresholdAgeDays).toBeNull()
  })
+ it('treats equality with the hatch threshold as already reached',()=>{
+  const r=estimateMaternalAntibodyDecay({sampleAgeDays:0,sampleTiter:100,halfLifeDays:3,thresholdTiter:100})
+  expect(r.alreadyBelowThresholdAtHatch).toBe(true)
+  expect(r.estimatedThresholdAgeDays).toBeNull()
+ })
 
  it('does not impose an undocumented universal upper bound on half-life',()=>{
   const r=estimateMaternalAntibodyDecay({sampleAgeDays:4,sampleTiter:1000,halfLifeDays:120,thresholdTiter:100})
@@ -37,12 +42,22 @@ describe('maternal antibody early sampling estimator',()=>{
 })
 
 describe('MDA provenance gate',()=>{
- const valid={assayIdentity:'BioChek CK113 IBD ELISA / VP2',measurementScale:'kit-specific ELISA titer',halfLifeSource:'Longitudinal same-flock study, methods p. 4',thresholdSource:'Product-specific IFU, section 8',sourceVersion:'IFU RevB 2025, p. 6',parameterOrigin:'manufacturer-ifu' as const}
+ const valid={assayIdentity:'BioChek CK113 IBD ELISA / VP2',measurementScale:'kit-specific ELISA titer',halfLifeSource:'Longitudinal same-flock study, methods p. 4',thresholdSource:'Product-specific IFU, section 8',halfLifeSourceVersion:'Study DOI; methods p. 4',thresholdSourceVersion:'IFU RevB 2025, section 8',halfLifeOrigin:'peer-reviewed-study' as const,thresholdOrigin:'manufacturer-ifu' as const}
  it('accepts complete provenance without claiming independent verification',()=>{
   expect(validateMdaParameterProvenance(valid)).toEqual([])
  })
  it('lists each missing parameter source and assay identity',()=>{
   const errors=validateMdaParameterProvenance({})
-  expect(errors).toHaveLength(6)
+  expect(errors).toHaveLength(8)
  })
+ it('rejects OD and S/P scales for exponential titre decay',()=>{
+  expect(validateMdaParameterProvenance({...valid,measurementScale:'OD450'}).join(' ')).toContain('ratio-scale')
+  expect(validateMdaParameterProvenance({...valid,measurementScale:'S/P ratio'}).join(' ')).toContain('ratio-scale')
+ })
+ it('flags when the threshold crossing is already in the past at sampling',()=>{
+  const r=estimateMaternalAntibodyDecay({sampleAgeDays:4,sampleTiter:100,halfLifeDays:2,thresholdTiter:200})
+  expect(r.estimatedThresholdAgeDays).toBeLessThanOrEqual(4)
+  expect(r.warnings.join(' ')).toContain('مربوط به گذشته یا زمان نمونه‌گیری')
+ })
+
 })

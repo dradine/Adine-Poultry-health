@@ -1,0 +1,5 @@
+Case ID,Well Type,Result,Assay,Lot
+CASE-001,Sample,0.42,IBD synthetic,L-SYN-02
+CASE-002,Sample,0.55,IBD synthetic,L-SYN-02
+CTRL-P,Positive Control,1.50,IBD synthetic,L-SYN-02
+CTRL-N,Negative Control,0.10,IBD synthetic,L-SYN-02

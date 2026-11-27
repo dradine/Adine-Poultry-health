@@ -27,7 +27,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Install dependencies and reconcile optional platform packages
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Run tests before preview deployment
         run: npm run test
       - name: Configure GitHub Pages

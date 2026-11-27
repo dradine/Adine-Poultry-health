@@ -1,32 +1,47 @@
 import { useState } from 'react'
-import { evaluatePlateControls, mapReaderRows, parseDelimitedTable, validateReaderScale, type PlateControlGroup, type ReaderTable } from '../core/readerImport'
-type Meta={fileName:string;delimiter:string;headers:string[];rawRows:string[][];sampleRows:Record<string,string>[];mapping:{resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string};controlRows:Record<string,string>[];controlCriteria:{positiveRole:string;negativeRole:string;referenceRole:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin:number|null;referenceMax:number|null;maxReplicateCvPercent:number|null;maxReplicatePercentDifference:number|null;source:string};qcStatus:'pass'|'fail'|'pending';qcEvidence:string;controlSummary:PlateControlGroup[]}
+import { evaluatePlateControls, parseDelimitedTable, type PlateControlGroup, type ReaderTable } from '../core/readerImport'
+import { READER_ADAPTER_PROFILES, getReaderAdapterProfile, importWithReaderAdapter, prepareReaderAdapterPreview } from '../core/readerAdapters'
+import { saveRawImport } from '../core/localFirstDb'
+type Meta={fileName:string;fileSize:number;fileSha256:string;rawImportId:string;delimiter:string;headers:string[];rawRows:string[][];sampleRows:Record<string,string>[];mapping:{resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string};controlRows:Record<string,string>[];censoredRows:{row:number;sampleId:string;value:string;status:'below_lod'|'above_uloq'|'missing'}[];controlCriteria:{positiveRole:string;negativeRole:string;referenceRole:string;positiveMin:number|null;positiveMax:number|null;negativeMax:number|null;referenceMin:number|null;referenceMax:number|null;maxReplicateCvPercent:number|null;maxReplicatePercentDifference:number|null;source:string};qcStatus:'pass'|'fail'|'pending';qcApprovalStatus:'unapproved'|'operator_attested'|'reviewed';qcOperator:string;qcReviewer:string;qcEvidence:string;controlSummary:PlateControlGroup[]}
 const numOrNull=(v:string):number|null=>{if(!v.trim())return null;const x=v.replace(/[۰-۹٠-٩]/g,c=>{const i='۰۱۲۳۴۵۶۷۸۹'.indexOf(c);return String(i>=0?i:'٠١٢٣٤٥٦٧٨٩'.indexOf(c))}).replace(/\u066B/g,'.').replace(/[٬،]/g,'');const n=Number(x);return Number.isFinite(n)?n:null}
-export default function SerologyReaderImport({method,scale,onApply}:{method:'ELISA'|'HI';scale:string;onApply:(values:string,ids:string,meta:Meta)=>void}){
- const [table,setTable]=useState<ReaderTable|null>(null),[fileName,setFileName]=useState(''),[result,setResult]=useState(-1),[sampleId,setSampleId]=useState(-1),[role,setRole]=useState(-1),[sampleRoleValue,setSampleRoleValue]=useState('Sample'),[error,setError]=useState(''),[notice,setNotice]=useState('')
- const [positiveRole,setPositiveRole]=useState(''),[negativeRole,setNegativeRole]=useState(''),[referenceRole,setReferenceRole]=useState(''),[positiveMin,setPositiveMin]=useState(''),[positiveMax,setPositiveMax]=useState(''),[negativeMax,setNegativeMax]=useState(''),[referenceMin,setReferenceMin]=useState(''),[referenceMax,setReferenceMax]=useState(''),[maxControlCv,setMaxControlCv]=useState(''),[maxControlDiff,setMaxControlDiff]=useState(''),[qcSource,setQcSource]=useState('')
+async function sha256(file:File):Promise<string>{const digest=await crypto.subtle.digest('SHA-256',await file.arrayBuffer());return Array.from(new Uint8Array(digest)).map(byte=>byte.toString(16).padStart(2,'0')).join('')}
+export default function SerologyReaderImport({method,scale,onApply,onFileChange}:{method:'ELISA'|'HI';scale:string;onApply:(values:string,ids:string,meta:Meta)=>void;onFileChange?:()=>void}){
+ const [table,setTable]=useState<ReaderTable|null>(null),[sourceText,setSourceText]=useState(''),[fileName,setFileName]=useState(''),[currentFile,setCurrentFile]=useState<{size:number;sha256:string;mimeType:string}|null>(null),[currentRawBytes,setCurrentRawBytes]=useState<ArrayBuffer|null>(null),[adapterProfileId,setAdapterProfileId]=useState('generic-delimited'),[result,setResult]=useState(-1),[sampleId,setSampleId]=useState(-1),[role,setRole]=useState(-1),[sampleRoleValue,setSampleRoleValue]=useState('Sample'),[error,setError]=useState(''),[notice,setNotice]=useState('')
+ const [positiveRole,setPositiveRole]=useState(''),[negativeRole,setNegativeRole]=useState(''),[referenceRole,setReferenceRole]=useState(''),[positiveMin,setPositiveMin]=useState(''),[positiveMax,setPositiveMax]=useState(''),[negativeMax,setNegativeMax]=useState(''),[referenceMin,setReferenceMin]=useState(''),[referenceMax,setReferenceMax]=useState(''),[maxControlCv,setMaxControlCv]=useState(''),[maxControlDiff,setMaxControlDiff]=useState(''),[qcSource,setQcSource]=useState(''),[qcOperator,setQcOperator]=useState(''),[qcReviewer,setQcReviewer]=useState('')
  async function read(file?:File){
-  setError('');setNotice('');setTable(null);if(!file)return
+  // A newly selected file invalidates every previous mapping, QC threshold and parent result.
+  onFileChange?.()
+  setError('');setNotice('');setTable(null);setSourceText('');setFileName('');setCurrentFile(null);setCurrentRawBytes(null)
+  setResult(-1);setSampleId(-1);setRole(-1);setSampleRoleValue('Sample');setAdapterProfileId('generic-delimited')
+  setPositiveRole('');setNegativeRole('');setReferenceRole('');setPositiveMin('');setPositiveMax('');setNegativeMax('')
+  setReferenceMin('');setReferenceMax('');setMaxControlCv('');setMaxControlDiff('');setQcSource('');setQcOperator('');setQcReviewer('')
+  if(!file)return
   if(file.size>5*1024*1024){setError('حداکثر اندازه فایل ۵ مگابایت است.');return}
   try{
-   const parsed=parseDelimitedTable(await file.text()),headers=parsed.headers
+   const [text,hash,bytes]=await Promise.all([file.text(),sha256(file),file.arrayBuffer()])
+   const parsed=parseDelimitedTable(text),headers=parsed.headers
+   setSourceText(text);setCurrentRawBytes(bytes)
    const find=(re:RegExp)=>headers.findIndex(h=>re.test(h))
-   setTable(parsed);setFileName(file.name);setResult(find(/result|titer|titre|od|s\/p|s\/n|value|نتیجه|تیتر|مقدار/i))
+   setTable(parsed);setFileName(file.name);setCurrentFile({size:file.size,sha256:hash,mimeType:file.type||'text/plain'});setResult(find(/result|titer|titre|od|s\/p|s\/n|value|نتیجه|تیتر|مقدار/i))
    setSampleId(find(/sample.?id|specimen|bird.?id|شناسه|کد نمونه/i));setRole(find(/type|role|well.?type|control|نوع ردیف/i));setPositiveRole('');setNegativeRole('');setReferenceRole('')
    setNotice('فایل خوانده شد. ستون‌ها را کنترل و سپس پیش‌نمایش را بررسی کنید؛ هیچ داده‌ای هنوز ذخیره نشده است.')
   }catch(e){setError(e instanceof Error?e.message:'خواندن فایل ناموفق بود.')}
  }
- function apply(){
+ async function apply(){
   if(!table)return
   try{
    if(role>=0&&[positiveRole,negativeRole,referenceRole].filter(Boolean).some(x=>x.trim().toLocaleLowerCase()===sampleRoleValue.trim().toLocaleLowerCase()))throw new Error('مقدار ردیف نمونه نباید با نوع کنترل مثبت، منفی یا مرجع یکسان باشد.')
    if(result<0)throw new Error('ستون نتیجه را انتخاب کنید.')
-   validateReaderScale(table.headers[result],method,scale)
-   const mapped=mapReaderRows(table,{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},method)
+   const preview=prepareReaderAdapterPreview(adapterProfileId, sourceText, method, scale)
+   const mapped=importWithReaderAdapter({...preview, mapping:{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue}},method)
    const qc=evaluatePlateControls(table,{roleColumn:role<0?null:role,resultColumn:result,positiveRole,negativeRole,referenceRole,positiveMin:numOrNull(positiveMin),positiveMax:numOrNull(positiveMax),negativeMax:numOrNull(negativeMax),referenceMin:numOrNull(referenceMin),referenceMax:numOrNull(referenceMax),maxReplicateCvPercent:numOrNull(maxControlCv),maxReplicatePercentDifference:numOrNull(maxControlDiff),source:qcSource},method)
-   const meta:Meta={fileName,delimiter:table.delimiter,headers:table.headers,rawRows:table.rows,sampleRows:mapped.sampleRows,mapping:{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},controlRows:mapped.controlRows,controlCriteria:{positiveRole,negativeRole,referenceRole,positiveMin:numOrNull(positiveMin),positiveMax:numOrNull(positiveMax),negativeMax:numOrNull(negativeMax),referenceMin:numOrNull(referenceMin),referenceMax:numOrNull(referenceMax),maxReplicateCvPercent:numOrNull(maxControlCv),maxReplicatePercentDifference:numOrNull(maxControlDiff),source:qcSource},qcStatus:qc.status,qcEvidence:qc.evidence,controlSummary:qc.groups}
+   if(!currentRawBytes||!currentFile?.sha256)throw new Error('بایت‌های فایل خام در دسترس نیست؛ فایل را دوباره انتخاب کنید.')
+   const rawImportId='raw-import-'+currentFile.sha256
+   await saveRawImport({id:rawImportId,file_name:fileName,mime_type:currentFile.mimeType,byte_size:currentFile.size,sha256:currentFile.sha256,imported_at:new Date().toISOString(),parser_version:'reader-adapters-0.2.0',mapping:{adapterProfileId,resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},metadata:{method,scale,qcStatus:qc.status},bytes:currentRawBytes})
+   const qcApprovalStatus:Meta['qcApprovalStatus']=qc.status!=='pass'?'unapproved':qcReviewer.trim()?'reviewed':qcOperator.trim()?'operator_attested':'unapproved'
+   const meta:Meta={fileName,fileSize:currentFile?.size||0,fileSha256:currentFile?.sha256||'',rawImportId,delimiter:table.delimiter,headers:table.headers,rawRows:table.rows,sampleRows:mapped.sampleRows,mapping:{resultColumn:result,sampleIdColumn:sampleId<0?null:sampleId,roleColumn:role<0?null:role,sampleRoleValue},controlRows:mapped.controlRows,censoredRows:mapped.censoredRows,controlCriteria:{positiveRole,negativeRole,referenceRole,positiveMin:numOrNull(positiveMin),positiveMax:numOrNull(positiveMax),negativeMax:numOrNull(negativeMax),referenceMin:numOrNull(referenceMin),referenceMax:numOrNull(referenceMax),maxReplicateCvPercent:numOrNull(maxControlCv),maxReplicatePercentDifference:numOrNull(maxControlDiff),source:qcSource},qcStatus:qc.status,qcApprovalStatus,qcOperator:qcOperator.trim(),qcReviewer:qcReviewer.trim(),qcEvidence:qc.evidence,controlSummary:qc.groups}
    onApply(mapped.values.join(', '),mapped.sampleIds.join(', '),meta)
-   setNotice(mapped.values.length+' نتیجه نمونه آماده ورود شد؛ '+mapped.controlRows.length+' ردیف غیرنمونه جداگانه نگهداری شد. وضعیت QC: '+(qc.status==='pass'?'قبول محاسبه‌شده':qc.status==='fail'?'رد محاسبه‌شده':'در انتظار تکمیل معیارهای IFU'))
+   setNotice(mapped.values.length+' نتیجه عددی آماده ورود شد؛ '+mapped.censoredRows.length+' نتیجه سانسورشده و '+mapped.controlRows.length+' ردیف کنترل جداگانه نگهداری شد. وضعیت QC: '+(qc.status==='pass'?'قبول محاسبه‌شده':qc.status==='fail'?'رد محاسبه‌شده':'در انتظار تکمیل معیارهای IFU'))
    setError('')
   }catch(e){setError(e instanceof Error?e.message:'تطبیق ستون‌ها ناموفق بود.')}
  }
@@ -36,6 +51,8 @@ export default function SerologyReaderImport({method,scale,onApply}:{method:'ELI
   <p className="srs-note">فایل Excel را ابتدا با فرمت CSV یا TSV ذخیره کنید. فایل اصلی اختصاصی Readerها تا زمانی که قالب رسمی و نسخه آن بررسی نشده، مستقیماً تفسیر نمی‌شود. ورود فایل فقط داده‌ها را به پیش‌نمایش می‌آورد؛ ثبت نهایی با شماست.</p>
   <label>انتخاب فایل<input type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" onChange={e=>void read(e.target.files?.[0])}/></label>
   {table&&<><div className="form-grid">
+   <label>پروفایل ورود فایل<select value={adapterProfileId} onChange={e=>setAdapterProfileId(e.target.value)}>{READER_ADAPTER_PROFILES.map(profile=><option key={profile.id} value={profile.id}>{profile.displayName}</option>)}</select></label>
+   <p className="srs-note">{getReaderAdapterProfile(adapterProfileId).status==='ready-delimited'?'پروفایل متنی آماده mapping است.':getReaderAdapterProfile(adapterProfileId).status==='schema-required'?'قالب انتخاب‌شده به نسخه نرم‌افزار و schema واقعی نیاز دارد؛ mapping فعلی فقط پیش‌نمایش محافظه‌کارانه است.':'این قالب هنوز parser مستقیم ندارد.'}</p>
    <label>ستون نتیجه<select value={result} onChange={e=>setResult(Number(e.target.value))}><option value={-1}>انتخاب کنید</option>{options}</select></label>
    <label>ستون شناسه نمونه (اختیاری)<select value={sampleId} onChange={e=>setSampleId(Number(e.target.value))}><option value={-1}>بدون شناسه</option>{options}</select></label>
    <label>ستون تفکیک نمونه/کنترل (اختیاری)<select value={role} onChange={e=>setRole(Number(e.target.value))}><option value={-1}>همه ردیف‌ها نمونه هستند</option>{options}</select></label>
@@ -50,10 +67,10 @@ export default function SerologyReaderImport({method,scale,onApply}:{method:'ELI
     {referenceRole&&<><label>حداقل کنترل مرجع<input value={referenceMin} onChange={e=>setReferenceMin(e.target.value)} inputMode="decimal"/></label><label>حداکثر کنترل مرجع<input value={referenceMax} onChange={e=>setReferenceMax(e.target.value)} inputMode="decimal"/></label></>}
     <label>حداکثر CV تکرارهای کنترل (اختیاری)<input value={maxControlCv} onChange={e=>setMaxControlCv(e.target.value)} inputMode="decimal"/></label>
     <label>حداکثر اختلاف درصدی تکرارها (اختیاری)<input value={maxControlDiff} onChange={e=>setMaxControlDiff(e.target.value)} inputMode="decimal"/><small>دامنه تکرارها ÷ میانگین × ۱۰۰؛ فقط در صورت تعریف در IFU</small></label>
-    <label className="wide-label">منبع و نسخه معیارهای QC از IFU<input value={qcSource} onChange={e=>setQcSource(e.target.value)} placeholder="نام کیت، نسخه IFU، بخش و صفحه"/></label>
+    <label className="wide-label">منبع و نسخه معیارهای QC از IFU<input value={qcSource} onChange={e=>setQcSource(e.target.value)} placeholder="نام کیت، نسخه IFU، بخش و صفحه"/></label><label>اپراتور QC<input value={qcOperator} onChange={e=>setQcOperator(e.target.value)} placeholder="نام یا شناسه اپراتور"/></label><label>بازبین QC (اختیاری)<input value={qcReviewer} onChange={e=>setQcReviewer(e.target.value)} placeholder="نام یا شناسه بازبین"/></label>
     <p className="srs-note">QC فقط زمانی قبول می‌شود که کنترل مثبت/منفی و حدود اعتبارسنجی IFU کامل باشند. مقادیر مورد انتظار CoA را با حدود اعتبار آزمون در IFU اشتباه نگیرید؛ این دو الزاماً یکسان نیستند. کنترل مرجع و CV/اختلاف تکرار فقط مطابق IFU وارد شوند؛ آستانه IDEXX یا BioChek به کیت دیگر تعمیم داده نشود.</p>
    </>}
-  </div><div className="srs-table-wrap"><table className="srs-table"><thead><tr>{table.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{table.rows.slice(0,8).map((r,i)=><tr key={i}>{table!.headers.map((h,j)=><td key={h}>{r[j]}</td>)}</tr>)}</tbody></table></div><small>نمایش {Math.min(8,table.rows.length)} ردیف از {table.rows.length} ردیف؛ جداکننده: {table.delimiter==='\t'?'Tab':table.delimiter}</small><button type="button" className="button secondary" onClick={apply}>تطبیق و انتقال نتایج به فرم</button></>}
+  </div><div className="srs-table-wrap"><table className="srs-table"><thead><tr>{table.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{table.rows.slice(0,8).map((r,i)=><tr key={i}>{table!.headers.map((h,j)=><td key={h}>{r[j]}</td>)}</tr>)}</tbody></table></div><small>نمایش {Math.min(8,table.rows.length)} ردیف از {table.rows.length} ردیف؛ جداکننده: {table.delimiter==='\t'?'Tab':table.delimiter}</small><button type="button" className="button secondary" onClick={() => void apply()}>تطبیق و انتقال نتایج به فرم</button></>}
   {notice&&<p className="muted" role="status">{notice}</p>}{error&&<p className="muted" role="alert">{error}</p>}
  </section>
 }

@@ -1,6 +1,7 @@
 export type ReaderTable={delimiter:string;headers:string[];rows:string[][]}
 export type ReaderMapping={resultColumn:number;sampleIdColumn:number|null;roleColumn:number|null;sampleRoleValue:string}
-export type ReaderImport={values:number[];sampleIds:string[];sampleRows:Record<string,string>[];controlRows:Record<string,string>[];invalidRows:{row:number;value:string;reason:string}[];delimiter:string}
+export type CensoredReaderRow={row:number;sampleId:string;value:string;status:'below_lod'|'above_uloq'|'missing'}
+export type ReaderImport={values:number[];sampleIds:string[];sampleRows:Record<string,string>[];controlRows:Record<string,string>[];invalidRows:{row:number;value:string;reason:string}[];censoredRows:CensoredReaderRow[];delimiter:string}
 export function parseDelimitedTable(source:string):ReaderTable{
  source=source.charCodeAt(0)===0xFEFF?source.slice(1):source
  const candidates=[',',';','\t'];const first=(source.split(/\r?\n/,1)[0]||'')
@@ -41,25 +42,36 @@ export function mapReaderRows(table:ReaderTable,mapping:ReaderMapping,method:'EL
  if(mapping.resultColumn<0||mapping.resultColumn>=table.headers.length)throw new Error('ستون نتیجه انتخاب نشده است.')
  if(mapping.sampleIdColumn!==null&&(mapping.sampleIdColumn<0||mapping.sampleIdColumn>=table.headers.length))throw new Error('ستون شناسه نمونه نامعتبر است.')
  if(mapping.roleColumn!==null&&(mapping.roleColumn<0||mapping.roleColumn>=table.headers.length))throw new Error('ستون نوع ردیف نامعتبر است.')
- const sampleRows:Record<string,string>[]=[],controlRows:Record<string,string>[]=[],invalidRows:ReaderImport['invalidRows']=[]
+ const sampleRows:Record<string,string>[]=[],controlRows:Record<string,string>[]=[],invalidRows:ReaderImport['invalidRows']=[],censoredRows:ReaderImport['censoredRows']=[]
  const values:number[]=[],sampleIds:string[]=[]
+ const isControlLabel=(cell:string)=>{
+  const normalized=cell.trim().toLocaleLowerCase().replace(/[\s_\-#]+/g,'')
+  return /^(?:(?:positive|negative|reference)(?:control|ctrl)?|(?:control|ctrl)(?:positive|negative|reference)?|pc|nc|blank|کنترل|مثبت|منفی|مرجع)\d*$/.test(normalized)
+ }
+ if(mapping.roleColumn===null && table.rows.some(row=>row.some(isControlLabel)))throw new Error('این فایل ردیف کنترل دارد اما ستون تفکیک نمونه/کنترل انتخاب نشده است؛ ورود متوقف شد تا کنترل‌ها وارد نمونه‌ها نشوند.')
  table.rows.forEach((cells,index)=>{
   const record=Object.fromEntries(table.headers.map((h,i)=>[h,cells[i]??'']))
   const role=mapping.roleColumn===null?'':cells[mapping.roleColumn]??''
   const isSample=mapping.roleColumn===null||role.trim().toLocaleLowerCase()===mapping.sampleRoleValue.trim().toLocaleLowerCase()
   if(!isSample){controlRows.push(record);return}
   const raw=cells[mapping.resultColumn]??''
+  const normalizedRaw=raw.trim().toLocaleLowerCase().replace(/[\s_\-]/g,'')
+  const sampleId=mapping.sampleIdColumn===null?'':(cells[mapping.sampleIdColumn]??'').trim()
+  const compact=raw.trim().toLocaleLowerCase().replace(/[\s_\-]/g,'')
+  if(!normalizedRaw||['missing','na','n/a','nd','notdone','notavailable','نامشخص','مفقود','ناموجود'].includes(normalizedRaw)){censoredRows.push({row:index+2,sampleId,value:raw,status:'missing'});return}
+  if(/^<\s*(?:lod|loq|dl|حدتشخیص|زیرحدتشخیص|\d+(?:[.,]\d+)?)$/i.test(raw.trim())||/^below(?:lod|loq)$/i.test(compact)){censoredRows.push({row:index+2,sampleId,value:raw,status:'below_lod'});return}
+  if(/^>\s*(?:uloq|loq|upperlimit|حدبالایاندازهگیری|\d+(?:[.,]\d+)?)$/i.test(raw.trim())||/^above(?:uloq|loq)$/i.test(compact)){censoredRows.push({row:index+2,sampleId,value:raw,status:'above_uloq'});return}
   try{
    const value=normalizeReaderNumber(raw,method,table.delimiter===';')
    values.push(value);sampleRows.push(record)
    if(mapping.sampleIdColumn!==null)sampleIds.push((cells[mapping.sampleIdColumn]??'').trim())
   }catch(error){invalidRows.push({row:index+2,value:raw,reason:error instanceof Error?error.message:'مقدار نامعتبر'})}
  })
- if(!values.length)throw new Error('هیچ نتیجه نمونه قابل‌ورودی پیدا نشد؛ ستون‌ها و مقدار نوع ردیف را بررسی کنید.')
+ if(!values.length&&!censoredRows.length)throw new Error('هیچ نتیجه نمونه قابل‌ورودی پیدا نشد؛ ستون‌ها و مقدار نوع ردیف را بررسی کنید.')
  if(invalidRows.length)throw new Error('در فایل '+invalidRows.length+' ردیف نمونه نامعتبر وجود دارد؛ ورود ناقص مجاز نیست. شماره ردیف‌ها: '+invalidRows.map(x=>x.row).join('، '))
  if(mapping.sampleIdColumn!==null&&sampleIds.some(x=>!x))throw new Error('حداقل یک شناسه نمونه خالی است؛ شناسه‌ها را اصلاح کنید یا ستون شناسه را انتخاب نکنید.')
  if(mapping.sampleIdColumn!==null&&new Set(sampleIds).size!==sampleIds.length)throw new Error('شناسه نمونه تکراری وجود دارد؛ ورود متوقف شد.')
- return {values,sampleIds,sampleRows,controlRows,invalidRows,delimiter:table.delimiter}
+ return {values,sampleIds,sampleRows,controlRows,invalidRows,censoredRows,delimiter:table.delimiter}
 }
 
 
