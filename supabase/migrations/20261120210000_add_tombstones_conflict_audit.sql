@@ -8,15 +8,18 @@ begin
     execute format('grant select on public.%I to authenticated',t);
   end loop;
 end $$;
-alter table public.model_runs add column updated_at timestamptz;
+alter table public.model_runs add column if not exists updated_at timestamptz;
+update public.model_runs set updated_at = created_at where updated_at is null;
+alter table public.model_runs alter column updated_at set default now(), alter column updated_at set not null;
 revoke all on public.flock_audit_events from public, anon, authenticated;
 grant select on public.flock_audit_events to authenticated;
 -- Protect history and children from physical deletion of the parent.
 alter table public.flock_audit_events drop constraint flock_audit_events_flock_id_fkey,
-  add foreign key(flock_id) references public.flocks(id) on delete restrict;
+  add constraint flock_audit_events_flock_id_fkey foreign key(flock_id) references public.flocks(id) on delete no action deferrable initially deferred;
+create index flock_audit_events_owner_created_at_idx on public.flock_audit_events(owner_id, created_at desc);
 
 create function public.apply_flock_change(p_table text,p_id uuid,p_base uuid,p_mutation uuid,p_operation text,p_payload jsonb)
-returns jsonb language plpgsql security definer set search_path = pg_catalog as $$
+returns jsonb language plpgsql security definer set search_path = '' as $
 declare
   actor uuid := auth.uid();
   parent uuid;
@@ -85,11 +88,11 @@ begin
     returning * into receipt;
   return to_jsonb(receipt);
 end $$;
-revoke all on function public.apply_flock_change(text,uuid,uuid,uuid,text,jsonb) from public, anon;
+revoke all on function public.apply_flock_change(text,uuid,uuid,uuid,text,jsonb) from public, anon, authenticated;
 grant execute on function public.apply_flock_change(text,uuid,uuid,uuid,text,jsonb) to authenticated;
 
 -- Existing batch writers also share the parent lock with archival.
-create function public.require_active_batch_parent() returns trigger language plpgsql set search_path=pg_catalog as $$
+create function public.require_active_batch_parent() returns trigger language plpgsql set search_path='' as $
 begin
   perform pg_advisory_xact_lock(hashtextextended(new.flock_id::text,0));
   if not exists(select from public.flocks where id=new.flock_id and owner_id=new.owner_id and deleted_at is null)
@@ -100,7 +103,7 @@ create trigger batch_parent_lifecycle before insert or update of flock_id,owner_
 for each row execute function public.require_active_batch_parent();
 
 create table public.reader_import_archives(
-  id uuid primary key, owner_id uuid not null default auth.uid() references auth.users,
+  id uuid primary key, owner_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
   bytes bytea not null, sha256 text not null check (sha256=encode(pg_catalog.sha256(bytes),'hex')),
   byte_size integer not null check(byte_size=octet_length(bytes) and byte_size between 1 and 5242880),
   file_name text not null, mime_type text not null, parser_version text not null,
@@ -110,5 +113,6 @@ alter table public.reader_import_archives enable row level security;
 revoke all on public.reader_import_archives from public,anon,authenticated;
 grant select on public.reader_import_archives to authenticated;
 grant insert(id,bytes,sha256,byte_size,file_name,mime_type,parser_version,mapping,metadata) on public.reader_import_archives to authenticated;
+create index reader_import_archives_owner_imported_at_idx on public.reader_import_archives(owner_id, imported_at desc);
 create policy archive_read on public.reader_import_archives for select to authenticated using(owner_id=(select auth.uid()));
 create policy archive_add on public.reader_import_archives for insert to authenticated with check(owner_id=(select auth.uid()));

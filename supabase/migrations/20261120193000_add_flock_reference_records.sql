@@ -77,19 +77,23 @@ create index flock_vaccination_events_flock_date_idx on public.flock_vaccination
 create index flock_clinical_observations_flock_date_idx on public.flock_clinical_observations(flock_id, observed_at desc);
 create index flock_time_series_flock_metric_date_idx on public.flock_time_series(flock_id, metric, observed_at desc);
 create index flock_audit_events_flock_date_idx on public.flock_audit_events(flock_id, created_at desc);
+-- RLS and sync list queries filter by owner_id; keep owner-scoped scans indexable.
+create index flock_vaccination_events_owner_id_id_idx on public.flock_vaccination_events(owner_id, id);
+create index flock_clinical_observations_owner_id_id_idx on public.flock_clinical_observations(owner_id, id);
+create index flock_time_series_owner_id_id_idx on public.flock_time_series(owner_id, id);
+create index flock_audit_events_owner_created_at_idx on public.flock_audit_events(owner_id, created_at desc);
 
-do $$
+do $
 declare t text;
 begin
   foreach t in array array['flock_vaccination_events','flock_clinical_observations','flock_time_series','flock_audit_events'] loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy %I on public.%I for select to authenticated using (owner_id = (select auth.uid()))', t || '_select_own', t);
-    execute format('create policy %I on public.%I for insert to authenticated with check (owner_id = (select auth.uid()) and exists (select 1 from public.flocks f where f.id = flock_id and f.owner_id = (select auth.uid())))', t || '_insert_own', t);
-    execute format('create policy %I on public.%I for update to authenticated using (owner_id = (select auth.uid()) and exists (select 1 from public.flocks f where f.id = flock_id and f.owner_id = (select auth.uid()))) with check (owner_id = (select auth.uid()) and exists (select 1 from public.flocks f where f.id = flock_id and f.owner_id = (select auth.uid())))', t || '_update_own', t);
-    execute format('create policy %I on public.%I for delete to authenticated using (owner_id = (select auth.uid()))', t || '_delete_own', t);
-    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    -- Writes are deliberately available only through the audited SECURITY DEFINER RPC
+    -- introduced by the following migration; do not grant direct table mutations.
+    execute format('grant select on public.%I to authenticated', t);
   end loop;
-end $$;
+end $;
 
 drop trigger if exists flock_vaccination_events_set_updated_at on public.flock_vaccination_events;
 create trigger flock_vaccination_events_set_updated_at before update on public.flock_vaccination_events for each row execute function public.set_updated_at();
