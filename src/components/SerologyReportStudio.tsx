@@ -69,18 +69,23 @@ function Trend({runs,selected,vaccinationEvents}:{runs:LocalModelRun[];selected:
  const cvLo=Math.min(...validCv.map(z=>z.cv as number)),cvHi=Math.max(...validCv.map(z=>z.cv as number)),cvSpan=cvHi-cvLo||1
  const cvPoints=validCv.map((z,k)=>({x:40+k*440/Math.max(1,validCv.length-1),y:125-((z.cv as number)-cvLo)/cvSpan*90}))
  const vals=stats.map(z=>z.trend),lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1
- const points=stats.map((z,k)=>({x:40+k*440/Math.max(1,stats.length-1),y:125-(z.trend-lo)/span*90}))
+ const sampleTimes=stats.map(z=>Date.parse(z.date+'T00:00:00Z')).filter(Number.isFinite)
+ const minTime=Math.min(...sampleTimes),maxTime=Math.max(...sampleTimes),timeSpan=maxTime-minTime||1
+ const xAt=(value:string)=>40+(Date.parse(value+'T00:00:00Z')-minTime)/timeSpan*440
+ const points=stats.map(z=>({x:xAt(z.date),y:125-(z.trend-lo)/span*90}))
  const diseaseName=(v:string)=>({ND:'نیوکاسل',AIV:'آنفلوانزا',IBV:'برونشیت',IBD:'گامبورو'} as Record<string,string>)[v]||v
+ const eventMarkers=events.filter(e=>e.date&&Number.isFinite(Date.parse(e.date+'T00:00:00Z'))&&Date.parse(e.date+'T00:00:00Z')>=minTime&&Date.parse(e.date+'T00:00:00Z')<=maxTime).map((e,k)=>({...e,x:xAt(e.date),short:e.disease,index:k}))
  return <div className="trend-context">
   <section className="srs-chart-card">
    <h4>روند توصیفی نوبت‌های هم‌آزمون</h4>
    {rs.length>=2?<>
     {demoPair&&<p className="srs-demo">این روند فقط برای داده‌های شبیه‌سازی‌شده همین مجموعه آموزشی مجاز شده است؛ مقایسه با داده واقعی یا استنباط بالینی مجاز نیست.</p>}
-    <svg className="srs-chart" viewBox="0 0 520 165" role="img" aria-label="روند تیترها در نوبت‌های هم‌آزمون">
+    <svg className="srs-chart" viewBox="0 0 520 165" role="img" aria-label="روند تیترها با نشانگرهای زمانی واکسن">
+     {eventMarkers.map((e)=><g key={e.id||e.date+'-'+e.short+'-'+e.index}><line x1={e.x} x2={e.x} y1="8" y2="137" stroke="#b77928" strokeWidth="1.5" strokeDasharray="4 4" opacity=".75"/><text x={e.x} y={16+(e.index%3)*11} textAnchor="middle" fontSize="9" fill="#b77928">{e.short}</text></g>)}
      <polyline points={points.map(p=>p.x+','+p.y).join(' ')} fill="none" stroke="#287b55" strokeWidth="3"/>
      {points.map((p,k)=><g key={stats[k].run.id}><circle cx={p.x} cy={p.y} r="5" fill="#287b55"/><text x={p.x} y={p.y-10} textAnchor="middle" fontSize="10" fill="currentColor">{f(stats[k].trend)}</text><text x={p.x} y="151" textAnchor="middle" fontSize="9" fill="currentColor">{date(stats[k].date)}</text></g>)}
     </svg>
-    <p className="srs-note">مقیاس روند از snapshot هر نوبت گرفته می‌شود (log₂ برای تیترهای ratio-scale یا میانگین حسابی برای مقیاس‌های دیگر). روند توصیفی به‌تنهایی اثر واکسن، حفاظت یا علت تغییر تیتر را اثبات نمی‌کند.</p>
+    <p className="srs-note">مقیاس روند از snapshot هر نوبت گرفته می‌شود (log₂ برای تیترهای ratio-scale یا میانگین حسابی برای مقیاس‌های دیگر). خط‌چین‌های عمودی رویداد واکسن را در همان بازه زمانی نشان می‌دهند؛ نشانگرها هم‌مقیاس با تیتر نیستند. روند توصیفی به‌تنهایی اثر واکسن، حفاظت یا علت تغییر تیتر را اثبات نمی‌کند.</p>
    </>:<p className="srs-note">برای رسم روند تیتر، حداقل دو نوبت با همان گله، بیماری، روش، کیت، آنتی‌ژن، واحد، مقیاس و مشخصات فنی لازم است. QC مردود یا داده‌های غیرقابل‌مقایسه از نمودار کنار گذاشته می‌شوند.</p>}
   </section>
   <section className="srs-chart-card">
@@ -150,7 +155,7 @@ function FlockContext({run,vaccinationEvents,relatedRuns,flock}:{run:LocalModelR
  const platform=(v:string)=>({'live-conventional':'زنده متعارف',inactivated:'غیرفعال/کشته','immune-complex':'ایمنی‌کمپلکس','recombinant-vector':'وکتور نوترکیب',unknown:'نامشخص',other:'سایر'} as Record<string,string>)[v]||v
  const fields:[string,unknown][]=[
   ['وضعیت گله',hasSnapshot('status')?statusLabel(snapshot.status):observation?statusLabel(observation.status):''],
-  ['تاریخ آخرین مشاهده بالینی تا زمان نمونه‌گیری',observation?.observed_at?.slice(0,10)||''],
+  ['تاریخ آخرین مشاهده بالینی تا زمان نمونه‌گیری',observation?.observed_at?date(observation.observed_at.slice(0,10)):''],
   ['شروع علائم',pick('onsetDate','')],['علائم',pick('signs',observation?.signs||'')],
   ['درصد ابتلا',pick('morbidityPercent',observation?.morbidity_percent==null?'':observation.morbidity_percent+'٪')],
   ['تلفات تجمعی',pick('mortalityPercent',observation?.mortality_percent==null?'':observation.mortality_percent+'٪')],
