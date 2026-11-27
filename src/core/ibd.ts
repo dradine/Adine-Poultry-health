@@ -121,7 +121,7 @@ export function validateIbdDeventerProductGate(input: IbdDeventerProductGateInpu
   if (!input.breakthroughUnit?.trim()) errors.push('واحد دقیق BTT در برچسب محصول ثبت نشده است.')
   if (input.minimumVaccinationAgeDays === null || !Number.isFinite(input.minimumVaccinationAgeDays) || input.minimumVaccinationAgeDays < 0 || input.minimumVaccinationAgeDays > 365) errors.push('حداقل سن مجاز محصول در برچسب دقیق آن ثبت نشده است.')
   if (!input.labelVersion?.trim() || !input.sourceDocument?.trim()) errors.push('نسخه و سند برچسب محصول برای ردیابی BTT و حداقل سن ناقص است.')
-  if (!input.bttReferenceUrl || !/^https?:\\/\\//i.test(input.bttReferenceUrl)) errors.push('پیوند مرجع رسمی BTT محصول ثبت نشده است.')
+  if (!input.bttReferenceUrl || !(input.bttReferenceUrl.startsWith('https://') || input.bttReferenceUrl.startsWith('http://'))) errors.push('پیوند مرجع رسمی BTT محصول ثبت نشده است.')
   if (input.deventerMinimumSampleCount !== null && (!Number.isInteger(input.deventerMinimumSampleCount) || input.deventerMinimumSampleCount < 2 || !input.deventerSampleSizeBasis?.trim())) errors.push('حداقل تعداد نمونه یا مبنای مستند آن در رکورد محصول ناقص است.')
   return errors
 }
